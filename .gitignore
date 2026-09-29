@@ -1,0 +1,32 @@
+# Project-managed runtime/cache
+.modly-amd-runtime/
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# JavaScript / build output
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Local editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs / transient files
+*.log
+*.partial
+*.tmp
