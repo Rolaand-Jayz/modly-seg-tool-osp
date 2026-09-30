@@ -1,0 +1,18 @@
+FROM localhost/modly-amd-migraphx@sha256:64fb89f2167f56a7381529e8e4fb69b322c3685f9805ea301263477c25aa0554
+
+# The pinned upstream GeoSAM2 renderer uses the project's bundled Blender
+# 4.0.2 binary. Blender is headless here, but its official Linux build still
+# links these X11/GL sonames. Keep them inside a project-owned derivative image
+# rather than altering the host or the shared Ticket 02 runtime.
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       libx11-6 libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 \
+       libsm6 libice6 libxext6 libgl1 libegl1 libgbm1 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV LD_LIBRARY_PATH=/opt/rocm/lib:/usr/lib/x86_64-linux-gnu \
+    PYTHONPATH=/opt/rocm/lib \
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+WORKDIR /workspace

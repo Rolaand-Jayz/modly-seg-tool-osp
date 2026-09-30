@@ -1,0 +1,4 @@
+input_json=0
+container=1
+stdout_capture=130
+event_filter=130

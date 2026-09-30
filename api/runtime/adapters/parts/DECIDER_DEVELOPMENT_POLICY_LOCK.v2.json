@@ -1,0 +1,88 @@
+{
+  "candidate": "mindchain/decider-2b-vision-GGUF@8b93270a437ab78ec6853571650b30a7cc933f62:Q4_K_M+mmproj-F16",
+  "candidate_input_identity": {
+    "binary_mask_observations_passed_to_decider": false,
+    "candidate_id": "ticket05-source-authored-mask-v1",
+    "candidate_manifest": "candidate-development-manifest.json",
+    "input_manifest": "inputs-development.json",
+    "registered_geosam2_provenance_required": true,
+    "registered_segmentation_source_hashes_required": true,
+    "runtime_requires_exact_expected_sha256_for_both_manifests": true,
+    "segmentation_quality": "evaluated_separately",
+    "source_authored_mask_used_for_target_binding": true,
+    "source_mask_provenance": "source_authored_mesh_component"
+  },
+  "immutable_preconditions": {
+    "ambiguous_abstention_floor": 0.9,
+    "decision_precedence": "eligible I/J highest probability, I wins probability tie; otherwise highest A-H, letter-order tie",
+    "development_rows": 80,
+    "execution_path": "Modly identify-part-semantics process extension -> installed modly.semantic_adapters entry point; direct adapter invocation prohibited",
+    "full_registered_render_view_count": 12,
+    "heldout_access": "forbidden unless existing development evaluator report passes all frozen gates",
+    "input_manifest": "inputs-development.json only",
+    "native_context_prompt": "A single view of the same topology-bound part; other views are evaluated separately.",
+    "native_context_prompt_sha256": "sha256:df2343bc03b112324e18450c5983ba32f0d52393e480ca9aa7c8c6a215827d2e",
+    "raw_commit": "raw four-view and aggregate probabilities durably hashed before the development truth join",
+    "runner_precondition": "blocked until safe input manifests bind a valid StructuredAsset sidecar, geometry, face mapping, GeoSAM2 source chain, and part-scoped image/mask artifacts",
+    "semantic_view_ids": [
+      "view:0000",
+      "view:0003",
+      "view:0006",
+      "view:0009"
+    ],
+    "semantic_view_indices": [
+      0,
+      3,
+      6,
+      9
+    ],
+    "threshold_candidates": "unique development aggregate pI and pJ values plus nextafter(1.0,+infinity) reject-all boundary",
+    "threshold_eligibility": "inclusive probability >= threshold",
+    "threshold_objective": [
+      "unknown and ambiguous abstention floors",
+      "selective accuracy",
+      "supported coverage",
+      "macro recall",
+      "ascending (I,J) thresholds"
+    ],
+    "unknown_abstention_floor": 0.9,
+    "view_policy": "four ordered independent single-image calls; equal-weight mean of ten-way probabilities",
+    "views_per_object": 4
+  },
+  "locked_source_sha256": {
+    "api/runtime/adapters/parts/DECIDER_2B_VISION_GGUF_HARNESS_LOCK.json": "sha256:7df4fca24fb0c1a0c2ad5817e5e42b58f067d269caf9a1fed2b6349a7d065f05",
+    "api/runtime/adapters/parts/GEOSAM2_EMPTY_PROPOSAL_POLICY_LOCK.json": "sha256:b9edc844ec223c3d70c70ffdde0e3126803cdf07415ada3110d519b8a8175782",
+    "api/runtime/adapters/parts/decider_2b_local.py": "sha256:49284e808656a24e0078fff3fdbd4c88b04b8f034f08d8198a51f8be9b9f97fb",
+    "api/runtime/adapters/parts/decider_development_policy.py": "sha256:3919ae272dedf9a5a967a47730876d2a46dd82dfc8730e4f142c566ddf078089",
+    "api/runtime/adapters/parts/decider_development_runner.py": "sha256:1ec7b40e81ac669d4dc520ee7df0f215de2149a5287fb131dc4192fe0e00d799",
+    "api/runtime/adapters/parts/evidence/PROPOSED_TICKET05_DECIDER_DEVELOPMENT_PROTOCOL_AMENDMENT_2026-09-26.md": "sha256:bcf3361ce29e7f6767fb752fd5b86e0c0a85faaa4ae4963b0271f5f9728ef8d6",
+    "api/runtime/adapters/parts/fixtures/semantic-evaluation-contract-v1.json": "sha256:8343716a9445bf2cc481e48a887069e814a3cbae8da3ec8edbd37ec737c563ec",
+    "api/runtime/adapters/parts/fixtures/ticket05_semantic_fixture.py": "sha256:bf57e2cde466dcadc3af276534b2981187bc6eefc927859d382f48625611f41a",
+    "api/runtime/adapters/parts/fixtures/ticket05_source_mask_binding.py": "sha256:9f4a4079f5046ea3906dafd0d4fe2db6ebf5946e1d3be7ede485720f70b7c987",
+    "api/runtime/adapters/parts/geosam2.py": "sha256:ccfbc9b66f3e62b0c5e4d0117748332ae2936e7cf3474711a1956a0110657d92",
+    "api/runtime/adapters/parts/geosam2_empty_proposal_policy.py": "sha256:d7aaf939b57c7ba053a9c2249c5501db3d3c6d5ba15cf1467f6173761fcd1145",
+    "api/runtime/adapters/parts/process.py": "sha256:63e17296144f1bfaff4c192f0834be03dc3b28e6c549774cccccace584e9d02c",
+    "api/runtime/adapters/parts/score_ticket05_development.py": "sha256:dbf00a01a1269800bed322a3e246ebbd55cd432e0eccd5363210bc2e56849f66",
+    "api/runtime/adapters/parts/semantic_evaluator.py": "sha256:9e73262037c5a26eb03f437f0f4f31b6a132a19deb293c61610413ca45a540b2",
+    "api/runtime/adapters/parts/semantic_evidence.py": "sha256:a39528ca679f1d013323e29f0f840552aca11a347a71c03fbca5836c6a878d31",
+    "api/runtime/adapters/parts/ticket05_candidate_asset_preparation.py": "sha256:cb70b2a4a793ce17568a8f253f98e853dcc9def575babd5ca129954ddb4b2396",
+    "api/runtime/adapters/parts/ticket05_workflow_binding_assembler.py": "sha256:937a91ac76a3f1d77c741bb4048a3f2a06baa053f8c16c6d4be0b1251f26dba9",
+    "api/tests/test_ticket04_geosam2_empty_proposal_policy.py": "sha256:8cc6891ea3865ee7fabb957a9060a5685ffdd4e4b71e9dd4b22a53807a7f195f",
+    "api/tests/test_ticket05_asset_preparation.py": "sha256:429fa40cfb18e521692c36d23d4609c8867159bd7361ccd94aaa7b944c5d852c",
+    "api/tests/test_ticket05_decider_development_scorer.py": "sha256:8f8472d1963f0dfac0cd884b106be0b57406da3282da5e47adf4bddd16b9c979",
+    "api/tests/test_ticket05_runner_dispatch.py": "sha256:dc01f53abcc05d9333780d735f2a0e980e0a1faf500a90c8cacf6dac0dc28c1b",
+    "api/tests/test_ticket05_semantic_fixture.py": "sha256:57796e558fdf8d68ad75f7ed40c38df8af61587808daea1f5fa741c44dbc751b",
+    "api/tests/test_ticket05_source_mask_binding.py": "sha256:510dd81cc2852ce30abeab998ec43f0fb1d816962a37a2ac90dc4654b98af90c",
+    "api/tests/test_ticket05_workflow_binding_assembler.py": "sha256:4ced3c9417a9062d20f807812a43ef9760312dab53056f4dcc6a01cba478570d",
+    "scripts/modly-amd-runtime.sh": "sha256:9b5808f8e8b28cb39ca2f694a9f85caf2a7e320e1b763b2366760d66a6249c76",
+    "src/areas/workflows/nodes/identify-part-semantics/part-scoped-image-manifest-v1.json": "sha256:601653621a0ff0d9588627606429cb6e37cfa7d676f14f2096d2982445f5d7c8",
+    "src/areas/workflows/nodes/identify-part-semantics/processor.py": "sha256:2b32c2ccf83a8098b14947f0e9c0c60d707b3ccb8c77982721ff8460c99250a7",
+    "src/areas/workflows/nodes/reference-part-segmentation/processor.py": "sha256:721c1d71e9d6acd3ed9c95f2d56e02da4646429bc6bee2047e7d42eaa7e937df"
+  },
+  "schema": "modly.ticket05.decider-development-policy-lock.v2",
+  "status": "policy-frozen; successor source lock v2 binds reviewed registered-workflow dispatch checks; development scoring and heldout access remain gated",
+  "supersedes": {
+    "path": "api/runtime/adapters/parts/evidence/DECIDER_DEVELOPMENT_POLICY_LOCK_v1_original_2026-09-26.json",
+    "sha256": "sha256:92a842da29c81dc5a41b347f180e4ea261954f534ebf8a97490704e4a3c3798c"
+  }
+}

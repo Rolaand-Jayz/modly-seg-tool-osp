@@ -1,0 +1,53 @@
+FROM docker.io/rocm/pytorch@sha256:a223aee17aef5d21c3b9f63436dd19d27d1c665ec8b2f40011c9546cabae2a80
+
+ARG ROCM_DEVEL_VERSION=7.14.0
+ARG MIGRAPHX_COMMIT=4bcfe75b225e4e0b9387fe14645cb1c7216e6742
+ARG RBUILD_COMMIT=6b12f6a10c85a6fc2c0b906da6478d92b4957e29
+ARG TORCH_MIGRAPHX_COMMIT=e551a861cf8fc0865d81920fa6f53db210763eed
+ARG GPU_ARCH=gfx1100
+ARG ROCM_WHEEL_INDEX=https://repo.amd.com/rocm/whl-multi-arch/
+ARG ROCM_PATH=/opt/rocm
+ARG ROCM_SDK_ROOT=/opt/venv/lib/python3.12/site-packages/_rocm_sdk_devel
+ARG ROCM_CMAKE_PREFIX=/opt/venv/lib/python3.12/site-packages/_rocm_sdk_devel/lib/cmake
+ARG C_COMPILER=/opt/venv/bin/amdclang
+ARG CXX_COMPILER=/opt/venv/bin/amdclang++
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Keep the Python ABI and numerical dependencies compatible with AMD's
+# Python<3.13 torch_migraphx package constraints.
+RUN python -m pip install --index-url "${ROCM_WHEEL_INDEX}" \
+      "rocm[devel]==${ROCM_DEVEL_VERSION}" \
+    && rocm-sdk init \
+    && python -m pip install "numpy==1.26.4" "tabulate==0.9.0"
+
+# Build rbuild and MIGraphX from immutable source commits. rbuild's own
+# dependency recipes still resolve their declared source artifacts; see the
+# adjacent LOCK.md for the boundary of this lock.
+RUN git clone https://github.com/ROCm/rbuild.git /tmp/rbuild \
+    && git -C /tmp/rbuild checkout --detach "${RBUILD_COMMIT}" \
+    && python -m pip install /tmp/rbuild \
+    && git clone https://github.com/ROCm/AMDMIGraphX.git /tmp/AMDMIGraphX \
+    && git -C /tmp/AMDMIGraphX checkout --detach "${MIGRAPHX_COMMIT}" \
+    && cd /tmp/AMDMIGraphX \
+    && CMAKE_PREFIX_PATH="${ROCM_CMAKE_PREFIX}" rbuild build -d depend \
+       -DBUILD_TESTING=Off \
+       -DMIGRAPHX_ENABLE_GPU=On \
+       -DCMAKE_INSTALL_PREFIX="${ROCM_PATH}" \
+       -DCMAKE_PREFIX_PATH="${ROCM_CMAKE_PREFIX}" \
+       -DCMAKE_CXX_FLAGS="--rocm-path=${ROCM_SDK_ROOT}" \
+       --cc="${C_COMPILER}" --cxx="${CXX_COMPILER}" \
+       -DGPU_TARGETS="${GPU_ARCH}" \
+    && make -C build install \
+    && rm -rf /tmp/rbuild /tmp/AMDMIGraphX
+
+RUN git clone https://github.com/ROCm/torch_migraphx.git /tmp/torch_migraphx \
+    && git -C /tmp/torch_migraphx checkout --detach "${TORCH_MIGRAPHX_COMMIT}" \
+    && python -m pip install --no-build-isolation /tmp/torch_migraphx/py \
+    && rm -rf /tmp/torch_migraphx
+
+ENV LD_LIBRARY_PATH=/opt/rocm/lib \
+    PYTHONPATH=/opt/rocm/lib
+
+WORKDIR /workspace

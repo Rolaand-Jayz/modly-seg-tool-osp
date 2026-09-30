@@ -1,0 +1,130 @@
+{
+  "schema_id": "org.modly.material-identity-siglip2-artifact-lock",
+  "schema_version": "1.0.0",
+  "candidate_id": "google.siglip2.base-patch16-224",
+  "repository": "https://huggingface.co/google/siglip2-base-patch16-224",
+  "repository_revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+  "license": "Apache-2.0",
+  "license_evidence": "Official Google Hugging Face model repo metadata and official Google Big Vision repository default license statement",
+  "cache_directory": ".modly-amd-runtime/models/material-identity/siglip2",
+  "network_used_only_for_staging": true,
+  "model_loaded_or_executed": true,
+  "execution_scope": "single synthetic CPU-only image/text score; not a quality or AMD/GPU acceptance run",
+  "gpu_inference": false,
+  "quality_acceptance": false,
+  "execution_evidence": {
+    "result_path": ".modly-amd-runtime/results/siglip2-preflight/cpu-smoke.json",
+    "result_sha256": "5f184cb6b80941a9f0369487040aa52c52185961cb53303d94c6cde7443360cf",
+    "smoke_script_path": ".modly-amd-runtime/package-cache/siglip2/cpu_synthetic_smoke.py",
+    "smoke_script_sha256": "d07c010b7bc4b16676ed949b875fd8dc67d794ab2a8a71c9ed2bff51e3b74de4",
+    "container_network": "none",
+    "devices_mounted": [],
+    "container_cpu_limit": 2,
+    "container_invocation_controls": "podman run --network=none --rm --cpus=2; --device not supplied; read-only mounts for model files, package overlay, and smoke script; env HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HOME=/tmp/siglip2-hf-empty CUDA_VISIBLE_DEVICES= HIP_VISIBLE_DEVICES= ROCR_VISIBLE_DEVICES=; PYTHONPATH points to the mounted package overlay; python runs the mounted cpu_synthetic_smoke.py",
+    "model_mount": "read-only",
+    "offline_environment": ["HF_HUB_OFFLINE=1", "TRANSFORMERS_OFFLINE=1"],
+    "device": "cpu",
+    "processor_load_seconds": 1.494,
+    "model_load_seconds": 0.156,
+    "synthetic_image": {"mode": "RGB", "size": [224, 224], "rgb": [127, 127, 127]},
+    "processed_image_shape": [1, 3, 224, 224],
+    "processed_text_shape": [5, 64],
+    "logits_per_image_shape": [1, 5],
+    "raw_logits_per_image": [[-7.841547966003418, -7.652368545532227, -6.976719856262207, -5.407751083374023, -5.263084411621094]],
+    "peak_process_rss_bytes": 1923891200,
+    "post_run_model_sha256": "612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b",
+    "python_open_audit_observed_paths": ["/models/config.json", "/models/model.safetensors", "/models/preprocessor_config.json", "/models/tokenizer_config.json"],
+    "audit_limit": "Python open audit does not observe native tokenizer file access; tokenizer.json may be read by the native fast-tokenizer extension. All model files were mounted read-only."
+  },
+  "files": [
+    {
+      "path": "model.safetensors",
+      "source_git_oid": "aff60bf4990ccd2fc9de54afb14d8bd3580cdf8a",
+      "source_lfs_sha256": "612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b",
+      "bytes": 1500800904,
+      "local_sha256": "612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b",
+      "verified": true
+    },
+    {
+      "path": "config.json",
+      "source_git_oid": "c8cd2a20e58a738f44f267ae19f9568ff1095698",
+      "bytes": 253,
+      "local_sha256": "fe8b5fe6d5734360678fd71c11c21e1ea3364bd8598d34295d9206335973ffd7",
+      "verified": true
+    },
+    {
+      "path": "preprocessor_config.json",
+      "source_git_oid": "2e52d8e8492b5c496ae04c37bfa09760469fb18b",
+      "bytes": 394,
+      "local_sha256": "9b36b57ebaf20f09bf4c22100ccc21877ea6bfe5aead0c00c59f8af8ccefacfc",
+      "verified": true
+    },
+    {
+      "path": "special_tokens_map.json",
+      "source_git_oid": "8d6368f7e735fbe4781bf6e956b7c6ad0586df80",
+      "bytes": 636,
+      "local_sha256": "baec30ea10906f16adb8c18af7a34023002c1746542612b8b41c9f09e1351351",
+      "verified": true
+    },
+    {
+      "path": "tokenizer.json",
+      "source_git_oid": "16d02f7b98cf1fe1ee9bf04143543b2f188f2788",
+      "source_lfs_sha256": "cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322",
+      "bytes": 34363039,
+      "local_sha256": "cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322",
+      "verified": true
+    },
+    {
+      "path": "tokenizer.model",
+      "source_git_oid": "796efe9ab515c15e146ce7588e6d7b9b8134dbf8",
+      "source_lfs_sha256": "61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2",
+      "bytes": 4241003,
+      "local_sha256": "61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2",
+      "verified": true
+    },
+    {
+      "path": "tokenizer_config.json",
+      "source_git_oid": "d97c5412159422c3b56fbc99076b1dcc25dd7856",
+      "bytes": 47164,
+      "local_sha256": "14afe629fe4959b9e0d51e1852b8d9f7ad074f90a1a7125a4fcdd17f06e78fc8",
+      "verified": true
+    }
+  ],
+  "target_image": {
+    "name": "localhost/modly-amd-migraphx:ticket02",
+    "digest": "sha256:64fb89f2167f56a7381529e8e4fb69b322c3685f9805ea301263477c25aa0554",
+    "python": "3.12.3",
+    "torch": "2.11.0+rocm7.14.0",
+    "pillow": "12.3.0",
+    "transformers": null,
+    "tokenizers": null,
+    "safetensors": null,
+    "preflight_command": "podman --root $PWD/.modly-amd-runtime/storage --runroot $PWD/.modly-amd-runtime/run run --network=none --rm --userns=host --volume $PWD/.modly-amd-runtime/models/material-identity/siglip2:/models:ro --entrypoint python localhost/modly-amd-migraphx:ticket02 -c <package-version-query>",
+    "preflight_result": "PyTorch ROCm and Pillow present; Transformers, Tokenizers, and Safetensors are not installed",
+    "supported_dependency_floor": {
+      "transformers": ">=4.50.0 (official SigLIP2 documentation is available for v4.50.0)",
+      "tokenizers": ">=0.21,<0.22 (Transformers v4.50.0 dependency table)",
+      "safetensors": ">=0.4.3 (Transformers v4.50.0 dependency table)",
+      "pytorch": ">=2.0 (Transformers v4.50.0 documented test floor; image provides 2.11.0+rocm7.14.0)"
+    },
+    "synthetic_cpu_score_run": "passed one shape-checked synthetic score using the project-local offline wheel overlay; base image was not modified",
+    "preflight_package_overlay": {
+      "site_packages": ".modly-amd-runtime/package-cache/siglip2/site-packages",
+      "wheel_lock": ".modly-amd-runtime/package-cache/siglip2/WHEEL_LOCK.json",
+      "official_pypi_hash_verified": true,
+      "versions": {
+        "transformers": "4.50.0",
+        "tokenizers": "0.21.0",
+        "safetensors": "0.5.3",
+        "huggingface_hub": "0.28.1",
+        "regex": "2024.11.6",
+        "requests": "2.32.3",
+        "certifi": "2024.12.14",
+        "charset_normalizer": "3.4.1",
+        "idna": "3.10",
+        "urllib3": "2.3.0"
+      },
+      "wheel_hashes_match_official_pypi_json": true
+    }
+  }
+}

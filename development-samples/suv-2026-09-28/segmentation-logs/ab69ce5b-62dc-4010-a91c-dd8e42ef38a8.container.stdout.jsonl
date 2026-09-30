@@ -1,0 +1,2 @@
+{"type":"progress","percent":5,"label":"Validating mesh and topology revision"}
+{"type":"error","code":"GEOSAM2_RENDERER_NOT_READY","stage_id":"reference-part-segmentation","message":"project-local GeoSAM2 renderer is missing"}

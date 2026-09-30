@@ -1,0 +1,34 @@
+{
+  "format": "modly-p3sam-auto-mask-source-overlay-v1",
+  "upstream_revision": "e96be065375438962375b55326416291342958a7",
+  "module": "auto_mask",
+  "source_path": "P3-SAM/demo/auto_mask.py",
+  "source_sha256": "8fea0b770880462c97e5bedab017b6b36f447d0c88cc6adaaa55cfa5f362dea8",
+  "operation": "defer_debug_pca_and_replace_numba_adjacency_and_fpsample",
+  "removed_module_import": "from sklearn.decomposition import PCA",
+  "inserted_debug_import": "from sklearn.decomposition import PCA",
+  "removed_numba_imports": ["import numba", "from numba import njit"],
+  "replaced_function": "build_adjacent_faces_numba",
+  "debug_flag": "save_mid_res",
+  "missing_dependency_error": "SKLEARN_REQUIRED_FOR_P3SAM_DEBUG_PCA",
+  "numerical_implementation_changed": true,
+  "face_adjacency": {
+    "source_operation": "build_adjacent_faces_numba",
+    "source_semantics_preserved": true,
+    "provider": "runtime.adapters.parts.p3sam_face_adjacency.build_adjacent_faces_numba",
+    "requires_numba": false
+  },
+  "fpsample": {
+    "upstream_release": "1.0.2",
+    "upstream_sdist_sha256": "5e25f97c03412d243767fb9e47f7b6d6c736c7ce1e9d51918894e3fd327749f2",
+    "upstream_commit": "4124a21dc664c3ee745e3083833d310da814453b",
+    "upstream_python_source_sha256": "dbfbf125c8b5ab3c7088b2f2a8500f0b5ea38e2ecad42684f47ea8d8c0338281",
+    "upstream_native_source_sha256": "e046e2aec05284c9abe06e140dc7d4901cd331749c8da23852657e5a0a0ab6cc",
+    "adapter_provider": "runtime.adapters.parts.p3sam_fpsample.fps_sampling",
+    "adapter_source_sha256": "969d2156d5fcef82fef6bc6190128d52e7db4029d2f4f89eb9d63f3743258474",
+    "source_semantics_preserved": true,
+    "global_rng_consumption_preserved": true,
+    "supported_start_indices": "default None or a single Python int; observed P3-SAM path",
+    "unsupported_start_indices": ["list of starts", "non-Python-int scalar"]
+  }
+}

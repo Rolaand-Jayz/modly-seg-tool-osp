@@ -1,0 +1,53 @@
+{
+  "schema_id": "org.modly.material-identity-model-lock",
+  "schema_version": "1.0.0",
+  "candidate_id": "apple.dms46.v1",
+  "source": {
+    "repository": "https://github.com/apple-aiml-research/ml-dms-dataset",
+    "revision": "a379a63e9435e32134a465eb31ecb0aefebed985",
+    "entrypoints": ["inference.py", "taxonomy.json", "LICENSE.txt"],
+    "pinned_source_files": {
+      "README.md": {"git_blob_sha1": "183be6b0cf4ba9b83797083638d37a2233dfdffe"},
+      "inference.py": {"git_blob_sha1": "3ad28e91df452777e7712b25f6a8c88166114a6d"},
+      "LICENSE.txt": {"git_blob_sha1": "44998acc05c8efb7aadbf70d7a6fb8604a280994"},
+      "environment.yaml": {"git_blob_sha1": "c9fd6ff3941b5be23b74d4530197d8ecfa7a7a73"}
+    }
+  },
+  "model_archive": {
+    "url": "https://docs-assets.developer.apple.com/ml-research/datasets/dms/dms46_v1.zip",
+    "publisher_advertised_size": "170 MB",
+    "path": ".modly-amd-runtime/models/dms46/dms46_v1.zip",
+    "status": "staged-and-hash-verified",
+    "bytes": 173688250,
+    "sha256": "3aa3645927148e9ed64571bcbd6997efcc07378eb14690db328b5530de8460c1",
+    "zip_member_count": 1,
+    "zip_member": "DMS46_v1.pt",
+    "zip_member_uncompressed_bytes": 187516330,
+    "zip_crc32": "b4e8b923"
+  },
+  "model_weights": {
+    "file": "DMS46_v1.pt",
+    "path": ".modly-amd-runtime/models/dms46/DMS46_v1.pt",
+    "format": "TorchScript archive; statically inspected only",
+    "status": "staged-and-hash-verified-not-loaded",
+    "bytes": 187516330,
+    "sha256": "4261c0d88922c48116c4f5c4d5a04f6be25077d5b6840b2ff7f0aa068b5d9421"
+  },
+  "taxonomy": {
+    "source_revision": "a379a63e9435e32134a465eb31ecb0aefebed985",
+    "path": "cache/taxonomy.json",
+    "bytes": 9157,
+    "sha256": "5fb9f5b6d81b800468db78532a9284f060ddc2e2a44b8214658be797029439ea"
+  },
+  "license": {
+    "dataset": "CC-BY-NC-4.0",
+    "model": "Apple Software License at pinned source revision; personal, non-exclusive grant and required terms; deployment/use review remains open",
+    "original_rgb_images": "separately licensed by their respective sources",
+    "deployment_review": "required before inference"
+  },
+  "execution": {
+    "target": "RX 7900 GRE gfx1100 16 GiB",
+    "amd_runtime": "localhost/modly-amd-migraphx:ticket02",
+    "probe_status": "weights-staged-and-hashed; not-run-waits-for-license-review-and-ticket03-04-gpu-slot"
+  }
+}

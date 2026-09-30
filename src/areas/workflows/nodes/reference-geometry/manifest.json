@@ -1,0 +1,51 @@
+{
+  "id": "reference-geometry",
+  "name": "Generate Geometry",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Generates a validated glTF geometry artifact from one source image and registers its Structured Asset provenance.",
+  "capabilities": [
+    {
+      "capability_id": "generate-geometry",
+      "contract_version": "1.0.0",
+      "inputs": ["observation"],
+      "outputs": ["geometry", "structured-asset", "stage-artifacts"],
+      "adapter_id": "modly.geometry.reference",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "generate-geometry",
+      "name": "Generate Geometry",
+      "input": "image",
+      "output": "mesh",
+      "params_schema": [
+        {
+          "id": "detail_level",
+          "label": "Geometry Detail",
+          "type": "select",
+          "default": "balanced",
+          "options": [
+            { "value": "draft", "label": "Draft" },
+            { "value": "balanced", "label": "Balanced" },
+            { "value": "high-detail", "label": "High Detail" }
+          ],
+          "tooltip": "Choose the geometry detail profile supported by the installed reference generator."
+        },
+        {
+          "id": "seed",
+          "label": "Random Seed",
+          "type": "int",
+          "default": -1,
+          "min": -1,
+          "max": 2147483647,
+          "tooltip": "Use -1 for the adapter's non-seeded policy; use a nonnegative value for a repeatable sampling seed when supported."
+        }
+      ]
+    }
+  ]
+}

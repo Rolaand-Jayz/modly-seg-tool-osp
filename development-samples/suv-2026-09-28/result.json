@@ -1,0 +1,245 @@
+{
+  "elapsed_seconds": 221.248,
+  "result": {
+    "filePath": "GeneratedGeometry/6d11c55c-1ef1-4550-b8f1-ffda20dc111a.glb",
+    "stageOutputArtifact": {
+      "artifact_id": "sha256:a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a",
+      "digest": "sha256:a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a",
+      "media_type": "model/gltf-binary",
+      "workspace_path": "GeneratedGeometry/6d11c55c-1ef1-4550-b8f1-ffda20dc111a.glb"
+    },
+    "structuredAsset": {
+      "assertions": [],
+      "asset_id": "7d1c61a9-4155-4128-b96f-f0866f9b7dee",
+      "coordinate_frame": {
+        "basis": "glTF 2.0: +Y up, +Z forward",
+        "handedness": "right",
+        "transforms": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "units": "meters"
+      },
+      "corrections": [],
+      "geometry": {
+        "artifact_id": "sha256:a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a",
+        "digest": "sha256:a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a",
+        "media_type": "model/gltf-binary",
+        "workspace_path": "GeneratedGeometry/6d11c55c-1ef1-4550-b8f1-ffda20dc111a.glb"
+      },
+      "mappings": [],
+      "material_regions": [],
+      "object_components": [
+        {
+          "component_id": "gltf-node:0",
+          "local_transform": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "mesh_indices": [],
+          "name": "world",
+          "parent_component_id": null,
+          "source_node_index": 0
+        },
+        {
+          "component_id": "gltf-node:1",
+          "local_transform": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "mesh_indices": [
+            0
+          ],
+          "name": "geometry_0",
+          "parent_component_id": "gltf-node:0",
+          "source_node_index": 1
+        }
+      ],
+      "part_segments": [],
+      "provenance": {
+        "adapter_id": "modly.geometry.hunyuan-mini-turbo",
+        "adapter_revision": "sha256:6199e7ad2245eebda8b36c48dd97ca22f32d77724fc095e545ac9f607f087295",
+        "adapter_trust": "pinned-reference",
+        "backend": "pytorch_rocm",
+        "device": "AMD Radeon RX 7900 GRE / gfx1100",
+        "endpoint": null,
+        "evidence_source": "model",
+        "input_digests": [
+          "sha256:f5092fde7f8a18a2f0660fea6ac157c3826a7fdc485874e74ea91694aa8381af"
+        ],
+        "locality": null,
+        "model_id": "tencent.Hunyuan3D-2mini.shape",
+        "parameters": {
+          "box_v": 1.01,
+          "detail_level": "balanced",
+          "elapsed_ms": 100877.12451700645,
+          "geometry_evidence": "model-inferred-from-single-observation; unseen surfaces are inferred",
+          "guidance_scale": 5.0,
+          "mc_algorithm": "scikit-image Lewiner marching cubes on CPU",
+          "mc_level": 0.0,
+          "model_cpu_offload": true,
+          "model_load_ms": 46685.936963011045,
+          "neural_module_runtime": {
+            "backend": "pytorch_rocm",
+            "baseline_latency_ms": 418.3609070023522,
+            "candidate_latency_ms": null,
+            "compile_latency_ms": null,
+            "compile_outcome": "not_requested",
+            "fallback_reason": null,
+            "module": "hunyuan-miniturbo-denoiser",
+            "peak_vram_bytes": 1552172544,
+            "reused_migraphx_rejection": {
+              "compile_outcome": "rejected_slow",
+              "device": "AMD Radeon RX 7900 GRE / gfx1100",
+              "evidence": "api/runtime/adapters/geometry/evidence/hunyuan-offload-chair-run1/runtime-report.json",
+              "migraphx_latency_ms": 692.8205073333326,
+              "min_speedup": 1.0,
+              "model_identity": "tencent.Hunyuan3D-2mini.shape",
+              "pytorch_rocm_latency_ms": 418.0370923331793,
+              "weights_identity": "tencent/Hunyuan3D-2mini@f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6"
+            },
+            "routing_basis": "explicit PyTorch ROCm route; same source/weights/device had a slower MIGraphX result in the immediately preceding bounded chair run",
+            "runtime_versions": {
+              "migraphx": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+              "native_extensions": "libmigraphx_c.so.3.0@sha256:280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8;libmigraphx_py.so@sha256:fd0c7d7a20d61dcfd002cc38eb14bb53c9b3b399493462c63db797100166bd2b;libmigraphx_py_3.12.so@sha256:125c68924489b981f5fca3ccd96555ba6f065dd7f4f098b4d7c19575ef348d97;libmigraphx.so.2016000.0@sha256:6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087;libmigraphx_device.so.2016000.0@sha256:9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca;libmigraphx_gpu.so.2016000.0@sha256:28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0;libmigraphx_onnx.so.2016000.0@sha256:5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8;libmigraphx_ref.so.2016000.0@sha256:2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e;libmigraphx_tf.so.2016000.0@sha256:f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819;migraphx.cpython-312-x86_64-linux-gnu.so@sha256:1f5512dd15c7865cfc002bace2ece4902725d276a4d5733dcfddd57a1328b0dc",
+              "platform": "Linux-7.2.8-1-cachyos-x86_64-with-glibc2.39",
+              "python": "3.12.3",
+              "rocm": "7.14.60850",
+              "torch": "2.11.0+rocm7.14.0",
+              "torch-migraphx": "1.2",
+              "triton-rocm": null
+            },
+            "warm_latency_ms": 417.52020266721956
+          },
+          "num_chunks": 8000,
+          "num_inference_steps": 50,
+          "octree_resolution": 384,
+          "peak_vram_bytes": 2609977344,
+          "pinned_source_archive_sha256": "sha256:52b7c9647e457f9b4055e3488e06e675117eae01d6c48b28d8ec1b869a697b2c",
+          "pinned_weight_files": {
+            "dit": "sha256:bdbcef30dd0149a281e17d5b5b1fdad1122c904e098a42f3100e04e03c247bc4",
+            "vae": "sha256:5dcaca67a8da9e7079fb7b55714a572d0651ac95983bb43099913feaf6738f94"
+          },
+          "seed": 1337,
+          "unseen_surfaces": "model-inferred, not observed"
+        },
+        "provider_id": null,
+        "provider_kind": null,
+        "run_id": "6d11c55c-1ef1-4550-b8f1-ffda20dc111a",
+        "runtime": "PyTorch ROCm",
+        "seed": 1337,
+        "source_observation_ids": [
+          "sha256:f5092fde7f8a18a2f0660fea6ac157c3826a7fdc485874e74ea91694aa8381af"
+        ],
+        "stage_id": "generate-geometry",
+        "upstream_repository": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2",
+        "upstream_revision": "f8db63096c8282cb27354314d896feba5ba6ff8a",
+        "weights_digest": "sha256:b8c2fba95c879e92d0311dc045591857b2986b28f5b0cb09f2e83c9ace2bde71",
+        "weights_id": "tencent/Hunyuan3D-2mini@f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6:dit+vae"
+      },
+      "schema_id": "org.modly.structured-asset",
+      "schema_version": "1.0.0",
+      "source_observations": [
+        {
+          "artifact_id": "sha256:f5092fde7f8a18a2f0660fea6ac157c3826a7fdc485874e74ea91694aa8381af",
+          "digest": "sha256:f5092fde7f8a18a2f0660fea6ac157c3826a7fdc485874e74ea91694aa8381af",
+          "media_type": "image/png",
+          "workspace_path": "development-samples/suv-2026-09-28/source.png"
+        }
+      ],
+      "stage_artifacts": [
+        {
+          "artifact": {
+            "artifact_id": "sha256:a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a",
+            "digest": "sha256:a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a",
+            "media_type": "model/gltf-binary",
+            "workspace_path": "GeneratedGeometry/6d11c55c-1ef1-4550-b8f1-ffda20dc111a.glb"
+          },
+          "stage_id": "generate-geometry"
+        }
+      ],
+      "topology_counts": {
+        "face_count": 1108620,
+        "mesh_count": 1,
+        "primitive_count": 1,
+        "vertex_count": 554053
+      },
+      "topology_revision": "sha256:736633a380a92251b9e1a9b93fecc3175551e5c7fd29005623001dffce64203c",
+      "uv_convention": null,
+      "validation_state": "valid"
+    },
+    "structuredAssetPath": "StructuredAssets/runs/6d11c55c-1ef1-4550-b8f1-ffda20dc111a/7d1c61a9-4155-4128-b96f-f0866f9b7dee.structured-asset.json"
+  },
+  "silhouette": {
+    "background_rgb": null,
+    "intersection_pixels": 128367,
+    "iou": 0.770348366189576,
+    "rendered_pixels": 153475,
+    "source_pixels": 141527,
+    "union_pixels": 166635,
+    "viewport": "512x512; +Z view onto XY; FIT_FRACTION=0.90"
+  },
+  "status": "done"
+}

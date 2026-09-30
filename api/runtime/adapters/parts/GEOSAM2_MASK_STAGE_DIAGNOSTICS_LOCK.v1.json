@@ -1,0 +1,6 @@
+{
+  "module": "geosam2_mask_stage_diagnostics.py",
+  "module_sha256": "0646580b926b4172a6394acc45e4e25dc525b81b57198c885e3b650516ac9eee",
+  "schema": "modly.geosam2-mask-stage-diagnostics/1",
+  "schema_name": "modly.ticket04.geosam2-mask-stage-diagnostics-lock.v1"
+}

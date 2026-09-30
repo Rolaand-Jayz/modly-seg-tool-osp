@@ -1,0 +1,26 @@
+{
+  "complete_face_partition_gate": "unchanged",
+  "complete_labels_ast_sha256": "68c0019ce02cc78e1350e1cee1966d1cbd56ba5a28b7d7660fb12b22f455cd80",
+  "derived_confidence": {
+    "state": "unknown"
+  },
+  "derived_label_artifact": true,
+  "module": "geosam2_unassigned_completion_policy.py",
+  "module_sha256": "8cb50369081fe43412b6c2867104745f3e304c002e4cfc6925c30e015fd06779",
+  "policy_id": "complete-geosam2-unassigned-via-pinned-routine-v1",
+  "raw_output_preserved": true,
+  "replacement_unlabeled_value": 0,
+  "routine_parameters": {
+    "PA": 0.02,
+    "smooth_type": "adjacent"
+  },
+  "schema": "modly.ticket04.geosam2-unassigned-completion-policy.v1",
+  "sentinel_fill_mask_artifact": true,
+  "sentinels": [
+    -1,
+    999
+  ],
+  "upstream_file": "utils/inference_utils.py",
+  "upstream_repository": "https://github.com/VAST-AI-Research/GeoSAM2.git",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c"
+}

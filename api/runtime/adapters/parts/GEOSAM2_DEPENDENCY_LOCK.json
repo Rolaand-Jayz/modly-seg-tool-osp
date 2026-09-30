@@ -1,0 +1,204 @@
+{
+  "candidate": "VAST-AI-Research/GeoSAM2@b5de23c60ab487d407b623d394a1614f9714761c",
+  "cuda_extension": "disabled with GEOSAM2_BUILD_CUDA=0",
+  "network_policy": "package acquisition only into project cache; import and execution preflights use --network=none",
+  "packages": [
+    {
+      "distribution": "hydra-core-1.3.2",
+      "installed_tree": {
+        "aggregate_content_sha256": "c6ba9366a7f79c71fbfab2eee64d1d3f671ebfc758eb24e050dd3fe667dbe3a7",
+        "bytes": 1234247,
+        "file_count": 221,
+        "path": ".modly-amd-runtime/package-cache/geosam2/site-packages/hydra"
+      },
+      "metadata": {
+        "Home-page": [
+          "https://github.com/facebookresearch/hydra"
+        ],
+        "License": [
+          "MIT"
+        ],
+        "Name": [
+          "hydra-core"
+        ],
+        "Version": [
+          "1.3.2"
+        ]
+      },
+      "source_origin": "wheel artifact pinned by SHA-256 in this lock",
+      "wheel": {
+        "bytes": 154547,
+        "filename": "hydra_core-1.3.2-py3-none-any.whl",
+        "sha256": "fa0238a9e31df3373b35b0bfb672c34cc92718d21f81311d8996a16de1141d8b"
+      }
+    },
+    {
+      "distribution": "omegaconf-2.3.0",
+      "installed_tree": {
+        "aggregate_content_sha256": "4d1ae111e8ff5de2b05a289a56744d3f3ece7f9111c6376122d55e0d5cb0e66d",
+        "bytes": 860822,
+        "file_count": 45,
+        "path": ".modly-amd-runtime/package-cache/geosam2/site-packages/omegaconf"
+      },
+      "metadata": {
+        "Home-page": [
+          "https://github.com/omry/omegaconf"
+        ],
+        "Name": [
+          "omegaconf"
+        ],
+        "Version": [
+          "2.3.0"
+        ]
+      },
+      "source_origin": "wheel artifact pinned by SHA-256 in this lock",
+      "wheel": {
+        "bytes": 79500,
+        "filename": "omegaconf-2.3.0-py3-none-any.whl",
+        "sha256": "7b4df175cdb08ba400f45cae3bdcae7ba8365db4d165fc65fd04b050ab63b46b"
+      }
+    },
+    {
+      "distribution": "iopath-0.1.9",
+      "installed_tree": {
+        "aggregate_content_sha256": "bc1072c55d4ce59f649e5318d92a16cc7635f31da2ac6a5c32c6fe6776d6d820",
+        "bytes": 225907,
+        "file_count": 20,
+        "path": ".modly-amd-runtime/package-cache/geosam2/site-packages/iopath"
+      },
+      "metadata": {
+        "Home-page": [
+          "https://github.com/facebookresearch/iopath"
+        ],
+        "License": [
+          "MIT licensed, as found in the LICENSE file"
+        ],
+        "Name": [
+          "iopath"
+        ],
+        "Version": [
+          "0.1.9"
+        ]
+      },
+      "source_origin": "wheel artifact pinned by SHA-256 in this lock",
+      "wheel": {
+        "bytes": 27367,
+        "filename": "iopath-0.1.9-py3-none-any.whl",
+        "sha256": "9058ac24f0328decdf8dbe209b33074b8702a3c4d9ba2f7801d46cb61a880b6e"
+      }
+    },
+    {
+      "distribution": "opencv-python-headless-4.11.0.86",
+      "installed_tree": {
+        "aggregate_content_sha256": "9dc3de0360d59df5eb3015a9380a23e684a459f0b1e2cb47dd26b839d70d3ea7",
+        "bytes": 76563879,
+        "file_count": 92,
+        "path": ".modly-amd-runtime/package-cache/geosam2/site-packages/cv2"
+      },
+      "metadata": {
+        "Home-page": [
+          "https://github.com/opencv/opencv-python"
+        ],
+        "License": [
+          "Apache 2.0"
+        ],
+        "Name": [
+          "opencv-python-headless"
+        ],
+        "Version": [
+          "4.11.0.86"
+        ]
+      },
+      "source_origin": "wheel artifact pinned by SHA-256 in this lock",
+      "wheel": {
+        "bytes": 49969856,
+        "filename": "opencv_python_headless-4.11.0.86-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "sha256": "0e0a27c19dd1f40ddff94976cfe43066fbbe9dfbb2ec1907d66c19caef42a57b"
+      }
+    },
+    {
+      "distribution": "trimesh-4.6.13",
+      "installed_tree": {
+        "aggregate_content_sha256": "deed2aac6a3e99473d4f368fefe6c6b724a6acef8ada935eef136648b8564139",
+        "bytes": 4016499,
+        "file_count": 251,
+        "path": ".modly-amd-runtime/package-cache/geosam2/site-packages/trimesh"
+      },
+      "metadata": {
+        "License": [
+          "The MIT License (MIT)"
+        ],
+        "Name": [
+          "trimesh"
+        ],
+        "Version": [
+          "4.6.13"
+        ]
+      },
+      "source_origin": "wheel artifact pinned by SHA-256 in this lock",
+      "wheel": {
+        "bytes": 712440,
+        "filename": "trimesh-4.6.13-py3-none-any.whl",
+        "sha256": "b20b4c3ff03d185ec5b2b0e3adce6e75d8d73508861f2c1be3e40ab47cf18fee"
+      }
+    },
+    {
+      "distribution": "portalocker-2.10.1",
+      "installed_tree": {
+        "aggregate_content_sha256": "34c02b78804b4fe2cbbf6136b25f2869ff27e630b767bdaecaec31d91d8f8916",
+        "bytes": 97045,
+        "file_count": 17,
+        "path": ".modly-amd-runtime/package-cache/geosam2/site-packages/portalocker"
+      },
+      "metadata": {
+        "License": [
+          "BSD-3-Clause"
+        ],
+        "Name": [
+          "portalocker"
+        ],
+        "Version": [
+          "2.10.1"
+        ]
+      },
+      "source_origin": "wheel artifact pinned by SHA-256 in this lock",
+      "wheel": {
+        "bytes": 18423,
+        "filename": "portalocker-2.10.1-py3-none-any.whl",
+        "sha256": "53a5984ebc86a025552264b459b46a2086e269b21823cb572f8f28ee759e45bf"
+      }
+    },
+    {
+      "distribution": "antlr4-python3-runtime-4.9.3",
+      "installed_tree": {
+        "aggregate_content_sha256": "56d48415f3b05410bb79719a4dd9453e2cae8c0c9a4527d48c0088728041aa5c",
+        "bytes": 902307,
+        "file_count": 112,
+        "path": ".modly-amd-runtime/package-cache/geosam2/site-packages/antlr4"
+      },
+      "metadata": {
+        "Home-page": [
+          "http://www.antlr.org"
+        ],
+        "License": [
+          "BSD"
+        ],
+        "Name": [
+          "antlr4-python3-runtime"
+        ],
+        "Version": [
+          "4.9.3"
+        ]
+      },
+      "source_origin": "copied from the existing project-owned Triposr overlay; installed tree hash is recorded; no source archive is claimed",
+      "wheel": null
+    }
+  ],
+  "python": "3.12.3",
+  "runtime_image": "localhost/modly-amd-migraphx:ticket02",
+  "runtime_image_id": "sha256:c96b56796c753d749cb02b31b88da7567c3712861d214bfe26452d21bd7e6b8d",
+  "schema_version": 1,
+  "source_tree_lock": "api/runtime/adapters/parts/GEOSAM2_SOURCE_LOCK.json",
+  "torch": "2.11.0+rocm7.14.0",
+  "transitive_and_os_closure": "Inherited from pinned project-owned AMD runtime image; see api/runtime/amd/LOCK.md for known transitive source reproducibility limits."
+}

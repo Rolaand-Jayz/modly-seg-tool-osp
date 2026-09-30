@@ -1,0 +1,38 @@
+{
+  "schema": "modly.ticket05.decider2b-gguf.asset-lock.v1",
+  "candidate": "mindchain/decider-2b-vision-GGUF",
+  "repository_revision": "8b93270a437ab78ec6853571650b30a7cc933f62",
+  "upstream_repository": "Mapika/decider-2b-vision",
+  "upstream_revision": "863e290863655f1d6b69324d77d09ac972d21609",
+  "declared_license": "Apache-2.0",
+  "rights_status": "partially_disclosed; model card lacks per-dataset license and item provenance audit",
+  "converter": "ggml-org/llama.cpp@9575389609d6f8437de0b205561a4824d217c409",
+  "assets": [
+    {
+      "filename": "decider-2b-vision.Q4_K_M.gguf",
+      "size_bytes": 1274396704,
+      "sha256": "eb5667fa86c45439c729da9d760c094b1af154573960559a2ecd92dde7797195",
+      "verified_local_path": ".modly-amd-runtime/models/decider-2b-vision-GGUF/decider-2b-vision.Q4_K_M.gguf",
+      "status": "downloaded; local size and SHA-256 match immutable publisher metadata"
+    },
+    {
+      "filename": "mmproj-decider-2b-vision-f16.gguf",
+      "size_bytes": 668227200,
+      "sha256": "4bbc8f570ad52331cd5594f252db37b5d473d507ef9a3d9b108c024e256dcc18",
+      "verified_local_path": ".modly-amd-runtime/models/decider-2b-vision-GGUF/mmproj-decider-2b-vision-f16.gguf",
+      "status": "downloaded; local size and SHA-256 match immutable publisher metadata"
+    }
+  ],
+  "runtime": {
+    "llama_cpp_source": ".modly-amd-runtime/source/llama.cpp-decider-9575389",
+    "build_backend": "HIP",
+    "target": "gfx1100",
+    "host_rocm_observed": "7.2.53211",
+    "project_pinned_rocm": "7.14.60850",
+    "status": "candidate-specific smoke only; host runtime is not the project-pinned container"
+  },
+  "synthetic_only": true,
+  "fixture_access": false,
+  "truth_access": false,
+  "ticket05_quality_claim": false
+}

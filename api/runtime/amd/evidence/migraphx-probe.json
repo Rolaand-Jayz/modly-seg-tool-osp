@@ -1,0 +1,116 @@
+{
+  "amd_only_runtime_check": {
+    "migraphx_identity": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+    "native_extension_identity": "libmigraphx_c.so.3.0@sha256:280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8;libmigraphx_py.so@sha256:fd0c7d7a20d61dcfd002cc38eb14bb53c9b3b399493462c63db797100166bd2b;libmigraphx_py_3.12.so@sha256:125c68924489b981f5fca3ccd96555ba6f065dd7f4f098b4d7c19575ef348d97;libmigraphx.so.2016000.0@sha256:6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087;libmigraphx_device.so.2016000.0@sha256:9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca;libmigraphx_gpu.so.2016000.0@sha256:28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0;libmigraphx_onnx.so.2016000.0@sha256:5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8;libmigraphx_ref.so.2016000.0@sha256:2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e;libmigraphx_tf.so.2016000.0@sha256:f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819;migraphx.cpython-312-x86_64-linux-gnu.so@sha256:1f5512dd15c7865cfc002bace2ece4902725d276a4d5733dcfddd57a1328b0dc",
+    "nvidia_python_distributions": [],
+    "status": "passed",
+    "torch_cuda_runtime": null
+  },
+  "architecture": "gfx1100",
+  "cuda_runtime": null,
+  "dense": {
+    "dtype": "float16",
+    "numerical_comparison": {
+      "atol": 0.005,
+      "rtol": 0.005,
+      "status": "passed"
+    },
+    "output_identity": "sha256:56f185354d8b72035f3225e9587f852898c9d9fee2cdaf7bfa8939a412dfc2f2",
+    "output_shape": [
+      1024,
+      1024
+    ],
+    "report": {
+      "adapter_revision": "amd-rocm7.14-migraphx-4bcfe75-torch-migraphx-e551a86",
+      "backend": "torch_migraphx",
+      "baseline_latency_ms": 3.7040757419045773,
+      "benchmark_repetitions": 31,
+      "candidate_latency_ms": 1.1810841934939456,
+      "compile_latency_ms": 3.2674440008122474,
+      "compile_outcome": "compiled",
+      "correctness_atol": 0.005,
+      "correctness_rtol": 0.005,
+      "cpu_fallback_material": null,
+      "cpu_fallback_policy": null,
+      "cpu_latency_budget_ms": null,
+      "device": "cuda",
+      "device_identity": "AMD Radeon RX 7900 GRE (gfx=gfx1100, index=0)",
+      "fallback_reason": null,
+      "input_artifact_identity": "sha256:82a3c2188a833be65cb6ea782462a09aa887e6575677f986481bbf35f21ef192",
+      "latency_ms": 1.1810841934939456,
+      "min_speedup": 1.0,
+      "model_identity": "fixture:dense-mlp-v1",
+      "module": "dense-mlp-fixture",
+      "peak_vram_bytes": 232820736,
+      "run_id": "ba41d555-6e92-41ed-a9c9-3e46d408d31c",
+      "runtime_versions": {
+        "migraphx": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+        "native_extensions": "libmigraphx_c.so.3.0@sha256:280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8;libmigraphx_py.so@sha256:fd0c7d7a20d61dcfd002cc38eb14bb53c9b3b399493462c63db797100166bd2b;libmigraphx_py_3.12.so@sha256:125c68924489b981f5fca3ccd96555ba6f065dd7f4f098b4d7c19575ef348d97;libmigraphx.so.2016000.0@sha256:6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087;libmigraphx_device.so.2016000.0@sha256:9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca;libmigraphx_gpu.so.2016000.0@sha256:28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0;libmigraphx_onnx.so.2016000.0@sha256:5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8;libmigraphx_ref.so.2016000.0@sha256:2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e;libmigraphx_tf.so.2016000.0@sha256:f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819;migraphx.cpython-312-x86_64-linux-gnu.so@sha256:1f5512dd15c7865cfc002bace2ece4902725d276a4d5733dcfddd57a1328b0dc",
+        "platform": "Linux-7.2.6-1-cachyos-x86_64-with-glibc2.39",
+        "python": "3.12.3",
+        "rocm": "7.14.60850",
+        "torch": "2.11.0+rocm7.14.0",
+        "torch-migraphx": "1.2",
+        "triton-rocm": null
+      },
+      "stage": "ticket02-dense-inference",
+      "weights_identity": "sha256:48baca6c213a78e2fb80cb0894685414659ee05f5a4a01b883c4a45651a2ee17"
+    }
+  },
+  "device": "AMD Radeon RX 7900 GRE",
+  "fallback": {
+    "dtype": "float32",
+    "numerical_comparison": {
+      "atol": 0.0002,
+      "rtol": 0.002,
+      "status": "passed"
+    },
+    "output_identity": "sha256:3a904c2da1964fe513ca39f0a0a90e859c908fa20ce3c689865ecf0dd8d553a5",
+    "output_shape": [
+      128,
+      512
+    ],
+    "reference_identity": "sha256:3a904c2da1964fe513ca39f0a0a90e859c908fa20ce3c689865ecf0dd8d553a5",
+    "report": {
+      "adapter_revision": "amd-rocm7.14-migraphx-4bcfe75-torch-migraphx-e551a86",
+      "backend": "pytorch_rocm",
+      "baseline_latency_ms": 0.35611054831421035,
+      "benchmark_repetitions": 31,
+      "candidate_latency_ms": 0.25662719347183743,
+      "compile_latency_ms": 0.6306610011961311,
+      "compile_outcome": "rejected_slow",
+      "correctness_atol": 0.0002,
+      "correctness_rtol": 0.002,
+      "cpu_fallback_material": null,
+      "cpu_fallback_policy": null,
+      "cpu_latency_budget_ms": null,
+      "device": "cuda",
+      "device_identity": "AMD Radeon RX 7900 GRE (gfx=gfx1100, index=0)",
+      "fallback_reason": "MIGraphX warm latency 0.2566 ms did not meet min_speedup 1000000.0000 against PyTorch ROCm 0.3561 ms",
+      "input_artifact_identity": "sha256:ffbc009fd9709195298f74519d9cdd51cce683689f6943ccc0e4b19790410e04",
+      "latency_ms": 0.3549706451585441,
+      "min_speedup": 1000000.0,
+      "model_identity": "fixture:dense-mlp-rejected-v1",
+      "module": "deliberately-rejected-dense-fixture",
+      "peak_vram_bytes": 244391936,
+      "run_id": "c2b79ca9-b2d6-46a5-a668-ccb8f8797e47",
+      "runtime_versions": {
+        "migraphx": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+        "native_extensions": "libmigraphx_c.so.3.0@sha256:280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8;libmigraphx_py.so@sha256:fd0c7d7a20d61dcfd002cc38eb14bb53c9b3b399493462c63db797100166bd2b;libmigraphx_py_3.12.so@sha256:125c68924489b981f5fca3ccd96555ba6f065dd7f4f098b4d7c19575ef348d97;libmigraphx.so.2016000.0@sha256:6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087;libmigraphx_device.so.2016000.0@sha256:9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca;libmigraphx_gpu.so.2016000.0@sha256:28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0;libmigraphx_onnx.so.2016000.0@sha256:5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8;libmigraphx_ref.so.2016000.0@sha256:2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e;libmigraphx_tf.so.2016000.0@sha256:f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819;migraphx.cpython-312-x86_64-linux-gnu.so@sha256:1f5512dd15c7865cfc002bace2ece4902725d276a4d5733dcfddd57a1328b0dc",
+        "platform": "Linux-7.2.6-1-cachyos-x86_64-with-glibc2.39",
+        "python": "3.12.3",
+        "rocm": "7.14.60850",
+        "torch": "2.11.0+rocm7.14.0",
+        "torch-migraphx": "1.2",
+        "triton-rocm": null
+      },
+      "stage": "ticket02-explicit-fallback",
+      "weights_identity": "sha256:0935fdfb8b51a2c79ea0d1d175aded6f850c2da5f9a7982f0b68e404adf953e5"
+    }
+  },
+  "hip": "7.14.60850",
+  "migraphx": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+  "nvidia_python_distributions": [],
+  "torch": "2.11.0+rocm7.14.0",
+  "torch_migraphx": "1.2"
+}

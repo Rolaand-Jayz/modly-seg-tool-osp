@@ -1,0 +1,1 @@
+PASS: all MIGraphX core/GPU/Python shared-library dependencies resolve; no NVIDIA/CUDA soname.

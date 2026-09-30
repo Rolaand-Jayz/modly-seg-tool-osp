@@ -1,0 +1,23 @@
+{
+  "format": "modly-p3sam-sonata-source-overlay-v1",
+  "upstream_revision": "e96be065375438962375b55326416291342958a7",
+  "module": "models.sonata.transform",
+  "source_path": "XPart/partgen/models/sonata/transform.py",
+  "source_sha256": "9e04bbadec8f7519463eb640ac316c55f9c20725d325e8a7b1046bbf246a779c",
+  "operation": "defer_scipy_imports_until_elastic_distortion_call",
+  "removed_module_imports": [
+    "import scipy",
+    "import scipy.ndimage",
+    "import scipy.interpolate",
+    "import scipy.stats"
+  ],
+  "inserted_method_imports": [
+    "import scipy",
+    "import scipy.ndimage",
+    "import scipy.interpolate",
+    "import scipy.stats"
+  ],
+  "missing_dependency_error": "SCIPY_REQUIRED_FOR_ELASTIC_DISTORTION",
+  "method": "ElasticDistortion.elastic_distortion",
+  "numerical_implementation_changed": false
+}

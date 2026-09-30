@@ -1,0 +1,27 @@
+{
+  "schema": "modly.ticket04.geosam2-image-encoder-stage-lock/1",
+  "source_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "model_revision": "ba92f5f50418f2fe9af1078448b63176df13b1ee",
+  "helper_sha256": "8b2bca468aad3d6cd9404c1286aa76f14d84c604893eff653165d4cd9eb8886d",
+  "lifecycle_lock_sha256": "b22098e3288229c231fecc0c6eab4bb8bdcc4fe65f6f62a932f3043934929297",
+  "boundary_lock_sha256": "969128a913f36c57a8830dcb6ff079d493057a7fe8b434e6d20832fccbf0d756",
+  "upstream_sources": {
+    "sam2/modeling/backbones/image_encoder.py": "16eaad232220386f510ca8dfab8655e63699977149a4daf9ce9c6f374e6777a9",
+    "sam2/modeling/backbones/hieradet.py": "03785581ca304d0451ae0df7a08ee0bf1e1dbe66fad285066e6b9ffc0d88d64f"
+  },
+  "capture_roles": [
+    "fresh_predictor",
+    "reused_predictor_after_reset",
+    "new_predictor_shared_model"
+  ],
+  "expected_block_count": 24,
+  "max_blocks": 32,
+  "capture_stages": [
+    "trunk.patch_embed.output",
+    "trunk.positional_embedding.output",
+    "trunk.blocks.0.input_after_position_add",
+    "trunk.blocks.0.output through trunk.blocks.23.output"
+  ],
+  "payloads_persisted": false,
+  "truth_access": "none"
+}

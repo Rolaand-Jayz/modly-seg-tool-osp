@@ -1,0 +1,9 @@
+{
+  "module": "geosam2_proposal_filter_diagnostics.py",
+  "module_sha256": "0394724d87162db9adb151c8b5201853264304770ddccfeeb02360f9717c48b2",
+  "schema": "modly.ticket04.geosam2-proposal-filter-diagnostics/2",
+  "schema_name": "modly.ticket04.geosam2-proposal-filter-diagnostics-lock.v1",
+  "upstream_generator_sha256": "cefa1934b0410119950514310728b811192e9f02584a479a7388bfe5a2e2bdac",
+  "upstream_repository": "https://github.com/VAST-AI-Research/GeoSAM2.git",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c"
+}

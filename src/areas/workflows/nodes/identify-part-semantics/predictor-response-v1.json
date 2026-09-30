@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "org.modly.part-semantic-predictor-response/1.0.0",
+  "title": "Modly Part Semantic Predictor JSONL Response",
+  "description": "One header record followed by actual prediction records emitted by an installed entry-point adapter. The host checks adapter identity, source digest, input bindings, part topology and evidence before attaching assertions.",
+  "type": "object",
+  "required": ["protocol", "record", "run_id", "asset_id", "geometry_digest", "topology_revision", "adapter_id", "adapter_revision", "weights_id", "weights_digest", "model_id", "input_digests", "prompt_digest"],
+  "properties": {
+    "protocol": {"const": "org.modly.part-semantic-predictor/1.0.0"},
+    "record": {"const": "header"},
+    "run_id": {"type": "string", "minLength": 1},
+    "asset_id": {"type": "string", "minLength": 1},
+    "geometry_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "topology_revision": {"type": "string", "minLength": 1},
+    "adapter_id": {"type": "string", "minLength": 1},
+    "adapter_revision": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "weights_id": {"type": "string", "minLength": 1},
+    "weights_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "model_id": {"type": "string", "minLength": 1},
+    "prompt_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "input_digests": {"type": "array", "items": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "minItems": 1},
+    "backend": {"type": "string", "minLength": 1},
+    "runtime": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "prediction": {
+      "type": "object",
+      "required": ["protocol", "record", "assertion_id", "part_id", "topology_revision", "state", "confidence", "evidence_kind", "evidence", "provenance"],
+      "properties": {
+        "protocol": {"const": "org.modly.part-semantic-predictor/1.0.0"},
+        "record": {"const": "prediction"},
+        "assertion_id": {"type": "string", "minLength": 1},
+        "part_id": {"type": "string", "minLength": 1},
+        "topology_revision": {"type": "string", "minLength": 1},
+        "state": {"enum": ["candidate", "unknown", "ambiguous"]},
+        "original_label": {"type": ["string", "null"]},
+        "normalized_label": {"type": ["string", "null"]},
+        "normalization_vocabulary": {"type": ["string", "null"]},
+        "confidence": {
+          "type": "object",
+          "required": ["state"],
+          "properties": {
+            "state": {"enum": ["unknown", "uncalibrated", "calibrated"]},
+            "score": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "score_kind": {"enum": ["native", "calibrated", "derived", "uncalibrated", null]},
+            "calibration": {"type": ["string", "null"]}
+          },
+          "additionalProperties": false
+        },
+        "evidence_kind": {"enum": ["observed", "deterministic-derived", "model-inferred", "user-confirmed"]},
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["reference_id", "kind", "topology_revision"],
+            "properties": {
+              "reference_id": {"type": "string", "minLength": 1},
+              "kind": {"enum": ["observation", "view"]},
+              "topology_revision": {"type": "string", "minLength": 1}
+            },
+            "additionalProperties": false
+          }
+        },
+        "provenance": {"type": "object", "minProperties": 1}
+      },
+      "additionalProperties": true
+    }
+  },
+  "$comment": "JSONL consists of exactly one header record conforming to this schema followed by one or more records conforming to #/$defs/prediction. The host enforces cross-record identity, pins, candidate-state semantics, topology, evidence existence, confidence consistency, and provenance."
+}

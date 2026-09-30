@@ -1,0 +1,59 @@
+{
+  "schema": "org.modly.amd-adapter-runtime-lock.v1",
+  "adapter_id": "microsoft.florence-2-base.v1",
+  "target_image": "localhost/modly-amd-migraphx:ticket02",
+  "target_image_id": "sha256:c96b56796c753d749cb02b31b88da7567c3712861d214bfe26452d21bd7e6b8d",
+  "target_manifest_digest": "sha256:64fb89f2167f56a7381529e8e4fb69b322c3685f9805ea301263477c25aa0554",
+  "python": "3.12.3",
+  "torch": "2.11.0+rocm7.14.0",
+  "hip": "7.14.60850",
+  "transformers": {
+    "version": "4.51.3",
+    "wheel": "transformers-4.51.3-py3-none-any.whl",
+    "sha256": "sha256:fd3279633ceb2b777013234bbf0b4f5c2d23c4626b05497691f00cfda55e8a83",
+    "source_lock": "hunyuan-mini-turbo/wheel-manifest.json",
+    "source_lock_sha256": "sha256:10634d78c01ef0688ab14d9fd686618ddebbef4854a7426c8e8893348bc34f92"
+  },
+  "generation_dependencies": {
+    "tokenizers": {
+      "version": "0.21.4",
+      "wheel": "tokenizers-0.21.4-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "sha256": "sha256:51b7eabb104f46c1c50b486520555715457ae833d5aee9ff6ae853d1130506ff"
+    },
+    "huggingface_hub": {
+      "version": "0.36.0",
+      "wheel": "huggingface_hub-0.36.0-py3-none-any.whl",
+      "sha256": "sha256:7bcc9ad17d5b3f07b57c78e79d527102d08313caa278a641993acddcb894548d"
+    },
+      "isolated_package_overlay": "hunyuan-mini-turbo/python-packages"
+  },
+  "additional_wheels": {
+    "timm": {
+      "version": "1.0.30",
+      "wheel": "timm-1.0.30-py3-none-any.whl",
+      "sha256": "sha256:c8e27adf6801a2fdfb570dbbdd171f2f084756eefc673df8cfaab06bd14864f3",
+      "source": "PyPI release metadata"
+    },
+    "einops": {
+      "version": "0.8.1",
+      "wheel": "einops-0.8.1-py3-none-any.whl",
+      "sha256": "sha256:919387eb55330f5757c6bea9165c5ff5cfe63a642682ea788a6d472576d81737",
+      "source": "existing project-pinned Hunyuan3D dependency wheel"
+    }
+  },
+  "optional_dependencies": {
+    "flash_attn": "must be absent unless separately AMD-qualified"
+  },
+  "inference_policy": {
+    "model_code": "exact local snapshot from FLORENCE2_ASSET_LOCK.json; no remote resolution",
+    "trust_remote_code": true,
+    "local_files_only": true,
+    "network": "disabled",
+    "weights_only": true,
+    "attn_implementation": "eager",
+    "dtype": "float16",
+    "backend": "pytorch_rocm",
+    "torch_migraphx": "not attempted; must be measured separately before use"
+  },
+  "status": "restricted local checkpoint load and synthetic RX 7900 GRE generation passed on Transformers 4.51.3; semantic development scoring and MIGraphX qualification remain pending"
+}

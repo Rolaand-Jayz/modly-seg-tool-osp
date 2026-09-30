@@ -1,0 +1,95 @@
+{
+  "id": "reference-part-segmentation",
+  "name": "Reference Part Segmentation",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Produces topology-bound geometric part regions from imported or generated meshes. The pinned GeoSAM2 all-view adapter is the default; P3-SAM remains selectable for legacy workflow compatibility.",
+  "capabilities": [
+    {
+      "capability_id": "segment-parts",
+      "contract_version": "1.0.0",
+      "inputs": [
+        "structured-asset"
+      ],
+      "outputs": [
+        "structured-asset",
+        "assertions",
+        "stage-artifacts"
+      ],
+      "adapter_id": "modly.reference-part-segmentation.geosam2",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin",
+      "model_weights_id": "VAST-AI-Research/GeoSAM2@ba92f5f50418f2fe9af1078448b63176df13b1ee",
+      "model_weights_digest": "sha256:2e391c0d9455fe92b69d61cdc94754d9b8081b9b541d09e1b6a3a55ebf6c6de0"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "segment-parts",
+      "name": "Segment 3D Parts",
+      "input": "mesh",
+      "output": "mesh",
+      "params_schema": [
+        {
+          "id": "backend",
+          "label": "Segmentation Adapter",
+          "type": "select",
+          "default": "geosam2",
+          "options": [
+            {
+              "value": "geosam2",
+              "label": "GeoSAM2 multi-view (AMD ROCm)"
+            },
+            {
+              "value": "p3sam",
+              "label": "P3-SAM (legacy compatibility)"
+            }
+          ],
+          "tooltip": "GeoSAM2 is the default pinned all-view native-3D adapter. P3-SAM remains available for existing workflows; its current target quality screen does not meet the audited acceptance threshold."
+        },
+        {
+          "id": "point_num",
+          "label": "Sampled Surface Points",
+          "type": "integer",
+          "default": 10000,
+          "min": 1000,
+          "max": 100000,
+          "step": 1000,
+          "tooltip": "Controls the legacy P3-SAM surface sampling path; unused by GeoSAM2."
+        },
+        {
+          "id": "prompt_num",
+          "label": "Point Prompts",
+          "type": "integer",
+          "default": 32,
+          "min": 4,
+          "max": 400,
+          "step": 4,
+          "tooltip": "Controls point prompts for the legacy P3-SAM path; unused by GeoSAM2."
+        },
+        {
+          "id": "prompt_batch_size",
+          "label": "Prompt Batch Size",
+          "type": "integer",
+          "default": 4,
+          "min": 1,
+          "max": 32,
+          "step": 1,
+          "tooltip": "Controls prompt execution chunking for legacy P3-SAM; unused by GeoSAM2."
+        },
+        {
+          "id": "seed",
+          "label": "Seed",
+          "type": "integer",
+          "default": 42,
+          "min": 0,
+          "max": 2147483647,
+          "step": 1,
+          "tooltip": "Seed for the selected adapter. The current GeoSAM2 all-view path requires its frozen seed of 42."
+        }
+      ]
+    }
+  ]
+}

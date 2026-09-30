@@ -1,0 +1,133 @@
+{
+  "schema_id": "org.modly.material-identity-smolvlm2-artifact-lock",
+  "schema_version": "1.0.0",
+  "candidate_id": "huggingfacetb.smolvlm2-2.2b-instruct",
+  "repository": "https://huggingface.co/HuggingFaceTB/SmolVLM2-2.2B-Instruct",
+  "repository_revision": "482adb537c021c86670beed01cd58990d01e72e4",
+  "license": "Apache-2.0",
+  "license_evidence": "Pinned official Hugging Face model card and repository metadata; training-data lineage not independently established",
+  "cache_directory": ".modly-amd-runtime/models/material-identity/smolvlm2-2.2b-instruct-482adb537c021c86670beed01cd58990d01e72e4",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 1519,
+      "git_blob_oid": "a6344aac8c09253b3b630fb776ae94478aa0275b",
+      "upstream_sha256": null,
+      "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+    },
+    {
+      "path": "README.md",
+      "bytes": 11437,
+      "git_blob_oid": "65508aaa821a61e4e1e98a05abe9e67254e59a5e",
+      "upstream_sha256": null,
+      "sha256": "8e46e92a3a40643b85a6df905b1a2014bcb7a01daaf6566588c89a95c5c6e700"
+    },
+    {
+      "path": "added_tokens.json",
+      "bytes": 4739,
+      "git_blob_oid": "71dc811700b6aa9274d3697ee7d4fb2d5375e766",
+      "upstream_sha256": null,
+      "sha256": "74135b8664b56088c0006f1c8e848d79a8eba003411f72ebf1dc2ee96227be3a"
+    },
+    {
+      "path": "chat_template.json",
+      "bytes": 430,
+      "git_blob_oid": "1d342e4f070c962a14ba4ece4e06212bc70d8e36",
+      "upstream_sha256": null,
+      "sha256": "b585e3598909a5687f9f9d738d35223724dedef256b9b274e1cbfb32b13c74bf"
+    },
+    {
+      "path": "config.json",
+      "bytes": 3642,
+      "git_blob_oid": "6a01472ec2a0595b85ac601a4e99efdcaa1ff108",
+      "upstream_sha256": null,
+      "sha256": "ec1f7e45deeafba7601f8dd0b6ca9ba75985dffc2f053e82341d12d06e2d9d46"
+    },
+    {
+      "path": "generation_config.json",
+      "bytes": 136,
+      "git_blob_oid": "eace9aa6d392fd94dbe0c90825074c53fd7ecd4a",
+      "upstream_sha256": null,
+      "sha256": "34835060c9f0f74d1acb456cc72ca32746d3843d9eb5f578f9cbffac1d2eb840"
+    },
+    {
+      "path": "merges.txt",
+      "bytes": 466391,
+      "git_blob_oid": "69503b13f727ba3812b6803e97442a6de05ef5eb",
+      "upstream_sha256": null,
+      "sha256": "0b54e8aa4e53d5383e2e4bc635a56b43f9647f7b13832d5d9ecd8f82dac4f510"
+    },
+    {
+      "path": "model-00001-of-00002.safetensors",
+      "bytes": 4959390584,
+      "git_blob_oid": "27a1b8c2f57a6a3ff466e6ba56797390a663add6",
+      "upstream_sha256": "7c88a90e78f567460b2369a0369cc4dafbfda5607c9cb090b30fa4437b0282f2",
+      "sha256": "7c88a90e78f567460b2369a0369cc4dafbfda5607c9cb090b30fa4437b0282f2"
+    },
+    {
+      "path": "model-00002-of-00002.safetensors",
+      "bytes": 4027833472,
+      "git_blob_oid": "f6bb3458057bd255bdd62f02d9e17a1c5446970f",
+      "upstream_sha256": "cf3d0958a8240f71054a6812038f2a6bfbe2e5124573a3b363f6b120c9a52657",
+      "sha256": "cf3d0958a8240f71054a6812038f2a6bfbe2e5124573a3b363f6b120c9a52657"
+    },
+    {
+      "path": "model.safetensors.index.json",
+      "bytes": 63881,
+      "git_blob_oid": "9401d792de4308a3844189f61673670dc8c09349",
+      "upstream_sha256": null,
+      "sha256": "d7c4b7a36f51bc15755cb11938c76f66be56e7c0d2bf3606335a8f77f90a551d"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "bytes": 599,
+      "git_blob_oid": "9b5b2a5a98428bac8ba0257a59bc74da5d826e5c",
+      "upstream_sha256": null,
+      "sha256": "70d935393e28a5b77b8f46cbd3e3cb74a336e4814bd43983858215bd0be388e7"
+    },
+    {
+      "path": "processor_config.json",
+      "bytes": 67,
+      "git_blob_oid": "093f7dbbd52805fca7e747f569d2c7906227499a",
+      "upstream_sha256": null,
+      "sha256": "55fb18f99dcce2694a011d46addf50a8114e6458d1847f6da9a0af22c6695a95"
+    },
+    {
+      "path": "special_tokens_map.json",
+      "bytes": 868,
+      "git_blob_oid": "2b5aee28d56c0e9d89ff6bc70818fba986a90ca9",
+      "upstream_sha256": null,
+      "sha256": "2dfea2a426162316ff1567c82bc6d36d9690cd9f90455f075c77daca78b45c60"
+    },
+    {
+      "path": "tokenizer.json",
+      "bytes": 3548256,
+      "git_blob_oid": "a4005d1cf3170a31600a5c96f95768166cbc2b28",
+      "upstream_sha256": null,
+      "sha256": "5ece781dc8d2b2f3e2f289ca0ae50b17cfc27dd27bfe7971bb8241e0b964331a"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "bytes": 28627,
+      "git_blob_oid": "d986ab355a4a4de5aa4485fdfba4625eb737928c",
+      "upstream_sha256": null,
+      "sha256": "30d7854334f3f96e9dc8e5210777ba030d55257de0d9c9b5ce65387f2ab73773"
+    },
+    {
+      "path": "vocab.json",
+      "bytes": 800662,
+      "git_blob_oid": "0ad5ecc2035b7031b88afb544ee95e2d49baa484",
+      "upstream_sha256": null,
+      "sha256": "82b84012e3add4d01d12ba14442026e49b8cbbaead1f79ecf3d919784f82dc79"
+    }
+  ],
+  "manifest_assertions": {
+    "tree_files": 16,
+    "tree_total_bytes": 8992155310,
+    "hidden_files_included": [
+      ".gitattributes"
+    ],
+    "verification": "all local files hashed in full; exact size and SHA-256 recorded; both LFS SHA-256 digests matched publisher metadata",
+    "execution_status": "Synthetic-only CPU and RX 7900 GRE preflights are documented in evidence/SMOLVLM2_CPU_PREFLIGHT_2026-09-25.md and evidence/SMOLVLM2_AMD_SYNTHETIC_PREFLIGHT_2026-09-25.md; no candidate scoring or Ticket 07 acceptance implied"
+  }
+}

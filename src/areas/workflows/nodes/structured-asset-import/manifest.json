@@ -1,0 +1,29 @@
+{
+  "id": "structured-asset-import",
+  "name": "Structured Asset Import",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Validates an existing GLB/glTF mesh, creates a digest-bound Structured Asset, and records a no-op round-trip stage.",
+  "capabilities": [
+    {
+      "capability_id": "import-geometry",
+      "contract_version": "1.0.0",
+      "inputs": ["mesh"],
+      "outputs": ["structured-asset", "stage-artifacts"],
+      "adapter_id": "modly.structured-asset-import",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "import-roundtrip",
+      "name": "Import Structured Asset",
+      "input": "mesh",
+      "output": "mesh",
+      "params_schema": []
+    }
+  ]
+}

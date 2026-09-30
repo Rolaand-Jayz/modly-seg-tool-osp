@@ -1,32 +1,65 @@
-# Project-managed runtime/cache
-.modly-amd-runtime/
-
-# Dependencies
 node_modules/
-.venv/
-venv/
-
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# JavaScript / build output
 out/
 dist/
-build/
-coverage/
-*.tsbuildinfo
+install.bat
+launch.bat
 
-# Local editor / OS
+# Generated at build time by scripts/download-python-embed.js
+resources/python-embed/
+resources/get-pip.py
+
+# Python
+api/__pycache__/
+api/**/__pycache__/
+api/*.pyc
+api/**/*.pyc
+api/.venv/
+api/venv/
+api/**/build/
+api/**/*.egg-info/
+api/uv_unwrapper/build/
+api/uv_unwrapper/uv_unwrapper/*.pyd
+*.pyd
+*.so
+*.dll
+*.obj
+*.o
+**/__pycache__/
+**/.pytest_cache/
+.modly-amd-runtime/
+tools/modly-cli/__pycache__/
+.hermes-e2e/
+
+# Models (heavy, downloaded at runtime)
+/models/
+
+# Local generation outputs and recorded workflow runs
+/GeneratedGeometry/
+/StructuredAssets/
+/api/runtime/adapters/**/evidence/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
 .DS_Store
 Thumbs.db
-*.swp
-*.swo
 
-# Logs / transient files
-*.log
-*.partial
-*.tmp
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
+
+# TypeScript incremental build output
+*.tsbuildinfo
+
+# Local dev helpers
+install.bat
+launch.bat
+
+# Session-provided Codacy MCP instructions
+.github/instructions/codacy.instructions.md

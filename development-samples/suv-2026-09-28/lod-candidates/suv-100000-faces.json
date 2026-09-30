@@ -1,0 +1,9 @@
+{
+  "algorithm": "Blender 4.0.2 Decimate modifier, COLLAPSE, triangulate",
+  "blender_version": "4.0.2",
+  "output_faces": 100000,
+  "output_glb_sha256": "7c24701f10d48f3f443b8f7016ddb060b2aee1a39aad6207a729b1a530937928",
+  "requested_faces": 100000,
+  "source_faces": 1108618,
+  "source_glb_sha256": "a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "reference-material-regions",
+  "name": "Segment Material Regions",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Projects calibrated per-view material-label evidence onto GLB/glTF faces, fuses visible votes, and emits topology-bound connected material regions.",
+  "capabilities": [
+    {
+      "capability_id": "segment-material-regions",
+      "contract_version": "1.0.0",
+      "inputs": ["structured-asset", "observation"],
+      "outputs": ["structured-asset", "assertions", "stage-artifacts"],
+      "adapter_id": "modly.reference-material-regions",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "segment-material-regions",
+      "name": "Segment Material Regions",
+      "input": "mesh",
+      "output": "mesh",
+      "params_schema": []
+    }
+  ]
+}
