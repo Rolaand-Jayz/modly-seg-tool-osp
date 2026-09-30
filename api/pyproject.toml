@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools==81.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modly-decider-semantic-adapter"
+version = "1.0.0"
+description = "Pinned Decider 2B vision semantic predictor for Modly"
+requires-python = ">=3.10"
+
+[project.entry-points."modly.semantic_adapters"]
+"mindchain.decider-2b-vision.gguf.v1" = "runtime.adapters.parts.decider_2b_local"
+
+[tool.setuptools]
+packages = ["runtime.adapters.parts"]
+
+[tool.setuptools.package-data]
+"runtime.adapters.parts" = ["DECIDER_2B_VISION_GGUF_ASSET_LOCK.json", "DECIDER_2B_VISION_GGUF_HARNESS_LOCK.json", "GEOSAM2_EMPTY_PROPOSAL_POLICY_LOCK.json", "GEOSAM2_UNASSIGNED_COMPLETION_POLICY_LOCK.v1.json", "GEOSAM2_UNASSIGNED_COMPLETION_POLICY_LOCK.v2.json", "GEOSAM2_PROMPT_REGISTRATION_DIAGNOSTICS_LOCK.v1.json", "GEOSAM2_PROMPT_REGISTRATION_DIAGNOSTICS_LOCK.v2.json", "GEOSAM2_PROMPT_REGISTRATION_DIAGNOSTICS_LOCK.v3.json", "GEOSAM2_VIDEO_INDEX_POLICY_LOCK.v1.json", "GEOSAM2_FINITE_RETRY_PROBE_LOCK.v1.json", "GEOSAM2_FINITE_RETRY_VIEW2_PROBE_LOCK.v1.json", "GEOSAM2_FINITE_RETRY_SEQUENCE_PROBE_LOCK.v1.json", "GEOSAM2_FINITE_RETRY_PRODUCTION_CONTEXT_LOCK.v1.json", "GEOSAM2_IMAGE_PATH_BOUNDARY_LOCK.v1.json"]

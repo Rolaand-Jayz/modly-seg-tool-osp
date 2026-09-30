@@ -1,0 +1,12 @@
+{
+  "behavior": "skip propagation when automatic proposal list is empty; persist per-seed generated and accepted proposal counts plus predictor object counts before propagation; require complete audit and at least one accepted proposal",
+  "complete_face_partition_gate": "unchanged",
+  "module": "geosam2_empty_proposal_policy.py",
+  "module_sha256": "d7aaf939b57c7ba053a9c2249c5501db3d3c6d5ba15cf1467f6173761fcd1145",
+  "policy_id": "skip-empty-auto-proposal-seed-v1",
+  "schema": "modly.ticket04.geosam2-adapter-policy-lock.v1",
+  "source_authored_target_masks_passed_to_geosam2": false,
+  "upstream_function": "inference.segment_with_mask_prompts",
+  "upstream_repository": "https://github.com/VAST-AI-Research/GeoSAM2.git",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c"
+}

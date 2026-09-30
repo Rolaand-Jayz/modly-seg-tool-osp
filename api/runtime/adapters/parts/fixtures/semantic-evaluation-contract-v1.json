@@ -1,0 +1,81 @@
+{
+  "schema": "modly.ticket05.semantic-evaluation-contract.v1",
+  "contract_id": "ticket05-semantic-part-role-v1",
+  "status": "frozen-contract-fixture-generation-pending",
+  "frozen_at": "2026-09-25",
+  "model_accessed": false,
+  "weights_accessed": false,
+  "fixture": {
+    "fixture_id": "ticket05-semantic-part-role-rendered-v1",
+    "generator": "project-owned deterministic synthetic articulated-object assembly renderer",
+    "seed": 20260925,
+    "observation_policy": "Each topology-bound part is presented as calibrated source observation crops from four fixed, distinct camera azimuths; the model receives only observation bytes, opaque part/object IDs, and the frozen ontology prompts. No object recipe, part truth, or split labels are model inputs.",
+    "example_unit": "one topology-bound part across its four observation views; score one semantic decision per part, not per view",
+    "split_rule": "Split by immutable object_id before rendering. All parts, views, crops, and perturbations from one object stay in one split. No object_id or exact geometry-recipe digest may occur in both development and heldout. Heldout truth is stored separately and is unavailable to candidate loading, prompt selection, calibration, debugging, or development scoring.",
+    "development": {
+      "supported_objects_per_label": 5,
+      "unknown_objects": 20,
+      "ambiguous_objects": 20,
+      "purpose": "adapter/prompt development and any permitted abstention calibration; no heldout-derived changes"
+    },
+    "heldout": {
+      "supported_objects_per_label": 20,
+      "unknown_objects": 20,
+      "ambiguous_objects": 20,
+      "purpose": "single final frozen evaluation after model, source, weights, prompts, and policy are locked"
+    },
+    "supported_part_per_object": 1,
+    "views_per_part": 4,
+    "required_indexing": [
+      "input manifest with opaque object_id, part_id, topology_revision, input artifact digests, observation/view IDs and camera metadata",
+      "separately sealed truth manifest with object_id, part_id, truth state, expected ontology label or abstention cohort, and truth provenance",
+      "top-level manifest with generator/source/runtime pins, seed, byte counts, SHA-256 for every input and manifest digest"
+    ],
+    "heldout_access_control": "Distinct truth file and path; candidate runner receives input manifest and inputs only. The evaluator opens heldout truth only after model/weights/source/prompt/policy/input-output prediction bytes and their digests are committed. Development and heldout evaluators enforce the same per-object grouping and score implementation."
+  },
+  "ontology": {
+    "ontology_id": "modly-part-role-v1",
+    "scope": "visible functional part roles for assembled household/workshop objects; not material, object-category, or geometric-shape labels",
+    "labels": [
+      {"id": "handle", "definition": "A grasping or pulling projection intended for the hand to hold or operate.", "excludes": ["hinge", "support", "knob"]},
+      {"id": "knob", "definition": "A compact graspable control or turning element, typically operated by pinching or rotating.", "excludes": ["handle", "wheel"]},
+      {"id": "lid", "definition": "A removable or hinged cover that closes an opening of a container or enclosure.", "excludes": ["body", "base"]},
+      {"id": "body", "definition": "The principal enclosing or load-bearing main shell of an object, excluding attached functional subparts.", "excludes": ["base", "support", "lid"]},
+      {"id": "base", "definition": "The bottom or foundation component that stabilizes or supports the assembled object on a surface.", "excludes": ["support", "body", "seat"]},
+      {"id": "support", "definition": "A structural member whose primary role is to hold another distinct part above or away from the base.", "excludes": ["base", "frame", "handle"]},
+      {"id": "seat", "definition": "The surface intended to bear a seated person's weight.", "excludes": ["backrest", "base"]},
+      {"id": "backrest", "definition": "The surface intended to support a seated person's back.", "excludes": ["seat", "body"]}
+    ],
+    "normalization": "Map only after preserving the exact open-vocabulary model assertion; use this frozen label ID as an additional normalized assertion. No edit-distance or embedding-only string match counts as semantic correctness."
+  },
+  "cohorts": {
+    "supported": "One unambiguous visible instance of exactly one ontology role, with enough view evidence to distinguish it from the ontology's closest confounders.",
+    "unknown": "One visible, coherent part whose correct functional role is outside the eight-label ontology; target state is unknown. Unknown recipes must not be derived by relabeling a supported instance.",
+    "ambiguous": "One topology-bound part for which the supplied observations intentionally omit the contextual cues needed to distinguish two or more supported roles; target state is ambiguous and truth records the valid candidate set. These examples must be authored as genuine evidence insufficiency, not as mislabeled or noisy supported examples."
+  },
+  "acceptance_metrics": {
+    "unit": "one part-level decision per object; four views are jointly supplied and never counted as four independent examples",
+    "supported_coverage": {"minimum": 0.8, "denominator": "all heldout supported examples", "covered": "exactly one ontology label emitted; unknown, ambiguous, empty, or multiple labels are not covered"},
+    "selective_accuracy": {"minimum": 0.9, "denominator": "covered heldout supported examples", "correct": "emitted normalized ontology ID equals authored truth ID"},
+    "per_class_recall": {"minimum": 0.8, "denominator": "heldout supported examples, independently per each of the eight labels", "rule": "every label must meet the minimum; report per-label counts and recalls"},
+    "unknown_abstention_recall": {"minimum": 0.9, "denominator": "all heldout unknown examples", "correct": "state unknown; emitting any supported label or ambiguous is a miss"},
+    "ambiguous_abstention_recall": {"minimum": 0.9, "denominator": "all heldout ambiguous examples", "correct": "state ambiguous; emitting a single supported label or unknown is a miss"},
+    "all_region_single_label_coverage": {"report_only": true, "denominator": "all heldout examples, including unknown and ambiguous", "note": "report to expose abstention tradeoffs; it does not replace supported coverage or the two abstention gates"},
+    "decision": "All five minimum gates (supported coverage, selective accuracy, every class recall, unknown abstention recall, ambiguous abstention recall) must pass simultaneously. Zero examples or undefined denominators fail closed."
+  },
+  "selection_policy": {
+    "freeze_before_weights": true,
+    "development_only": true,
+    "heldout_threshold_search": false,
+    "raw_cross_model_score_comparison": false,
+    "candidate_prompts": "exact ontology definitions and frozen label IDs; any wording variants must be declared and hashed before development scoring",
+    "threshold_objective": "If native adapter scores exist, calibrate only on development objects using a predeclared deterministic objective: satisfy unknown and ambiguous abstention floors first, then maximize selective accuracy, then supported coverage, then macro recall. If no development policy can meet the floors, reject the candidate without accessing heldout truth. Never compare raw scores across adapters.",
+    "confidence": "Preserve the model-native score and its meaning if provided. Otherwise record confidence state unknown; never synthesize numeric confidence from string similarity."
+  },
+  "known_limitations": [
+    "This is a frozen evaluation contract, not a generated fixture or quality result.",
+    "Ticket 04's two-box fixture has geometric partition truth only and provides no authored functional part semantics; it is not reused as semantic truth.",
+    "Ticket 07's rendered fixture is material-identity-specific and its labels are not part-role truth; it is not relabeled or reused.",
+    "The deterministic multi-part object/view generator, sealed indexed manifests, truth-separation enforcement, and fixture integrity tests remain to be implemented before any model evaluation."
+  ]
+}

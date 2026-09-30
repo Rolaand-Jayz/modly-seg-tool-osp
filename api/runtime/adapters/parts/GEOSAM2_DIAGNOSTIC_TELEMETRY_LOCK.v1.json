@@ -1,0 +1,6 @@
+{
+  "module": "geosam2_diagnostic_telemetry.py",
+  "module_sha256": "642f13c8b0a45506b9908c360aeb0b408220894580ff7dd2e5fe1dd6fa4093a2",
+  "schema": "modly.geosam2-diagnostic-telemetry/1",
+  "schema_name": "modly.ticket04.geosam2-diagnostic-telemetry-lock.v1"
+}

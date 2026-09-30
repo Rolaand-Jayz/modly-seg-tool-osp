@@ -1,0 +1,707 @@
+{
+  "schema_id": "org.modly.material-identity-smolvlm2-runtime-delta-lock",
+  "schema_version": "1.0.0",
+  "target_python": "3.12.3",
+  "base_overlay_lock": "QWEN3_VL_RUNTIME_LOCK.json",
+  "base_overlay_lock_sha256": "76696f50737ab6bc34388cae0947e922db4bb14b3755d68f9abec4c7366a804b",
+  "runtime_overlay": ".modly-amd-runtime/package-cache/qwen3-vl/site-packages",
+  "base_runtime": "localhost/modly-amd-migraphx:ticket02; torch 2.11.0+rocm7.14.0",
+  "new_packages": {
+    "num2words": "0.5.14",
+    "docopt": "0.6.2"
+  },
+  "install_command": "PIP_NO_CACHE_DIR=1 python3 -m pip install --no-cache-dir --target .modly-amd-runtime/package-cache/qwen3-vl/site-packages num2words==0.5.14",
+  "installed_file_inventory": [
+    {
+      "path": "num2words/__init__.py",
+      "bytes": 4270,
+      "sha256": "ba987080716c4b9908ca38f20f28584b2bf0c9fd0c2fb94a5824c2aebc8251e5"
+    },
+    {
+      "path": "num2words/__pycache__/__init__.cpython-314.pyc",
+      "bytes": 6403,
+      "sha256": "d68e7fe96a3e3c6da821701330d2e517dd4986168758e275bc25e2b06ca6adbd"
+    },
+    {
+      "path": "num2words/__pycache__/base.cpython-314.pyc",
+      "bytes": 14514,
+      "sha256": "2849c6aebbce15b83de459eaba0f21456f5f72bdba5402fb4ad4b7c24675bdd7"
+    },
+    {
+      "path": "num2words/__pycache__/compat.cpython-314.pyc",
+      "bytes": 512,
+      "sha256": "cbd019a93c19d6d274f9617bd59f04c9a4060ef2b8cb6c51cf8249e38e1e68cb"
+    },
+    {
+      "path": "num2words/__pycache__/currency.cpython-314.pyc",
+      "bytes": 1530,
+      "sha256": "5d5c74445d35d3d206e3f545f7a736000efd9c5df8466b6cc76992b182752ce5"
+    },
+    {
+      "path": "num2words/__pycache__/lang_AM.cpython-314.pyc",
+      "bytes": 6654,
+      "sha256": "938649ed0ef54d2be948a74ec698fd0f5833b57f891349611356c6e6ea5b36c5"
+    },
+    {
+      "path": "num2words/__pycache__/lang_AR.cpython-314.pyc",
+      "bytes": 19455,
+      "sha256": "2fb262f5e26e141c78d48274cf0d545c0c0b23a5b2184631bc7eb58de8ba7660"
+    },
+    {
+      "path": "num2words/__pycache__/lang_AZ.cpython-314.pyc",
+      "bytes": 7421,
+      "sha256": "e27a49bd6bb60f110374b91b5855242da3ece130dc4e7bcaf74d4627fbccf5c1"
+    },
+    {
+      "path": "num2words/__pycache__/lang_BE.cpython-314.pyc",
+      "bytes": 12939,
+      "sha256": "da8c36487727705dbdc3b148a9ba9806e186345ef8ddbd1ffcf021faddb4a1ab"
+    },
+    {
+      "path": "num2words/__pycache__/lang_BN.cpython-314.pyc",
+      "bytes": 11751,
+      "sha256": "890cea568a9574e2539792f456baaf9311142cba611cc726ee6887de55197cc6"
+    },
+    {
+      "path": "num2words/__pycache__/lang_CA.cpython-314.pyc",
+      "bytes": 18264,
+      "sha256": "a9acf517b12b3aa11b76146081ddf2a53b70453c13dba8d474ae152efcee854a"
+    },
+    {
+      "path": "num2words/__pycache__/lang_CE.cpython-314.pyc",
+      "bytes": 14152,
+      "sha256": "e9ef5bb84b1fa467381fd00e4d482ef8a9f56a173dbec523d15af2876c060c24"
+    },
+    {
+      "path": "num2words/__pycache__/lang_CS.cpython-314.pyc",
+      "bytes": 5064,
+      "sha256": "de1d614c6e65d9a19ab1fa5ccd3c88d03a48dd0f292b02ffe942f11bc401d91c"
+    },
+    {
+      "path": "num2words/__pycache__/lang_CY.cpython-314.pyc",
+      "bytes": 16048,
+      "sha256": "83595ddea04b08c5d0192d7f768fb4ae514496867a59de94dba3ad589bd0e714"
+    },
+    {
+      "path": "num2words/__pycache__/lang_DA.cpython-314.pyc",
+      "bytes": 5469,
+      "sha256": "c761b1b3e24a4cb97ff01eb4bfd3249541ebffb8d5619b62dab5ca2dab9b4e82"
+    },
+    {
+      "path": "num2words/__pycache__/lang_DE.cpython-314.pyc",
+      "bytes": 5887,
+      "sha256": "ff564b687b286e9136268e0c7016a062b145996c92e4e5f2e59a0b6f591386f2"
+    },
+    {
+      "path": "num2words/__pycache__/lang_EN.cpython-314.pyc",
+      "bytes": 4747,
+      "sha256": "3131729ba69e3e0527ab4ec18e6713dd1e31f96fcce1ea9950ea102ea3479e1f"
+    },
+    {
+      "path": "num2words/__pycache__/lang_EN_IN.cpython-314.pyc",
+      "bytes": 809,
+      "sha256": "b61bae6a53eb78a8542d74cde451ff89eb7883210268c6295a582278ace2b95d"
+    },
+    {
+      "path": "num2words/__pycache__/lang_EN_NG.cpython-314.pyc",
+      "bytes": 1061,
+      "sha256": "7b7f2df33a47aa069b3575309e7142396826b903360386b8f7faf8c6d76d25a7"
+    },
+    {
+      "path": "num2words/__pycache__/lang_EO.cpython-314.pyc",
+      "bytes": 5569,
+      "sha256": "4d3a6e54d04aa66d1b8416c16b2e74b1f937a75bcbfbaf0aca4f82edebc628f3"
+    },
+    {
+      "path": "num2words/__pycache__/lang_ES.cpython-314.pyc",
+      "bytes": 16100,
+      "sha256": "bb8c49e6c11eeb7733d466ff7183278f15cc35d4d8154df698cb66b0fcdd8cf2"
+    },
+    {
+      "path": "num2words/__pycache__/lang_ES_CO.cpython-314.pyc",
+      "bytes": 962,
+      "sha256": "fafabcc2ec62cf5fb10e7c1d5e19529c6a7a07ff6e93f9a9c25343b2c71ae747"
+    },
+    {
+      "path": "num2words/__pycache__/lang_ES_CR.cpython-314.pyc",
+      "bytes": 972,
+      "sha256": "7b7b5d7ab09474fa4623b44c3c50381131cf8cf22ecf8e7b5c2daf71f7796407"
+    },
+    {
+      "path": "num2words/__pycache__/lang_ES_GT.cpython-314.pyc",
+      "bytes": 967,
+      "sha256": "813016e10a37b160f2177e6c9e80d3020ae3e5eaf260bc8bce40b83d56e4d734"
+    },
+    {
+      "path": "num2words/__pycache__/lang_ES_NI.cpython-314.pyc",
+      "bytes": 1096,
+      "sha256": "50fcc9e690fec527ab6733fd9f95a4e34bd5a647b827acfae504415b30a84583"
+    },
+    {
+      "path": "num2words/__pycache__/lang_ES_VE.cpython-314.pyc",
+      "bytes": 1031,
+      "sha256": "f7f1f91e023e1b94c7419a9fff328857838d091f31a0990186c30670a2fb4f43"
+    },
+    {
+      "path": "num2words/__pycache__/lang_EU.cpython-314.pyc",
+      "bytes": 3848,
+      "sha256": "5f7ebb347443a9a32a4e12b42f65feb7c929795e74bdb944bdd5af3252a56b86"
+    },
+    {
+      "path": "num2words/__pycache__/lang_FA.cpython-314.pyc",
+      "bytes": 5755,
+      "sha256": "8223501333df9634d430ef262f3434ea96c10ae2ebce254fcb9c790f9f8d2827"
+    },
+    {
+      "path": "num2words/__pycache__/lang_FI.cpython-314.pyc",
+      "bytes": 20508,
+      "sha256": "a6bd40af4cdb83756677d5c1fdb8d056cbc9e8470b82f7aeb1e897e6b5a3610c"
+    },
+    {
+      "path": "num2words/__pycache__/lang_FR.cpython-314.pyc",
+      "bytes": 4190,
+      "sha256": "49c361f1fec66f7ec332c83ebdaa4f109935c4f1a8c715738a8e9f4f6f6d241a"
+    },
+    {
+      "path": "num2words/__pycache__/lang_FR_BE.cpython-314.pyc",
+      "bytes": 1685,
+      "sha256": "fc9e0d9ae1d5f5e3050dfe2ffcf46ca0fe443388602ae682997c4090cfa0dd7c"
+    },
+    {
+      "path": "num2words/__pycache__/lang_FR_CH.cpython-314.pyc",
+      "bytes": 1681,
+      "sha256": "05e1576b30fa59abd20c7957892851e7d6ba89ba4f9536df9565b4e6de99fd39"
+    },
+    {
+      "path": "num2words/__pycache__/lang_FR_DZ.cpython-314.pyc",
+      "bytes": 998,
+      "sha256": "758a52ecf03ed29195f5dfc9eb05ed44b01dbdc87f1b7bab50b0255a297353e4"
+    },
+    {
+      "path": "num2words/__pycache__/lang_HE.cpython-314.pyc",
+      "bytes": 14758,
+      "sha256": "e17eeff03e29c3b2138ed7ca2978d45f401f58f133485227385e12656ea35c0c"
+    },
+    {
+      "path": "num2words/__pycache__/lang_HU.cpython-314.pyc",
+      "bytes": 8020,
+      "sha256": "6012f8dc5c8cf99bb3307cc6f1a413d70114b05694e43439729af316a1423655"
+    },
+    {
+      "path": "num2words/__pycache__/lang_ID.cpython-314.pyc",
+      "bytes": 7936,
+      "sha256": "1c7c15628a0785d530813661ee2409359ad71c5d771e146a9bde0c377db0d58e"
+    },
+    {
+      "path": "num2words/__pycache__/lang_IS.cpython-314.pyc",
+      "bytes": 4809,
+      "sha256": "9bf68fec68a90d635ec8d754f8d7c1516e0e362aa925370fc033296eb90de72e"
+    },
+    {
+      "path": "num2words/__pycache__/lang_IT.cpython-314.pyc",
+      "bytes": 9517,
+      "sha256": "2246de4024cb4a304c1dcb17f56e429bd57f0719d67690d64157344612399751"
+    },
+    {
+      "path": "num2words/__pycache__/lang_JA.cpython-314.pyc",
+      "bytes": 25888,
+      "sha256": "0d8900c404b0936405106b5d10ff60a32cac8793c4e06ed1f98fb7d433b321c4"
+    },
+    {
+      "path": "num2words/__pycache__/lang_KN.cpython-314.pyc",
+      "bytes": 7888,
+      "sha256": "e99785639ebdccf5c3fb61a8c79cf4572e0f0a9fecf53d63b3dafe5535dcfae6"
+    },
+    {
+      "path": "num2words/__pycache__/lang_KO.cpython-314.pyc",
+      "bytes": 6180,
+      "sha256": "30569a2922979b75ea1758a0d511b32437cc47dc708608c8a49ac28feca2989f"
+    },
+    {
+      "path": "num2words/__pycache__/lang_KZ.cpython-314.pyc",
+      "bytes": 4440,
+      "sha256": "dc36cbd80f2fd5a81c0a94b23753b22e9902900fdd0896fde5070c55ef70d507"
+    },
+    {
+      "path": "num2words/__pycache__/lang_LT.cpython-314.pyc",
+      "bytes": 6205,
+      "sha256": "bb3870ab8fe899acd6c98b0532cda78e77a89713b4993037a3aed8d40513f0ff"
+    },
+    {
+      "path": "num2words/__pycache__/lang_LV.cpython-314.pyc",
+      "bytes": 6462,
+      "sha256": "cada9c09b7f1fc9ff0b8cfb18b491bdaf376db48966a14cf002a1a5e6f183e8a"
+    },
+    {
+      "path": "num2words/__pycache__/lang_NL.cpython-314.pyc",
+      "bytes": 5269,
+      "sha256": "9c694c9faf7c240d78d2553e539257ff9f4899d8008e0c0b020d48aad33fb53f"
+    },
+    {
+      "path": "num2words/__pycache__/lang_NO.cpython-314.pyc",
+      "bytes": 5406,
+      "sha256": "ec1eaaf49e403e0b7df74fbdfb4c23a5eef5fb3f595d2880ffe4df048c5a65d9"
+    },
+    {
+      "path": "num2words/__pycache__/lang_PL.cpython-314.pyc",
+      "bytes": 9158,
+      "sha256": "94d02a1a3ade707a7d0ffae84a439bee196d2af0cae00c1e70213f235eca5b49"
+    },
+    {
+      "path": "num2words/__pycache__/lang_PT.cpython-314.pyc",
+      "bytes": 7363,
+      "sha256": "778d079dc52f20a8d8b095781d58646333f6932f72ef13a81b5ff5abf1d10bd4"
+    },
+    {
+      "path": "num2words/__pycache__/lang_PT_BR.cpython-314.pyc",
+      "bytes": 4220,
+      "sha256": "3730ff4402f369723fa2a0c53748a52724d600db966921269fd0786ef5fa1815"
+    },
+    {
+      "path": "num2words/__pycache__/lang_RO.cpython-314.pyc",
+      "bytes": 6937,
+      "sha256": "0a7ad6bc163466bffb810c8704799b7023abe953816e0e11371960aec5336deb"
+    },
+    {
+      "path": "num2words/__pycache__/lang_RU.cpython-314.pyc",
+      "bytes": 22858,
+      "sha256": "1c9839c2cbe4f7f541e818dfc608af08463b104cd250bf814bffbd33ce3a6a89"
+    },
+    {
+      "path": "num2words/__pycache__/lang_SK.cpython-314.pyc",
+      "bytes": 5700,
+      "sha256": "0c31607f702fa35484509af1fb40307da32c2a876b31c3701608b35569aa79fc"
+    },
+    {
+      "path": "num2words/__pycache__/lang_SL.cpython-314.pyc",
+      "bytes": 6599,
+      "sha256": "c88a04a05b77bc1d4055dd67d678ee4e144fca04dea040c01767384a73cc62b6"
+    },
+    {
+      "path": "num2words/__pycache__/lang_SR.cpython-314.pyc",
+      "bytes": 7373,
+      "sha256": "ebe2233272522a03c47af829928912aadd0e4a92688a94217a233b6a190b4817"
+    },
+    {
+      "path": "num2words/__pycache__/lang_SV.cpython-314.pyc",
+      "bytes": 5016,
+      "sha256": "f2c2259db8efc77e8bf85ba167ab6848d092db3cf70ffec722e754bb1c62605d"
+    },
+    {
+      "path": "num2words/__pycache__/lang_TE.cpython-314.pyc",
+      "bytes": 7903,
+      "sha256": "b071da760a32463db6bb3b06dd0e0343fc842e874d9ba53fe7bf1658f7831a6c"
+    },
+    {
+      "path": "num2words/__pycache__/lang_TET.cpython-314.pyc",
+      "bytes": 9790,
+      "sha256": "42eca6f9ad87736c3d7a87d9df9e25f4cd3f89a8e85549ee8329c39badb712de"
+    },
+    {
+      "path": "num2words/__pycache__/lang_TG.cpython-314.pyc",
+      "bytes": 5563,
+      "sha256": "5d8681eb591ae4a9756f23d617cf31655e23dfd1fdad97ef319187a536a1bb23"
+    },
+    {
+      "path": "num2words/__pycache__/lang_TH.cpython-314.pyc",
+      "bytes": 7072,
+      "sha256": "de10d8d76c010757648d38c0973612008da8a9273010e151f9466a7a4cc28bc9"
+    },
+    {
+      "path": "num2words/__pycache__/lang_TR.cpython-314.pyc",
+      "bytes": 37166,
+      "sha256": "5da9ae97c929c3f6deaaca4dfd4d9af1b0092184e74b47c004a202080bb03124"
+    },
+    {
+      "path": "num2words/__pycache__/lang_UK.cpython-314.pyc",
+      "bytes": 28412,
+      "sha256": "fcbe4c6714677f48b7ec0cce3527dabfdddf7aa3b461bc8b5d7febfd176d8d1b"
+    },
+    {
+      "path": "num2words/__pycache__/lang_VI.cpython-314.pyc",
+      "bytes": 5339,
+      "sha256": "dcc5a6f45671229c64a7931cffde71fab3692232c8d1166bcca142b45c2510e1"
+    },
+    {
+      "path": "num2words/__pycache__/utils.cpython-314.pyc",
+      "bytes": 1065,
+      "sha256": "1f56c19ac606ace31964348fd656342b05f403477197ce307141a6b19bca5fcf"
+    },
+    {
+      "path": "num2words/base.py",
+      "bytes": 10022,
+      "sha256": "52356f1717f7c3927c15f15ec42f670635bfa2f322ed0ebca6ab48791d5249b4"
+    },
+    {
+      "path": "num2words/compat.py",
+      "bytes": 1040,
+      "sha256": "5e302a28aa6e3fa35981c1b383a7f736c75a5cc973d8bff9e0ff19afd5387256"
+    },
+    {
+      "path": "num2words/currency.py",
+      "bytes": 1761,
+      "sha256": "6ab41fe056ea9b696fac3c278b0bab7b51cb06c57a50dbf84977de503be591c9"
+    },
+    {
+      "path": "num2words/lang_AM.py",
+      "bytes": 5614,
+      "sha256": "bea581b363df11d3450bcd8e57210adbc4e9ad706e7ef7731f5a5a686f52019b"
+    },
+    {
+      "path": "num2words/lang_AR.py",
+      "bytes": 18436,
+      "sha256": "9283992d1c52cbee2c8cf0b7b9d6d5d46c001a31b91b5fc8ea70c43e255985b8"
+    },
+    {
+      "path": "num2words/lang_AZ.py",
+      "bytes": 6315,
+      "sha256": "db90a52a384b93e4b72b5fd7ab28c56613283942fb2daab4f73da9226ee6f252"
+    },
+    {
+      "path": "num2words/lang_BE.py",
+      "bytes": 11850,
+      "sha256": "87ee1536ff14af8427dd7818536539d1860f91203683b02b36711b967022bf76"
+    },
+    {
+      "path": "num2words/lang_BN.py",
+      "bytes": 8746,
+      "sha256": "f0e912dff75f67ef2052d9aa989c101ce3a193864e02a7f09db015e69dcdaa83"
+    },
+    {
+      "path": "num2words/lang_CA.py",
+      "bytes": 18855,
+      "sha256": "8eef97003aa08ea4275916d333828b56393799ccc5e8036cc8a95a8afb7fc200"
+    },
+    {
+      "path": "num2words/lang_CE.py",
+      "bytes": 16032,
+      "sha256": "8b8c9003e8afee2a282cf92d44210f25a7e53e1a5a5a83c9dcb4224ac336ccb8"
+    },
+    {
+      "path": "num2words/lang_CS.py",
+      "bytes": 4301,
+      "sha256": "2ffb31b168cda8980158ce327485dadb51d0db7508d7f4e4f8dadaa4a6cff078"
+    },
+    {
+      "path": "num2words/lang_CY.py",
+      "bytes": 20093,
+      "sha256": "270ce0be88b85bf814d7f16f0a4ae664e66046bd16900c97f5994a68e466bade"
+    },
+    {
+      "path": "num2words/lang_DA.py",
+      "bytes": 5107,
+      "sha256": "4f22537a208f7accdae431b6f234be532c1979f9c9c297e31092824b9f293f63"
+    },
+    {
+      "path": "num2words/lang_DE.py",
+      "bytes": 6166,
+      "sha256": "74fcd465368e88f4e1f3edc8d6e47dae68b731c5c96e38ce3e79124b40f9c078"
+    },
+    {
+      "path": "num2words/lang_EN.py",
+      "bytes": 4410,
+      "sha256": "e2da2ac74707e08fada340d2ad937d1d94625908adc4bb42316546d3f952e16e"
+    },
+    {
+      "path": "num2words/lang_EN_IN.py",
+      "bytes": 1098,
+      "sha256": "82214724f8c989eeecdc52938b45e2765ccf4b3635f4d825306a0e031eedff84"
+    },
+    {
+      "path": "num2words/lang_EN_NG.py",
+      "bytes": 1402,
+      "sha256": "c3b63d10f69eda5b43ff9280c4f7fce764c253825b87240d8163f749a912d8cb"
+    },
+    {
+      "path": "num2words/lang_EO.py",
+      "bytes": 4835,
+      "sha256": "eb7a30a3921e40f2165b5c28deab856bd143726a328f18e330196d8006998733"
+    },
+    {
+      "path": "num2words/lang_ES.py",
+      "bytes": 19705,
+      "sha256": "310cc1e9a52a5055722496bde6b707ae2502209e17518035117e3cc2190e9f40"
+    },
+    {
+      "path": "num2words/lang_ES_CO.py",
+      "bytes": 1324,
+      "sha256": "f86c38162b5a318ebcc05036123c6763604efa2631a50657dfa0ce8dc20fcdab"
+    },
+    {
+      "path": "num2words/lang_ES_CR.py",
+      "bytes": 1388,
+      "sha256": "c413e7d66bb06043a2a399e7bcb5c03682dff380ce478e425d7cbf1d6a7c8e36"
+    },
+    {
+      "path": "num2words/lang_ES_GT.py",
+      "bytes": 1406,
+      "sha256": "b75906707a4aeb59c24f53e5f7a1a4cada0232ca9164d754f97226df0120fb59"
+    },
+    {
+      "path": "num2words/lang_ES_NI.py",
+      "bytes": 1415,
+      "sha256": "c1b9115543331242aaabddac69d4dfa097a2d7ce54f4c30bda75aa80203e35bf"
+    },
+    {
+      "path": "num2words/lang_ES_VE.py",
+      "bytes": 1390,
+      "sha256": "8584628d60d69a725387764b568ceaddbddbf350cab6be6b66d1aaca01ce6058"
+    },
+    {
+      "path": "num2words/lang_EU.py",
+      "bytes": 3868,
+      "sha256": "0037fd171d7c3851f20d317821c27ef58667575529f3676c66b91bd7c291418a"
+    },
+    {
+      "path": "num2words/lang_FA.py",
+      "bytes": 4880,
+      "sha256": "65bfb12bb21396e9d5f9e5109124c7a9edc26a7329470cea16a26a98186c2ae5"
+    },
+    {
+      "path": "num2words/lang_FI.py",
+      "bytes": 23855,
+      "sha256": "235b08cf6bcc9acfb73a68557e83541c988b5834be8b877ae54212d311914d4c"
+    },
+    {
+      "path": "num2words/lang_FR.py",
+      "bytes": 4257,
+      "sha256": "a7e67e85c7e38588a5b1e1bb176756834c6224b88158b55c3f904ab7a5ac0806"
+    },
+    {
+      "path": "num2words/lang_FR_BE.py",
+      "bytes": 1942,
+      "sha256": "86194f2aa539fb96035259c7f8955effab037c7bb88ec1d040f5f31e1eb52c4b"
+    },
+    {
+      "path": "num2words/lang_FR_CH.py",
+      "bytes": 1937,
+      "sha256": "e003dd0e17c79a01fbc3e4ae68aa3483afb22ad35f3260478a2bce553c85e98a"
+    },
+    {
+      "path": "num2words/lang_FR_DZ.py",
+      "bytes": 1373,
+      "sha256": "a4727bfb1fbed193515f4b541ba933b042827aa69b66c3f3210f8047e2620f73"
+    },
+    {
+      "path": "num2words/lang_HE.py",
+      "bytes": 11583,
+      "sha256": "5cf7f361c959cc01fc55e7303c78f275080074acf1a310b67fa0bc85c8e625ab"
+    },
+    {
+      "path": "num2words/lang_HU.py",
+      "bytes": 6068,
+      "sha256": "9799e6280a33be3c753fd5ec90b3aa7aa969e2216506ecf8e0705e5c693f9317"
+    },
+    {
+      "path": "num2words/lang_ID.py",
+      "bytes": 6431,
+      "sha256": "c30b41311fbd66010b703cc7921b5e8798711bbb0ddcdeab65226b0ff7528524"
+    },
+    {
+      "path": "num2words/lang_IS.py",
+      "bytes": 4634,
+      "sha256": "89d06c31d45d8b38d43141d2a594850628ea150db59305f2c0c6c5d8c98158ec"
+    },
+    {
+      "path": "num2words/lang_IT.py",
+      "bytes": 8838,
+      "sha256": "c74714f856a339080487f872b7fde8c5d1ec7f0b2302fe5807999b497aecb1b2"
+    },
+    {
+      "path": "num2words/lang_JA.py",
+      "bytes": 22325,
+      "sha256": "bc1c811d7b1da68e76d46fca418ce671e9f301c044e2a1e06611c59f134f72dd"
+    },
+    {
+      "path": "num2words/lang_KN.py",
+      "bytes": 7223,
+      "sha256": "2d0e9cab5e2aeea816244205b260025205f9f0186465f2e5a87b984891255c51"
+    },
+    {
+      "path": "num2words/lang_KO.py",
+      "bytes": 5212,
+      "sha256": "e6ccca1c64e9d6a13a02dd9f79bdeef04ac72f2dff8b15f73636bcab008ddf91"
+    },
+    {
+      "path": "num2words/lang_KZ.py",
+      "bytes": 3501,
+      "sha256": "4fe06e4dc8d87bc3156ba25b45611aebe43e6ae16432ad0e39d7f790e18958f0"
+    },
+    {
+      "path": "num2words/lang_LT.py",
+      "bytes": 5301,
+      "sha256": "aed726d85288d23176f28b70d153ec0dbdff8418784708a7768ef04c0f3ee0c6"
+    },
+    {
+      "path": "num2words/lang_LV.py",
+      "bytes": 5900,
+      "sha256": "7af674a6ea4c50e57cac1272853348c362a26dc5d01dd97ad87b45d9283349a5"
+    },
+    {
+      "path": "num2words/lang_NL.py",
+      "bytes": 5690,
+      "sha256": "0979e39f7cf0f2dfd218b968d395b1a7a8b3fd01ad0a77ef114e05ee36d1e61f"
+    },
+    {
+      "path": "num2words/lang_NO.py",
+      "bytes": 4952,
+      "sha256": "acdb9493fee550b9743f2c072924b4c27ac5c05bf33e5c2e18e3a3f447717bea"
+    },
+    {
+      "path": "num2words/lang_PL.py",
+      "bytes": 7874,
+      "sha256": "2b8e9f2ecbf27b0e093c69bf7c409217e97e89985b8cf7967170780ea947eb27"
+    },
+    {
+      "path": "num2words/lang_PT.py",
+      "bytes": 8503,
+      "sha256": "79b3640d15e4a9f01c02dd7f0ee666135bf0c09121ced8becb1edbe45f6a0241"
+    },
+    {
+      "path": "num2words/lang_PT_BR.py",
+      "bytes": 3772,
+      "sha256": "867c9a61e4322febf20e80b9b38163f6d93cdbba4755753fd334600f2815a128"
+    },
+    {
+      "path": "num2words/lang_RO.py",
+      "bytes": 6817,
+      "sha256": "5c7dd0f66ae97dd9fe0dea1c87fbf3bad08f92a8757c6a78684f190d327bd384"
+    },
+    {
+      "path": "num2words/lang_RU.py",
+      "bytes": 21338,
+      "sha256": "ddc8dff6097ac4bcfc9e59f821b3c12c61470c73a57a70a063566f01cc280037"
+    },
+    {
+      "path": "num2words/lang_SK.py",
+      "bytes": 4629,
+      "sha256": "29eb6de62126ecf6a02e8078d9386519107bdc0f67e7f005e7e84f86d3a84d30"
+    },
+    {
+      "path": "num2words/lang_SL.py",
+      "bytes": 6322,
+      "sha256": "d368413cdd7d7c4569cc58a278ca1a9e9b0243686444bccd6338b772f5ac4163"
+    },
+    {
+      "path": "num2words/lang_SR.py",
+      "bytes": 6689,
+      "sha256": "82a1929ff7f3655e8fb06ce194c20b57dce8623ae35c6d37096807732b4130d7"
+    },
+    {
+      "path": "num2words/lang_SV.py",
+      "bytes": 4625,
+      "sha256": "644b623d8fcc88087d36c61002761dcbc4e5d4a5988fc0fdca42fef848438389"
+    },
+    {
+      "path": "num2words/lang_TE.py",
+      "bytes": 6390,
+      "sha256": "8d475317ad6fb30feb963741a9506f75d8b50a4b62b172c0edc0b607ebc20022"
+    },
+    {
+      "path": "num2words/lang_TET.py",
+      "bytes": 8479,
+      "sha256": "3d6703344dbb2e52836600fecaf083ef4c8b9f62e05afdd8ed075b6302d4800d"
+    },
+    {
+      "path": "num2words/lang_TG.py",
+      "bytes": 5076,
+      "sha256": "ff88dfe29d17f554b6e3f664a4051a82e2088ed90d2aced6e82eae2175024340"
+    },
+    {
+      "path": "num2words/lang_TH.py",
+      "bytes": 5771,
+      "sha256": "f76e5d525cd3ab2038585d54216a5b2b7060423b0be7a0ac473c4bbf114dc0d4"
+    },
+    {
+      "path": "num2words/lang_TR.py",
+      "bytes": 40168,
+      "sha256": "594f0b64a0f20b0236a9464d55ca29045485fcfa7352ab5cc857f4a2d4250194"
+    },
+    {
+      "path": "num2words/lang_UK.py",
+      "bytes": 40900,
+      "sha256": "0ae6e064c545397329e7e691cdb7252ef8296ca4a42a7e797f0d7bbb2358c9b6"
+    },
+    {
+      "path": "num2words/lang_VI.py",
+      "bytes": 4151,
+      "sha256": "67f03114e5b83124d6d336f8199c9594f141cca9574e579bfbee63d7a1533381"
+    },
+    {
+      "path": "num2words/utils.py",
+      "bytes": 1360,
+      "sha256": "5a4cfa390464bb4134f9194d11261bfd9b85021b0c0af0fe2dda0ec6cea5bd81"
+    },
+    {
+      "path": "num2words-0.5.14.dist-info/COPYING",
+      "bytes": 23995,
+      "sha256": "1457a03d928aeb06af3ea75ef065c517e915d7e41283d550dd4fa18ab20cda12"
+    },
+    {
+      "path": "num2words-0.5.14.dist-info/INSTALLER",
+      "bytes": 4,
+      "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508"
+    },
+    {
+      "path": "num2words-0.5.14.dist-info/METADATA",
+      "bytes": 13164,
+      "sha256": "7b5b9217db18274db0fdb75c1e7dee83c61be4f408be4d9d796a2253d55786df"
+    },
+    {
+      "path": "num2words-0.5.14.dist-info/RECORD",
+      "bytes": 8614,
+      "sha256": "2bd4244acd264951f407a794c9aa0c306275a6e82672a5a5518693af6ad00088"
+    },
+    {
+      "path": "num2words-0.5.14.dist-info/REQUESTED",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "num2words-0.5.14.dist-info/WHEEL",
+      "bytes": 91,
+      "sha256": "3d9504c5d7fbd548bfb28ebb417a724ae1ed0a2dfe277c2f1783912ba93f4bc5"
+    },
+    {
+      "path": "num2words-0.5.14.dist-info/top_level.txt",
+      "bytes": 10,
+      "sha256": "4c24d5fb1b57eb08420b50745937b8853aa902a25a3e610716cb8d3ab7db6aad"
+    },
+    {
+      "path": "docopt.py",
+      "bytes": 19946,
+      "sha256": "44c650ebd833d852c8731fa3f0c5759506309622300e4c1954a540d78572cc54"
+    },
+    {
+      "path": "docopt-0.6.2.dist-info/INSTALLER",
+      "bytes": 4,
+      "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508"
+    },
+    {
+      "path": "docopt-0.6.2.dist-info/METADATA",
+      "bytes": 18108,
+      "sha256": "d4c3ef35e6f87c733814ee02bcd50e34c431f4044195d4f997a79201f49c5176"
+    },
+    {
+      "path": "docopt-0.6.2.dist-info/RECORD",
+      "bytes": 593,
+      "sha256": "161e80790f2e47eb5c0d0f4c441f772cc0a8006a2d79068afb73d7591637d63f"
+    },
+    {
+      "path": "docopt-0.6.2.dist-info/WHEEL",
+      "bytes": 109,
+      "sha256": "e1805f098347e3094ba6fde9cead616c4b8895703858969b28b16ead9ede4cbd"
+    },
+    {
+      "path": "docopt-0.6.2.dist-info/licenses/LICENSE-MIT",
+      "bytes": 1097,
+      "sha256": "3d5df78f592ff2433c3c6ce4984091b7f497059ddb8c6b08a061ba48e37b67f2"
+    },
+    {
+      "path": "docopt-0.6.2.dist-info/top_level.txt",
+      "bytes": 7,
+      "sha256": "c40bcbdb2c1339d2dd7bcc314d5c9ed76f7d8fae5874addc339f7adf0372e525"
+    }
+  ],
+  "host_custom_install_modified": false
+}

@@ -1,0 +1,54 @@
+{
+  "schema": "modly.ticket05.north_micro_vision.runtime-lock.v1",
+  "candidate": "CohereLabs/North-Micro-Vision-Instruct",
+  "model_lock": "api/runtime/adapters/parts/NORTH_MICRO_VISION_ASSET_LOCK.json",
+  "required_transformers": "5.16.0",
+  "transformers_source_tag": "v5.16.0",
+  "python": "3.12.3",
+  "base_runtime": {
+    "image": "localhost/modly-amd-migraphx:ticket02",
+    "image_id": "sha256:c96b56796c753d749cb02b31b88da7567c3712861d214bfe26452d21bd7e6b8d",
+    "manifest_digest": "sha256:64fb89f2167f56a7381529e8e4fb69b322c3685f9805ea301263477c25aa0554",
+    "pytorch": "2.11.0+rocm7.14.0",
+    "hip": "7.14.60850",
+    "migraphx": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+    "torch_migraphx": "1.2",
+    "target_device": "AMD Radeon RX 7900 GRE gfx1100"
+  },
+  "overlay": {
+    "path": ".modly-amd-runtime/package-cache/north-micro-vision-v1/site-packages",
+    "status": "isolated hash-locked offline install succeeded in project runtime overlay; import smoke passed in project AMD ROCm image",
+    "requirements_lock": "api/runtime/adapters/parts/NORTH_MICRO_VISION_REQUIREMENTS.lock",
+    "required_runtime_dependencies_from_model_card": [
+      "transformers==5.16.0",
+      "accelerate",
+      "Pillow"
+    ],
+    "optional_dependency_excluded": "flash-attn (publisher documentation marks it optional and CUDA-only)",
+    "requirements_lock_sha256": "726de747c0d2672ae7c01122b5abf61ba00133ee2e6ac8eccc59edd90ce23c4c",
+    "wheelhouse_manifest": ".modly-amd-runtime/package-cache/north-micro-vision-v1/wheelhouse-manifest.json",
+    "wheel_count": 28,
+    "installed_package_import_smoke": {
+      "python": "3.12.3",
+      "transformers": "5.16.0",
+      "torch": "2.11.0+rocm7.14.0",
+      "hip": "7.14.60850",
+      "model_class": "CohereCompassForConditionalGeneration",
+      "pytorch_cuda_alias": "ROCm verified"
+    }
+  },
+  "offline_inference": true,
+  "network_disabled": true,
+  "trust_remote_code": false,
+  "use_safetensors": true,
+  "fixture_or_truth_access": false,
+  "status": "source, license, runtime overlay and checkpoint hashes verified; synthetic preflight stopped before generation by base torchvision PNG decoder failure",
+  "synthetic_preflight": {
+    "status": "stopped_before_generation",
+    "model_checkpoint_entries_loaded": "577/577",
+    "processor_failure": "RuntimeError: decode_png: torchvision not compiled with libPNG support",
+    "generation_calls": 0,
+    "migraphx_attempted": false,
+    "raw_failure_log": ".modly-amd-runtime/results/north-micro-vision-v1/synthetic-preflight-failure.log"
+  }
+}

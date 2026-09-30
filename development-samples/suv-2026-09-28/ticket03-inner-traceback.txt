@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/modly/src/areas/workflows/nodes/reference-geometry/processor.py", line 51, in main
+    from runtime.adapters.geometry.runner import load_reference_adapter
+  File "/modly/api/runtime/adapters/geometry/runner.py", line 15, in <module>
+    from runtime.adapters.geometry.stage import GeometryGenerationResult
+  File "/modly/api/runtime/adapters/geometry/stage.py", line 17, in <module>
+    from pydantic import ValidationError
+  File "/api-site/pydantic/__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "/api-site/pydantic/_migration.py", line 4, in <module>
+    from pydantic.warnings import PydanticDeprecatedSince20
+  File "/api-site/pydantic/warnings.py", line 5, in <module>
+    from .version import version_short
+  File "/api-site/pydantic/version.py", line 7, in <module>
+    from pydantic_core import __version__ as __pydantic_core_version__
+  File "/api-site/pydantic_core/__init__.py", line 6, in <module>
+    from typing_extensions import Sentinel
+ImportError: cannot import name 'Sentinel' from 'typing_extensions' (/modly/api/typing_extensions.py)

@@ -1,0 +1,16 @@
+{
+  "schema": "modly.pbr.supermat-attention-overlay.v1",
+  "upstream_repository": "https://github.com/hyj542682306/SuperMat",
+  "upstream_revision": "4fe25bc6cb8cb7a3ed81ce74512f760dd33f80f4",
+  "source_path": "src/models/custom_attention_processor.py",
+  "source_sha256": "1b9b57a05b52dcb84eb75a3fe8d6aa4b5ff8fe727442335f2e4d0742fe5df332",
+  "operation": "defer_xformers_import_to_xformers_processor_call",
+  "sdpa_numerics_changed": false,
+  "selected_default_path": "MVAttnProcessor2_0 via --disable-xformers",
+  "selected_default_path_numerics_modified": false,
+  "limitations": [
+    "Requires the staged einops dependency in an isolated adapter overlay.",
+    "Does not provide xformers when the xformers processor is selected.",
+    "Does not provide calibrated view-to-UV projection or multi-view map fusion."
+  ]
+}

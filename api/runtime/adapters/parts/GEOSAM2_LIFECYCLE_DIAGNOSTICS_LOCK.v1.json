@@ -1,0 +1,36 @@
+{
+  "call_order": [
+    "fresh_predictor",
+    "reused_predictor_after_reset",
+    "new_predictor_shared_model"
+  ],
+  "capture_policy": "complete tensor SHA-256, shape, dtype, bytes, finite counts; separate aggregate parameter and buffer SHA-256; no tensor payload persistence",
+  "limits": {
+    "calls": 3,
+    "capture_container_items": 96,
+    "capture_nesting_depth": 8,
+    "capture_shape_dimensions": 8,
+    "finite_count_chunk_elements": 1000000,
+    "fixed_prompt_count_per_prediction": 1,
+    "model_state_tensor_bytes": 1500000000,
+    "model_state_tensor_count": 10000,
+    "tensor_bytes_each": 1000000000,
+    "tensor_count_per_capture": 96
+  },
+  "model_revision": "ba92f5f50418f2fe9af1078448b63176df13b1ee",
+  "module": "geosam2_lifecycle_diagnostics.py",
+  "module_sha256": "72e0a7a6dbbf258268237f8aed1c98dc5387fb8f06eb1a4d2946ca0deed6298c",
+  "normal_inference_wiring": false,
+  "probe": "geosam2_lifecycle_probe.py",
+  "probe_sha256": "22b73a7e1a8730f6ecb48a98fb85f596cb34c92103a2b842dabb2fda86e22004",
+  "rng_policy": "restore identical captured Python, NumPy, Torch CPU, and Torch ROCm states before set_image and before one _predict per role",
+  "schema": "modly.ticket04.geosam2-lifecycle-diagnostics-lock/1",
+  "source_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "truth_access": "none",
+  "upstream_builder_path": "sam2/build_sam.py",
+  "upstream_builder_sha256": "8270a1835f7d940b44e267bce0cc007b53d201387c7d72efabb313ea5e3f64cc",
+  "upstream_inference_path": "inference.py",
+  "upstream_inference_sha256": "9ff50ecfa2d1d6eccd9a5ef19b798f3d9ce7f6c8e8789108da6bb19e64cb81b9",
+  "upstream_predictor_path": "sam2/sam2_image_predictor_geosam2.py",
+  "upstream_predictor_sha256": "75b078e2a9f399882f681196f3d190baeb194db686b1d4258162952bcee08614"
+}

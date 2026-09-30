@@ -1,0 +1,39 @@
+{
+  "schema_name": "modly.ticket04.geosam2-proposal-aba-diagnostics-lock.v1",
+  "schema": "modly.ticket04.geosam2-proposal-aba-diagnostics/1",
+  "module": "geosam2_proposal_aba_diagnostics.py",
+  "module_sha256": "3ee48a972ff488dfb72c9f0d365b0ff1938cd6e7777b72409dbc9208cde94e22",
+  "upstream_repository": "https://github.com/VAST-AI-Research/GeoSAM2.git",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "upstream_generator_path": "sam2/automatic_mask_generator_geosam2.py",
+  "upstream_generator_sha256": "cefa1934b0410119950514310728b811192e9f02584a479a7388bfe5a2e2bdac",
+  "upstream_predictor_path": "sam2/sam2_image_predictor_geosam2.py",
+  "upstream_predictor_sha256": "75b078e2a9f399882f681196f3d190baeb194db686b1d4258162952bcee08614",
+  "scope": "opt-in exclusive diagnostic only; inference settings and acceptance criteria are unchanged",
+  "limits": {
+    "calls": 3,
+    "call_order": [
+      "A",
+      "B",
+      "A"
+    ],
+    "prompt_points_per_call": 4096,
+    "point_batches_per_call": 64,
+    "predict_calls_per_call": 128,
+    "feature_tensors_per_call": 4,
+    "sample_values_per_tensor": 8,
+    "exact_small_vector_values": 512,
+    "memory_predict_snapshots_every_calls": 8,
+    "module_outputs_per_call": 8,
+    "tensors_per_module_output": 4
+  },
+  "module_stages": [
+    "image_encoder",
+    "pos_map_encoder.trunk",
+    "pos_map_encoder.neck",
+    "pos_map_encoder",
+    "feature_fusion",
+    "sam_mask_decoder.conv_s0",
+    "sam_mask_decoder.conv_s1"
+  ]
+}

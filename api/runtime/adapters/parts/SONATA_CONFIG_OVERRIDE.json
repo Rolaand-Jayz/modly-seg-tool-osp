@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "source_revision": "e96be065375438962375b55326416291342958a7",
+    "config_path": "XPart/partgen/config/sonata.json",
+    "config_sha256": "91c32517a9d5a3c26355ad86aeb19fa179a5acc706ed0b6e9dde39710c7323a5"
+  },
+  "overrides": {
+    "enable_flash": false
+  },
+  "rationale": "Use Sonata's existing pure-PyTorch serialized-attention branch because the upstream flash-attention extension is not qualified for the pinned AMD runtime. The model architecture and learned parameters are unchanged; output parity, quality, memory, and latency remain to be measured."
+}

@@ -1,0 +1,104 @@
+{
+  "ldd_nvidia_cuda_soname_matches": [],
+  "libraries": [
+    {
+      "path": "/opt/rocm/lib/libmigraphx_c.so",
+      "sha256": "280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8"
+    },
+    {
+      "path": "/opt/rocm/lib/libmigraphx_c.so.3",
+      "sha256": "280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8"
+    },
+    {
+      "path": "/opt/rocm/lib/libmigraphx_c.so.3.0",
+      "sha256": "280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8"
+    },
+    {
+      "path": "/opt/rocm/lib/libmigraphx_py.so",
+      "sha256": "fd0c7d7a20d61dcfd002cc38eb14bb53c9b3b399493462c63db797100166bd2b"
+    },
+    {
+      "path": "/opt/rocm/lib/libmigraphx_py_3.12.so",
+      "sha256": "125c68924489b981f5fca3ccd96555ba6f065dd7f4f098b4d7c19575ef348d97"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx.cpython-312-x86_64-linux-gnu.so",
+      "sha256": "1f5512dd15c7865cfc002bace2ece4902725d276a4d5733dcfddd57a1328b0dc"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx.so",
+      "sha256": "6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx.so.2016000",
+      "sha256": "6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx.so.2016000.0",
+      "sha256": "6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_device.so",
+      "sha256": "9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_device.so.2016000",
+      "sha256": "9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_device.so.2016000.0",
+      "sha256": "9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_gpu.so",
+      "sha256": "28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_gpu.so.2016000",
+      "sha256": "28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_gpu.so.2016000.0",
+      "sha256": "28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_onnx.so",
+      "sha256": "5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_onnx.so.2016000",
+      "sha256": "5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_onnx.so.2016000.0",
+      "sha256": "5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_ref.so",
+      "sha256": "2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_ref.so.2016000",
+      "sha256": "2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_ref.so.2016000.0",
+      "sha256": "2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_tf.so",
+      "sha256": "f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_tf.so.2016000",
+      "sha256": "f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819"
+    },
+    {
+      "path": "/opt/rocm/lib/migraphx/lib/libmigraphx_tf.so.2016000.0",
+      "sha256": "f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819"
+    }
+  ],
+  "nvidia_cuda_soname_absent": true,
+  "torch_cuda_version": null,
+  "torch_hip_version": "7.14.60850"
+}

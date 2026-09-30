@@ -1,0 +1,31 @@
+{
+  "schema": "modly.ticket04.proposal-registration-lift-trace/2",
+  "lock_identity": "ticket04-proposal-registration-lift-trace-v2",
+  "helper_path": "api/runtime/adapters/parts/geosam2_proposal_registration_lift_trace.py",
+  "helper_sha256": "69c56ac4647110b919bea00b92921820b7cd79071c902094107c1d4645e904c1",
+  "limits": {
+    "expected_views": 12,
+    "rows": 256,
+    "artifact_bytes": 49152,
+    "mask_leaves_per_event": 32,
+    "tree_items": 64,
+    "label_scan_elements": 1000000,
+    "label_sample": 8192,
+    "join_ids_per_lift": 128,
+    "registered_aliases_per_view": 256
+  },
+  "privacy": {
+    "run_key_required": true,
+    "run_key_persisted": false,
+    "coordinates_retained": false,
+    "masks_retained": false,
+    "face_ids_retained": false,
+    "raw_labels_retained": false,
+    "raw_object_ids_retained": false
+  },
+  "coverage": {
+    "proposal_registration_required_for_complete": true,
+    "expected_lift_passes_required_for_complete": true,
+    "original_proposal_ordinals_preserved": true
+  }
+}

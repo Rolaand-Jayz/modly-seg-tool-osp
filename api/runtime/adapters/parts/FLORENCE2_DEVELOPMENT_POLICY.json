@@ -1,0 +1,42 @@
+{
+  "schema": "org.modly.ticket05.florence-development-policy.v1",
+  "policy_id": "ticket05-florence2-four-view-consensus-v1",
+  "status": "frozen-for-development-screen-only",
+  "split": "development",
+  "fixture_id": "ticket05-semantic-part-role-rendered-v1",
+  "fixture_manifest_sha256": "sha256:dfd29807bc816d479a67baab48d5509e397a560a45990be0422f32d3e99228e4",
+  "ontology_contract_sha256": "sha256:8343716a9445bf2cc481e48a887069e814a3cbae8da3ec8edbd37ec737c563ec",
+  "prompt_digest": "sha256:8609081e67065ed6c99ab608aaf3b89bb40427f952360e838f61b06154afa6f1",
+  "candidate": {
+    "adapter_id": "microsoft.florence-2-base.v1",
+    "adapter_source_sha256": "sha256:bbdaa0d9c3f210ff1e2c0d5be012a713bb7e415ae49f4ed7db70a69f5bbe452f",
+    "evaluator_source_sha256": "sha256:738ef9acccb5de8b09d91d6d349dbf9064bb5a73205d820a2c55a064e68dce00",
+    "repository": "microsoft/Florence-2-base",
+    "revision": "ee1f1f163f352801f3b7af6b2b96e4baaa6ff2ff",
+    "weights_id": "microsoft/Florence-2-base@ee1f1f163f352801f3b7af6b2b96e4baaa6ff2ff:pytorch_model.bin",
+    "weights_sha256": "sha256:b480ac374593b0dcb18ffa63b23213734e04cd43eab0d620d23e39708d4a4a7e",
+    "asset_lock_sha256": "sha256:dd0dc0d6b9681c3ca97d5d699728381f754e660d78f4dccc4678b63ec1e5daf1",
+    "runtime_lock_sha256": "sha256:58bee093e6cc052a3d661f8559f76a93484f50876cf4553e6ea70a1b96480bd1",
+    "runtime_image_id": "sha256:c96b56796c753d749cb02b31b88da7567c3712861d214bfe26452d21bd7e6b8d",
+    "runtime_manifest_digest": "sha256:64fb89f2167f56a7381529e8e4fb69b322c3685f9805ea301263477c25aa0554",
+    "runtime": "Python 3.12.3; PyTorch 2.11.0+rocm7.14.0; Transformers 4.51.3; tokenizers 0.21.4; HIP 7.14.60850; backend pytorch_rocm"
+  },
+  "decision_policy": {
+    "evidence_unit": "one part across exactly four distinct observations",
+    "extraction": "take exact nonempty strings from Florence bboxes_labels, polygons_labels, and labels; deduplicate exact repeats within a view only; preserve all raw outputs",
+    "supported": "all four views each emit exactly one distinct category and that exact string is the same frozen ontology ID in every view",
+    "unknown": "all four views each emit exactly one distinct category and the exact same nonempty raw category string in every view, and that string is not exactly any frozen ontology ID",
+    "ambiguous": "all other cases, including a missing category in any view, multiple distinct categories within any view, or disagreement across views",
+    "normalization": "exact byte-for-byte Python string equality to frozen ontology IDs only; no fuzzy, edit-distance, substring, embedding, or alias matching",
+    "confidence": "unknown; Florence output has no native calibrated part-role confidence",
+    "calibration": "none; policy has no tunable thresholds and is fixed before development predictions",
+    "rationale": "the fixture's frozen unit is one part jointly observed in four views; repeated exact out-of-ontology evidence is the only deterministic unknown rule, while insufficient/conflicting evidence abstains as ambiguous"
+  },
+  "acceptance_gates_sha256": "sha256:8343716a9445bf2cc481e48a887069e814a3cbae8da3ec8edbd37ec737c563ec",
+  "execution": {
+    "network": "disabled by caller/container; adapter enforces local_files_only and Python network denial during load/generation",
+    "weights_only": true,
+    "allow_heldout": false,
+    "allow_output_overwrite": false
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "policy_id": "geosam2-circular-view-index-v1",
+  "schema": "modly.ticket04.geosam2-video-index-policy.v1",
+  "module": "geosam2_video_index_policy.py",
+  "module_sha256": "b97b9fb4ca769444de6164691821a4b4b4a73489f43b11d713c44f147dc41174",
+  "upstream_repository": "https://github.com/VAST-AI-Research/GeoSAM2.git",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "source_file": "sam2/sam2_video_predictor_geosam2.py",
+  "source_file_sha256": "e947a4f362f1e0e5a91bb1aebba3a4e74f47432068039779b3dba3638e532558",
+  "init_state_ast_sha256": "2fc86c1e18bf86812c0053306519aabf99dd8c8a9296b0bb031312696b667e23",
+  "propagate_in_video_v2_ast_sha256": "f0b86c57c6f0b36e2dc908dcfdf3b0cb83ead2f4af706ab58e9026b616be9f19",
+  "frame_count": "loaded_source_view_count",
+  "temporal_slots": "monotonic_seed_first_ordinal",
+  "source_view_order": "circular_unique_no_duplicate_seed"
+}

@@ -1,0 +1,39 @@
+{
+  "expected_inputs": {
+    "checkpoint_sha256": "2e391c0d9455fe92b69d61cdc94754d9b8081b9b541d09e1b6a3a55ebf6c6de0",
+    "face_map_sha256": "4f48bf28fc677b62326fcd79e9c7a35943c5511edeafd7231c7f01b6c95d3f44",
+    "mesh_sha256": "e099909ff028dfeffa77a842635c06da66de85b82f92741fe2ce5ca9f533aa99",
+    "render_manifest_sha256": "b28450652e331bfa23bcde92479c1942a83755e58ed745faf1b091165cb1e7ab"
+  },
+  "generator_parameters": {
+    "box_nms_thresh": 0.7,
+    "crop_n_layers": 0,
+    "crop_n_points_downscale_factor": 2,
+    "min_mask_region_area": 25.0,
+    "points_per_batch": 128,
+    "points_per_side": 64,
+    "pred_iou_thresh": 0.7,
+    "stability_score_offset": 0.7,
+    "stability_score_thresh": 0.7,
+    "use_m2m": true
+  },
+  "helper_sha256": "16785f905e0e3f24074c6e451311d3f38d25b8a5e032ca110278e30e18541d1e",
+  "lifecycle_module_sha256": "72e0a7a6dbbf258268237f8aed1c98dc5387fb8f06eb1a4d2946ca0deed6298c",
+  "lifecycle_probe_sha256": "22b73a7e1a8730f6ecb48a98fb85f596cb34c92103a2b842dabb2fda86e22004",
+  "model_revision": "ba92f5f50418f2fe9af1078448b63176df13b1ee",
+  "module": "geosam2_finite_retry_sequence_probe.py",
+  "module_sha256": "d4a401f89ca1847dcad400576f2e8a22ec3594090685d27ee16480960512a5ae",
+  "policy": {
+    "calls": 3,
+    "retry_limit_per_call": 1,
+    "scope": "ordered locked Flamingo views 0, 1, and 2; one automatic image-feature cache operation per view; no segmentation or truth",
+    "truth_access": "none",
+    "view_indices": [0, 1, 2]
+  },
+  "schema": "modly.ticket04.geosam2-finite-retry-sequence-probe-lock/1",
+  "seed": 42,
+  "source_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "source_lock_sha256": "6b21ae83fc6c0b257253876a9641d323e5827dfa8ae62c86114529629edc0dd9",
+  "model_lock_sha256": "98273310cd54faa6d7283feea3fc1b3602b7d451a322cb71bf74fe54f1a45e43",
+  "dependency_lock_sha256": "ed3f6517ad8485de362475dab6fcf265b5681a537fd9ce7c91d054d30c6974a9"
+}

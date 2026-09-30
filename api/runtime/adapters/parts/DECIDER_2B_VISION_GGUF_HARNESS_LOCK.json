@@ -1,0 +1,66 @@
+{
+  "schema": "modly.ticket05.decider2b-gguf.native-harness-lock.v2",
+  "candidate": "mindchain/decider-2b-vision-GGUF@8b93270a437ab78ec6853571650b30a7cc933f62",
+  "build_id": "llama.cpp@9575389609d6f8437de0b205561a4824d217c409;HIP;gfx1100;ROCm-7.14.60850;mtmd-jsonl-per-view-v2",
+  "native_probe": {
+    "source": "api/runtime/adapters/parts/decider_gguf/synthetic_logits_probe.cpp",
+    "source_sha256": "a10a91da0c31030376aa3a19a4acb2c3686072595299cae3ff5008a8f0333ded",
+    "binary": ".modly-amd-runtime/build/llama-decider-9575389-rocm714-hip/bin/decider-synthetic-logits-probe",
+    "binary_sha256": "85d951cccfed69f146dac515bf8bf1ce288b535ed6674a17e413d3d9ea72e662"
+  },
+  "assets": {
+    "text_gguf_sha256": "eb5667fa86c45439c729da9d760c094b1af154573960559a2ecd92dde7797195",
+    "mmproj_gguf_sha256": "4bbc8f570ad52331cd5594f252db37b5d473d507ef9a3d9b108c024e256dcc18"
+  },
+  "runtime": {
+    "image": "localhost/modly-amd-migraphx:ticket02",
+    "image_id": "c96b56796c753d749cb02b31b88da7567c3712861d214bfe26452d21bd7e6b8d",
+    "manifest_sha256": "64fb89f2167f56a7381529e8e4fb69b322c3685f9805ea301263477c25aa0554",
+    "rocm": "7.14.60850",
+    "backend_registry": "ROCm",
+    "backend": "HIP",
+    "target": "gfx1100",
+    "device": "AMD Radeon RX 7900 GRE",
+    "device_id": "ROCm0"
+  },
+  "protocol": {
+    "schema": "modly.decider.slot-scores.v2",
+    "input": "JSONL; one encoded image and integer view_index 0..3 per row; exactly four consecutive rows per part with shared topology_revision and prompt and ordered indices 0,1,2,3; each image retains its original encoded bytes and digest",
+    "image_decode": "pinned mtmd_helper_bitmap_init_from_file; PNG/JPEG and WebP when MTMD_VIDEO/FFmpeg support is available",
+    "prompt_suffix": "Answer: (",
+    "prompt_sha256": "sha256:df2343bc03b112324e18450c5983ba32f0d52393e480ca9aa7c8c6a215827d2e",
+    "score_semantics": "per-view native restricted A-J next-token logits at final answer-open position; ten-way restricted softmax; uncalibrated",
+    "aggregation": "equal_weight_mean_of_four_view_probabilities; raw per-view logits and probabilities remain emitted",
+    "kv_policy": "load model/context/projector once; clear llama memory before each one-image complete-prompt request"
+  },
+  "superseded_synthetic_evidence_v1": {
+    "contract_request": ".modly-amd-runtime/results/decider-batch-native/contract-request.jsonl",
+    "contract_output": ".modly-amd-runtime/results/decider-batch-native/contract-output.jsonl",
+    "contract_output_sha256": "df7b56e974eddc819bbb2d6ccc1580a3ef3e6650016efdcbde8f852ba60fc2b2",
+    "contract_output_lines": 2,
+    "generic_two_row_smoke": ".modly-amd-runtime/results/decider-batch-native/synthetic-batch.jsonl",
+    "generic_two_row_smoke_sha256": "f7453560d735af6ad049596c3535034ee1e2747204f652e5d60b749508f74e6e",
+    "generic_two_row_smoke_lines": 3,
+    "parser_fail_closed_report": ".modly-amd-runtime/results/decider-batch-native/negative-check.tsv",
+    "mixed_prompt_rejection": ".modly-amd-runtime/results/decider-batch-native/mixed-prompt-check.log",
+    "heldout_or_ticket_fixture_access": false,
+    "ticket05_acceptance": false,
+    "status": "historical only; predates per-view protocol v2 and does not validate it"
+  },
+  "synthetic_only_evidence": {
+    "contract_run": ".modly-amd-runtime/results/decider-per-view-v2/",
+    "request_sha256": "sha256:9c5a8a3639c91bd2f3ec3f6467656bff6889845c0e9e10827eddad89617c5ff1",
+    "output_sha256": "sha256:201a95d9c97e2aca2817a9a3058c791c983fefaa7cb8783d97eec3359ea2fb3b",
+    "repeat_output": ".modly-amd-runtime/results/decider-per-view-v2/output-repeat.jsonl",
+    "repeat_output_sha256": "sha256:201a95d9c97e2aca2817a9a3058c791c983fefaa7cb8783d97eec3359ea2fb3b",
+    "deterministic_byte_repeat": true,
+    "runtime_log_sha256": "sha256:4eb1916f77ac8b1af9ece6c14aa451b61d5a5222493a12cbccdfe694a5c1022e",
+    "output_lines": 5,
+    "device": "AMD Radeon RX 7900 GRE",
+    "generated_images_only": true,
+    "adapter_score_validation": "passed; 4 ordered single-image rows with exact evidence binding and normalized equal-weight aggregate",
+    "mrope_position_warnings": "present in runtime log; retained and not suppressed",
+    "heldout_or_ticket_fixture_access": false,
+    "ticket05_acceptance": false
+  }
+}

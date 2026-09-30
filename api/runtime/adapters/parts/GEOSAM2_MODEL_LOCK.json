@@ -1,0 +1,9 @@
+{
+  "bytes": 615627435,
+  "filename": "geosam2.pt",
+  "license": "Apache-2.0 per pinned official model card",
+  "repository": "VAST-AI/GeoSAM2",
+  "revision": "ba92f5f50418f2fe9af1078448b63176df13b1ee",
+  "sha256": "2e391c0d9455fe92b69d61cdc94754d9b8081b9b541d09e1b6a3a55ebf6c6de0",
+  "verified_before_load": true
+}

@@ -1,0 +1,11 @@
+{
+  "algorithm": "Blender 4.0.2 Decimate modifier, COLLAPSE, triangulate",
+  "blender_mesh_vertices": 37244,
+  "blender_version": "4.0.2",
+  "normal_mode": "smooth faces with 45-degree auto-smooth sharp edges",
+  "output_faces": 75000,
+  "output_glb_sha256": "39eae91adc8dc42f5ab896579d666aa00c806b80ce1d9a4f0fdadcaea5dbed68",
+  "requested_faces": 75000,
+  "source_faces": 1108618,
+  "source_glb_sha256": "a9519460b1367523a9c340f452537f9a5cc8115bda48faa1a8e3745d908a975a"
+}

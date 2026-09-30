@@ -1,0 +1,84 @@
+{
+  "schema": "modly.ticket05.north_micro_vision.asset-lock.v1",
+  "candidate": "CohereLabs/North-Micro-Vision-Instruct",
+  "hub_revision": "46b719694e3bad142f3e931774f4622f1024009e",
+  "expected_task": "image-text-to-text",
+  "expected_architecture": "CohereCompassForConditionalGeneration",
+  "expected_parameter_count": 2400000000,
+  "expected_dtype": "bfloat16",
+  "license": "Apache-2.0",
+  "checkpoint": {
+    "path": "model.safetensors",
+    "size_bytes": 4969765248,
+    "sha256": "cd9a9ed867111bbc6b6e062bf0b3b9c88af183eb41003083501a76c84e912046",
+    "hash_source": "official Hugging Face Xet pointer on the model file page; must match local downloaded bytes",
+    "status": "downloaded from immutable revision; local byte length and SHA-256 verified against pinned official lock",
+    "displayed_size": "4.97 GB (official UI rounded display; exact byte count unavailable offline)",
+    "xet_hash": "d1a06f53150c4e39917f00892e38c1edf43e33344dc1041b6bc941ea8139b93b",
+    "verified_local_path": ".modly-amd-runtime/models/north-micro-vision-v1/model.safetensors"
+  },
+  "expected_snapshot_files": [
+    ".gitattributes",
+    "README.md",
+    "chat_template.jinja",
+    "config.json",
+    "generation_config.json",
+    "model.safetensors",
+    "preprocessor_config.json",
+    "special_tokens_map.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "video_preprocessor_config.json"
+  ],
+  "source_files": {
+    "status": "all listed pinned model files downloaded and SHA-256 recorded; config has no auto_map; no custom Python model source",
+    "revision": "46b719694e3bad142f3e931774f4622f1024009e",
+    "lock": "api/runtime/adapters/parts/NORTH_MICRO_VISION_SOURCE_LOCK.json",
+    "lock_sha256": "a652983b7d1cb94481ac1673193a1825fffe5dc43ca2a2f621a9ccb338b43fd6",
+    "no_model_repository_python": true
+  },
+  "transformers_implementation": {
+    "version": "5.16.0",
+    "source_tag": "v5.16.0",
+    "module": "transformers.models.cohere_compass",
+    "vision_module": "transformers.models.cohere_compass.modeling_cohere_compass.CohereCompassVisionModel",
+    "vision_parent_path": "model.model.visual",
+    "wheel_sha256": "2b4adda8d99bb4c1b208da5ed967e2625ad449087827a750cb3b23ce4000b139",
+    "pypi_digest_verified": true,
+    "source_files": [
+      {
+        "wheel_member": "transformers/models/cohere_compass/modeling_cohere_compass.py",
+        "size_bytes": 80868,
+        "sha256": "e854a6b0e437bd3ce6779a0c5ce92c768d5bdb3dd0ca1502df94c3551319ac62"
+      },
+      {
+        "wheel_member": "transformers/models/cohere_compass/configuration_cohere_compass.py",
+        "size_bytes": 8042,
+        "sha256": "45a5602ad1d933591ddf913585ec0e3aedd7abc99b97fbf3c5d6078c3aacf339"
+      },
+      {
+        "wheel_member": "transformers/models/cohere_compass/processing_cohere_compass.py",
+        "size_bytes": 9207,
+        "sha256": "45744ddfdbfcb9abc4490df5f7697da5ad365daf8dcb3db55d83014158e2fdd0"
+      },
+      {
+        "wheel_member": "transformers/models/cohere_compass/image_processing_cohere_compass.py",
+        "size_bytes": 11972,
+        "sha256": "0ff9393fabbaf9582dd1734cbe2f3afcab6096f816aa498e54f90e5d08cc6a18"
+      }
+    ]
+  },
+  "preregistration": "api/runtime/adapters/parts/evidence/TICKET05_NORTH_MICRO_VISION_PREREGISTRATION_2026-09-25.md",
+  "fixture_access": "prohibited",
+  "weights_accessed": true,
+  "qwen2_use": false,
+  "runtime_requirements_lock": "api/runtime/adapters/parts/NORTH_MICRO_VISION_REQUIREMENTS.lock",
+  "runtime_wheelhouse_manifest": ".modly-amd-runtime/package-cache/north-micro-vision-v1/wheelhouse-manifest.json",
+  "synthetic_preflight": {
+    "status": "stopped_before_generation",
+    "generation_calls": 0,
+    "migraphx_attempted": false,
+    "failure": "RuntimeError: decode_png: torchvision not compiled with libPNG support",
+    "evidence": "api/runtime/adapters/parts/evidence/TICKET05_NORTH_MICRO_VISION_SYNTHETIC_PREFLIGHT_2026-09-25.md"
+  }
+}

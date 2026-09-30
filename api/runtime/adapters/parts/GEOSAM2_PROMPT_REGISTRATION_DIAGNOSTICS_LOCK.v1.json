@@ -1,0 +1,6 @@
+{
+  "module": "geosam2_prompt_registration_diagnostics.py",
+  "module_sha256": "996b67a05522976a77565d231bdc56c102782be6abf49566e9c788bc78f5c982",
+  "schema": "modly.geosam2-prompt-registration-diagnostics/1",
+  "schema_name": "modly.ticket04.geosam2-prompt-registration-diagnostics-lock.v1"
+}

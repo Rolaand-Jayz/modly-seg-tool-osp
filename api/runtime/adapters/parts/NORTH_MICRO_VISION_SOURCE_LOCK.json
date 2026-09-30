@@ -1,0 +1,117 @@
+{
+  "schema": "modly.ticket05.north_micro_vision.source-lock.v1",
+  "model_repository": "CohereLabs/North-Micro-Vision-Instruct",
+  "model_revision": "46b719694e3bad142f3e931774f4622f1024009e",
+  "model_api_reported_revision": "46b719694e3bad142f3e931774f4622f1024009e",
+  "license": "Apache-2.0 as declared in the exact pinned README frontmatter and model card; no repository LICENSE file is in the pinned snapshot file list",
+  "model_snapshot_files": [
+    {
+      "path": ".gitattributes",
+      "size_bytes": 1570,
+      "sha256": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "README.md",
+      "size_bytes": 19961,
+      "sha256": "b7837743ea686f54cdc7377ba7bcf05b523649db6a0ef116d3a4ba1bf8059f12",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "chat_template.jinja",
+      "size_bytes": 1356,
+      "sha256": "4012981a315c325cf0d07b8f9e2fb04fbcc933dbdf5de38b37c2ce80e6b37962",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "config.json",
+      "size_bytes": 3731,
+      "sha256": "d1a76c913772b57179785b278ce2d1a4800b685247723fb9c4dafd5cbffe5236",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "generation_config.json",
+      "size_bytes": 156,
+      "sha256": "1b110583a06cc9d1fcc9e64fd4f31a32cb77e66b19a6f8de5da0dc08eef3dbbc",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "size_bytes": 747,
+      "sha256": "6984fb63bb35530400d1f66fd521981909fbfce9b744174a7312a99014f52d57",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "special_tokens_map.json",
+      "size_bytes": 724,
+      "sha256": "26066edaeafbaff5cd53e80ce44dee7478401c735f7d5147c0f341192ac1c576",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "tokenizer.json",
+      "size_bytes": 19550662,
+      "sha256": "6fcc5292908e0c8ad1400c67fe9413825c656486fe4190dce7d8d62c38bfbbf6",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "size_bytes": 8180,
+      "sha256": "c00d12d77e29cd854706ae3dec1142ead48ea4316c052bc6f5e8eca63307fbc2",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    },
+    {
+      "path": "video_preprocessor_config.json",
+      "size_bytes": 344,
+      "sha256": "92dbd802cc01e19558f7488cf4b73dbb7aa777da725a846db181cff664454372",
+      "immutable_revision": "46b719694e3bad142f3e931774f4622f1024009e"
+    }
+  ],
+  "custom_model_python_files": [],
+  "config_auto_map": null,
+  "transformers_distribution": {
+    "path": ".modly-amd-runtime/package-cache/north-micro-vision-v1/wheelhouse/transformers-5.16.0-py3-none-any.whl",
+    "filename": "transformers-5.16.0-py3-none-any.whl",
+    "name": "transformers",
+    "version": "5.16.0",
+    "size_bytes": 12014254,
+    "sha256": "2b4adda8d99bb4c1b208da5ed967e2625ad449087827a750cb3b23ce4000b139",
+    "pypi_sha256": "2b4adda8d99bb4c1b208da5ed967e2625ad449087827a750cb3b23ce4000b139",
+    "pypi_size_bytes": 12014254
+  },
+  "transformers_version": "5.16.0",
+  "transformers_pypi_artifact_verified": true,
+  "reviewed_builtin_source_files": [
+    {
+      "wheel_member": "transformers/models/cohere_compass/modeling_cohere_compass.py",
+      "size_bytes": 80868,
+      "sha256": "e854a6b0e437bd3ce6779a0c5ce92c768d5bdb3dd0ca1502df94c3551319ac62"
+    },
+    {
+      "wheel_member": "transformers/models/cohere_compass/configuration_cohere_compass.py",
+      "size_bytes": 8042,
+      "sha256": "45a5602ad1d933591ddf913585ec0e3aedd7abc99b97fbf3c5d6078c3aacf339"
+    },
+    {
+      "wheel_member": "transformers/models/cohere_compass/processing_cohere_compass.py",
+      "size_bytes": 9207,
+      "sha256": "45744ddfdbfcb9abc4490df5f7697da5ad365daf8dcb3db55d83014158e2fdd0"
+    },
+    {
+      "wheel_member": "transformers/models/cohere_compass/image_processing_cohere_compass.py",
+      "size_bytes": 11972,
+      "sha256": "0ff9393fabbaf9582dd1734cbe2f3afcab6096f816aa498e54f90e5d08cc6a18"
+    }
+  ],
+  "source_review": "The snapshot contains only config, processor/tokenizer data, template and documentation; use built-in Transformers code only. trust_remote_code=False.",
+  "candidate_module": "transformers.models.cohere_compass.modeling_cohere_compass.CohereCompassForConditionalGeneration",
+  "vision_module": "transformers.models.cohere_compass.modeling_cohere_compass.CohereCompassVisionModel",
+  "vision_parent_path": "model.model.visual",
+  "checkpoint": {
+    "filename": "model.safetensors",
+    "size_bytes": 4969765248,
+    "sha256": "cd9a9ed867111bbc6b6e062bf0b3b9c88af183eb41003083501a76c84e912046",
+    "xet_hash": "d1a06f53150c4e39917f00892e38c1edf43e33344dc1041b6bc941ea8139b93b",
+    "status": "downloaded from immutable revision; local byte length and SHA-256 verified against pinned official lock"
+  },
+  "source_screen": "api/runtime/adapters/parts/evidence/TICKET05_NORTH_MICRO_VISION_SOURCE_SCREEN_2026-09-25.md"
+}

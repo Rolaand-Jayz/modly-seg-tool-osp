@@ -1,0 +1,123 @@
+{
+  "after_all": {
+    "allocated_bytes": 33554432,
+    "reserved_bytes": 33554432
+  },
+  "before": {
+    "allocated_bytes": 0,
+    "reserved_bytes": 0
+  },
+  "device": "AMD Radeon RX 7900 GRE",
+  "hip": "7.14.60850",
+  "runs": [
+    {
+      "after_release": {
+        "allocated_bytes": 33554432,
+        "reserved_bytes": 33554432
+      },
+      "after_run": {
+        "allocated_bytes": 153128960,
+        "reserved_bytes": 257949696
+      },
+      "dtype": "float16",
+      "input_artifact_identity": "sha256:2bfaf1014cc19a69b05fe2b1cd00f346adcd859af1740980b8395d8b92a24852",
+      "module": "sequential-dense-fixture-1",
+      "output_shape": [
+        1024,
+        1024
+      ],
+      "report": {
+        "adapter_revision": "amd-rocm7.14-migraphx-4bcfe75-torch-migraphx-e551a86",
+        "backend": "torch_migraphx",
+        "baseline_latency_ms": 3.6984817741012517,
+        "benchmark_repetitions": 31,
+        "candidate_latency_ms": 1.1866350967818196,
+        "compile_latency_ms": 3.2305029999406543,
+        "compile_outcome": "compiled",
+        "correctness_atol": 0.005,
+        "correctness_rtol": 0.005,
+        "cpu_fallback_material": null,
+        "cpu_fallback_policy": null,
+        "cpu_latency_budget_ms": null,
+        "device": "cuda",
+        "device_identity": "AMD Radeon RX 7900 GRE (gfx=gfx1100, index=0)",
+        "fallback_reason": null,
+        "input_artifact_identity": "sha256:2bfaf1014cc19a69b05fe2b1cd00f346adcd859af1740980b8395d8b92a24852",
+        "latency_ms": 1.1866350967818196,
+        "min_speedup": 1.0,
+        "model_identity": "fixture:fp16-dense-mlp-sequential-v1",
+        "module": "sequential-dense-fixture-1",
+        "peak_vram_bytes": 232820736,
+        "run_id": "674b2e60-94d2-45ab-9c7d-1f923006ba05",
+        "runtime_versions": {
+          "migraphx": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+          "native_extensions": "libmigraphx_c.so.3.0@sha256:280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8;libmigraphx_py.so@sha256:fd0c7d7a20d61dcfd002cc38eb14bb53c9b3b399493462c63db797100166bd2b;libmigraphx_py_3.12.so@sha256:125c68924489b981f5fca3ccd96555ba6f065dd7f4f098b4d7c19575ef348d97;libmigraphx.so.2016000.0@sha256:6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087;libmigraphx_device.so.2016000.0@sha256:9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca;libmigraphx_gpu.so.2016000.0@sha256:28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0;libmigraphx_onnx.so.2016000.0@sha256:5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8;libmigraphx_ref.so.2016000.0@sha256:2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e;libmigraphx_tf.so.2016000.0@sha256:f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819;migraphx.cpython-312-x86_64-linux-gnu.so@sha256:1f5512dd15c7865cfc002bace2ece4902725d276a4d5733dcfddd57a1328b0dc",
+          "platform": "Linux-7.2.6-1-cachyos-x86_64-with-glibc2.39",
+          "python": "3.12.3",
+          "rocm": "7.14.60850",
+          "torch": "2.11.0+rocm7.14.0",
+          "torch-migraphx": "1.2",
+          "triton-rocm": null
+        },
+        "stage": "ticket02-sequential-cleanup",
+        "weights_identity": "sha256:419f99308fb587b8204a6bc088a5eddc06d04edae6a3f8016d647f38961957c1"
+      },
+      "weights_identity": "sha256:419f99308fb587b8204a6bc088a5eddc06d04edae6a3f8016d647f38961957c1"
+    },
+    {
+      "after_release": {
+        "allocated_bytes": 33554432,
+        "reserved_bytes": 33554432
+      },
+      "after_run": {
+        "allocated_bytes": 153128960,
+        "reserved_bytes": 257949696
+      },
+      "dtype": "float16",
+      "input_artifact_identity": "sha256:d1abdbe1928cec39a8237f1fd2ab7568777a081c6a3c2c6f29f92c57f72921c6",
+      "module": "sequential-dense-fixture-2",
+      "output_shape": [
+        1024,
+        1024
+      ],
+      "report": {
+        "adapter_revision": "amd-rocm7.14-migraphx-4bcfe75-torch-migraphx-e551a86",
+        "backend": "torch_migraphx",
+        "baseline_latency_ms": 3.658984612904474,
+        "benchmark_repetitions": 31,
+        "candidate_latency_ms": 1.1906123225109637,
+        "compile_latency_ms": 0.993622001260519,
+        "compile_outcome": "compiled",
+        "correctness_atol": 0.005,
+        "correctness_rtol": 0.005,
+        "cpu_fallback_material": null,
+        "cpu_fallback_policy": null,
+        "cpu_latency_budget_ms": null,
+        "device": "cuda",
+        "device_identity": "AMD Radeon RX 7900 GRE (gfx=gfx1100, index=0)",
+        "fallback_reason": null,
+        "input_artifact_identity": "sha256:d1abdbe1928cec39a8237f1fd2ab7568777a081c6a3c2c6f29f92c57f72921c6",
+        "latency_ms": 1.1906123225109637,
+        "min_speedup": 1.0,
+        "model_identity": "fixture:fp16-dense-mlp-sequential-v2",
+        "module": "sequential-dense-fixture-2",
+        "peak_vram_bytes": 232820736,
+        "run_id": "8b63cd32-db41-4c3e-955e-672ab6a71af7",
+        "runtime_versions": {
+          "migraphx": "2.16.0.dev+20250912-17-575-g4bcfe75b2",
+          "native_extensions": "libmigraphx_c.so.3.0@sha256:280ff0a87d3e37064f07ed752d4a354e600d34d65b8eb059e1433e5a8db88cb8;libmigraphx_py.so@sha256:fd0c7d7a20d61dcfd002cc38eb14bb53c9b3b399493462c63db797100166bd2b;libmigraphx_py_3.12.so@sha256:125c68924489b981f5fca3ccd96555ba6f065dd7f4f098b4d7c19575ef348d97;libmigraphx.so.2016000.0@sha256:6e9758b2f307b8bf3bc32216ea426727e4863f6f98f32561f0f54a782671c087;libmigraphx_device.so.2016000.0@sha256:9044a4d08fb73e620bf730a539ff79924c867bb9a28ce6d716fbd68efbb90dca;libmigraphx_gpu.so.2016000.0@sha256:28cbbadc676115a459075c60a754d405511be5ef0b3584ecd2f7e2918f8f4ad0;libmigraphx_onnx.so.2016000.0@sha256:5039720e0178cbe2ea5b5ecd9d6edc7195a1063470c06f081bad21f021b7a3f8;libmigraphx_ref.so.2016000.0@sha256:2165d7803f95846e0adc0a764373061c2b9df5b83ffcf338e0c2615de8db5b9e;libmigraphx_tf.so.2016000.0@sha256:f3f72e7cc08868acba66531a4af1879f6cfd7eb4ad665b86902cea27ec75b819;migraphx.cpython-312-x86_64-linux-gnu.so@sha256:1f5512dd15c7865cfc002bace2ece4902725d276a4d5733dcfddd57a1328b0dc",
+          "platform": "Linux-7.2.6-1-cachyos-x86_64-with-glibc2.39",
+          "python": "3.12.3",
+          "rocm": "7.14.60850",
+          "torch": "2.11.0+rocm7.14.0",
+          "torch-migraphx": "1.2",
+          "triton-rocm": null
+        },
+        "stage": "ticket02-sequential-cleanup",
+        "weights_identity": "sha256:5af76564a3db022e9469dd571bcd4e109ed1262a42f756839af03e1640b40563"
+      },
+      "weights_identity": "sha256:5af76564a3db022e9469dd571bcd4e109ed1262a42f756839af03e1640b40563"
+    }
+  ],
+  "torch": "2.11.0+rocm7.14.0"
+}

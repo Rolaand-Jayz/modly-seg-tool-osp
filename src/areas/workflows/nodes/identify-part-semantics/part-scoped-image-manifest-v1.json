@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "org.modly.part-scoped-image-manifest/1.0.0",
+  "title": "Topology-bound part-scoped image evidence manifest",
+  "type": "object",
+  "required": ["schema_id", "schema_version", "asset_id", "geometry_digest", "topology_revision", "segmentation_topology_map_digest", "segmentation_render_manifest_digest", "camera_metadata_digest", "derivation", "parts"],
+  "properties": {
+    "schema_id": {"const": "org.modly.part-scoped-image-manifest"},
+    "schema_version": {"const": "1.0.0"},
+    "asset_id": {"type": "string", "minLength": 1},
+    "geometry_digest": {"$ref": "#/$defs/digest"},
+    "topology_revision": {"type": "string", "minLength": 1},
+    "segmentation_topology_map_digest": {"$ref": "#/$defs/digest"},
+    "segmentation_render_manifest_digest": {"$ref": "#/$defs/digest"},
+    "camera_metadata_digest": {"$ref": "#/$defs/digest"},
+    "derivation": {"$ref": "#/$defs/derivation"},
+    "parts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/part"}},
+    "source_authored_targets": {"type": "array", "items": {"$ref": "#/$defs/sourceAuthoredTarget"}},
+    "segmentation_quality_reports": {"type": "array", "items": {"$ref": "#/$defs/segmentationQualityReport"}},
+    "target_mapping_provenance": {"$ref": "#/$defs/targetMappingProvenance"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "derivation": {
+      "type": "object", "required": ["adapter_id", "adapter_revision"],
+      "properties": {"adapter_id": {"type": "string", "minLength": 1}, "adapter_revision": {"$ref": "#/$defs/digest"}},
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "required": ["artifact_id", "digest", "media_type", "kind", "source_view_artifact_id", "source_view_digest", "camera_metadata_digest", "mask_artifact_id", "mask_digest", "part_mapping_digest", "derivation"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/digest"},
+        "digest": {"$ref": "#/$defs/digest"},
+        "workspace_path": {"type": "string", "minLength": 1},
+        "media_type": {"enum": ["image/png", "image/jpeg", "image/webp"]},
+        "kind": {"enum": ["observation", "view"]},
+        "source_view_artifact_id": {"$ref": "#/$defs/digest"},
+        "source_view_digest": {"$ref": "#/$defs/digest"},
+        "camera_metadata_digest": {"$ref": "#/$defs/digest"},
+        "mask_artifact_id": {"$ref": "#/$defs/digest"},
+        "mask_digest": {"$ref": "#/$defs/digest"},
+        "part_mapping_digest": {"$ref": "#/$defs/digest"},
+        "derivation": {"$ref": "#/$defs/derivation"},
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "crop_xyxy": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer", "minimum": 0}},
+        "projection": {"type": "object"},
+        "context": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "part": {
+      "type": "object", "required": ["part_id", "part_mapping_digest", "images"],
+      "properties": {
+        "part_id": {"type": "string", "minLength": 1},
+        "part_mapping_digest": {"$ref": "#/$defs/digest"},
+        "images": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/image"}}
+      },
+      "additionalProperties": false
+    },
+    "sourceAuthoredTarget": {
+      "type": "object",
+      "required": ["part_id", "part_mapping_digest", "images", "source_mask_digest", "source_mask_producer", "mapping_kind", "evaluation_only"],
+      "properties": {
+        "part_id": {"type": "string", "minLength": 1},
+        "part_mapping_digest": {"$ref": "#/$defs/digest"},
+        "images": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/image"}},
+        "source_mask_digest": {"$ref": "#/$defs/digest"},
+        "source_mask_producer": {"type": "object"},
+        "mapping_kind": {"const": "source_authored_mesh_component"},
+        "evaluation_only": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "targetMappingProvenance": {
+      "type": "object",
+      "required": ["source_mask_producer", "predicted_partition_producer", "segmentation_topology_map_digest", "source_mapping_artifact_id", "source_mapping_artifact_path", "evaluation_only"],
+      "properties": {
+        "source_mask_producer": {"type": "string", "minLength": 1},
+        "predicted_partition_producer": {"const": "registered_reference-part-segmentation_stage"},
+        "segmentation_topology_map_digest": {"$ref": "#/$defs/digest"},
+        "source_mapping_artifact_id": {"$ref": "#/$defs/digest"},
+        "source_mapping_artifact_path": {"type": "string", "minLength": 1},
+        "evaluation_only": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "segmentationQualityReport": {
+      "type": "object",
+      "required": ["schema", "status", "geometry_digest", "topology_revision", "source_mask_digest", "source_mask_producer", "predicted_partition_digest", "predicted_part_producer", "target_overlap_by_predicted_part", "best_target_iou"],
+      "properties": {
+        "schema": {"const": "modly.ticket05.segmentation-quality/1"},
+        "status": {"const": "evaluated_separately"},
+        "geometry_digest": {"$ref": "#/$defs/digest"},
+        "topology_revision": {"$ref": "#/$defs/digest"},
+        "source_mask_digest": {"$ref": "#/$defs/digest"},
+        "source_mask_producer": {"type": "object"},
+        "predicted_partition_digest": {"$ref": "#/$defs/digest"},
+        "predicted_part_producer": {"const": "registered_reference-part-segmentation_stage"},
+        "target_overlap_by_predicted_part": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["predicted_part_id", "intersection", "union", "iou", "target_recall", "predicted_precision"],
+            "properties": {
+              "predicted_part_id": {"type": "string", "minLength": 1},
+              "intersection": {"type": "integer", "minimum": 0},
+              "union": {"type": "integer", "minimum": 1},
+              "iou": {"type": "number", "minimum": 0, "maximum": 1},
+              "target_recall": {"type": "number", "minimum": 0, "maximum": 1},
+              "predicted_precision": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+            "additionalProperties": false
+          }
+        },
+        "best_target_iou": {"type": "number", "minimum": 0, "maximum": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$comment": "The image/mask artifact records are separately registered as digest-verified StageArtifacts under derive-part-scoped-observations. The processor enforces unique complete part coverage, exact topology face mapping, source GeoSAM2 view/render/camera digests, and image byte integrity."
+}

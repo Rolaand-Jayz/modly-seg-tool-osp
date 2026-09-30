@@ -1,0 +1,13 @@
+{
+  "behavior": "allow only the automatic prompt-seed view to reach the first lift when opposite_auto_segmentation is true, is_prompt_seed is true, and source-authored prompt masks are absent",
+  "default_adapter_wiring": false,
+  "module": "geosam2_prompt_seed_lift_policy.py",
+  "module_sha256": "b4c5f0a6243318152580cc3f14518ad9729eb17c282c1db0540b3d03a4f3e1a5",
+  "policy_id": "lift-unprompted-automatic-prompt-seed-v1",
+  "schema": "modly.ticket04.geosam2-prompt-seed-lift-policy-lock.v1",
+  "source_authored_target_masks_passed_to_geosam2": false,
+  "upstream_assignment": "save_this_result = (not opposite_auto_segmentation) or (not is_prompt_seed)",
+  "upstream_file": "inference.py",
+  "upstream_repository": "https://github.com/VAST-AI-Research/GeoSAM2.git",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c"
+}

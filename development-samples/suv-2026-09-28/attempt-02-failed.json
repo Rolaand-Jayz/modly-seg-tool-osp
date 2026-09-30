@@ -1,0 +1,11 @@
+{
+  "detail": "cannot import name 'Sentinel' from 'typing_extensions' (/modly/api/typing_extensions.py)",
+  "diagnostic": {
+    "code": "GEOMETRY_GENERATION_FAILED",
+    "exit_code": 0,
+    "message": "cannot import name 'Sentinel' from 'typing_extensions' (/modly/api/typing_extensions.py)",
+    "stage_id": "generate-geometry"
+  },
+  "elapsed_seconds": 0.103,
+  "status": "error"
+}

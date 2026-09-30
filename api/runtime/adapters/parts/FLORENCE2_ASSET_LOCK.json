@@ -1,0 +1,40 @@
+{
+  "schema": "org.modly.model-asset-lock.v1",
+  "candidate_id": "microsoft.florence-2-base.v1",
+  "repository": "microsoft/Florence-2-base",
+  "repository_revision": "ee1f1f163f352801f3b7af6b2b96e4baaa6ff2ff",
+  "license": "MIT",
+  "asset_root": "florence2-pinned/source-review",
+  "load_allowlist": [
+    "config.json",
+    "configuration_florence2.py",
+    "modeling_florence2.py",
+    "preprocessor_config.json",
+    "processing_florence2.py",
+    "pytorch_model.bin",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "vocab.json"
+  ],
+  "files": {
+    "config.json": {"bytes": 2430, "sha256": "sha256:c666d0fe0172d46e115e8fba6cd93cd83714575b33a73005cab8d24ce2a3aa8f"},
+    "configuration_florence2.py": {"bytes": 15125, "sha256": "sha256:653bafddc9651eaff1583a16db4a2bb27d33ec7d541dfab7201aaa4ecaa1cfbf"},
+    "modeling_florence2.py": {"bytes": 127219, "sha256": "sha256:fd86847d3b39cc084a43361d603343e1f189c17c1eb8a23426a496b50985b616"},
+    "preprocessor_config.json": {"bytes": 806, "sha256": "sha256:2f5921bbc53c7cc04251e1027b45b1cec726276be6db23d1bb40641bfbe2cf29"},
+    "processing_florence2.py": {"bytes": 46372, "sha256": "sha256:4bd7158536cbf1c7891fc8efd94437d79fd09f07f539c7398fab8a885d7d8bca"},
+    "pytorch_model.bin": {"bytes": 464421827, "sha256": "sha256:b480ac374593b0dcb18ffa63b23213734e04cd43eab0d620d23e39708d4a4a7e"},
+    "tokenizer.json": {"bytes": 1355863, "sha256": "sha256:847bbeab6174d66a88898f729d52fa8d355fafe1bea101cf960dd404581df70e"},
+    "tokenizer_config.json": {"bytes": 34, "sha256": "sha256:79ffcf43af8ebda99d165f61d243180da2e2639952e41e71e11611c18770489c"},
+    "vocab.json": {"bytes": 1099884, "sha256": "sha256:394fdc63c71aabe0a9b97117f5d62fb5fcc4d59b2b3ea929a3929e6a53217b3c"}
+  },
+  "checkpoint": {
+    "format": "pytorch_pickle_state_dict",
+    "weights_only_required": true,
+    "expected_upstream_sha256": "sha256:b480ac374593b0dcb18ffa63b23213734e04cd43eab0d620d23e39708d4a4a7e",
+    "local_sha256_verified": true
+  },
+  "source_review": {
+    "report": "api/runtime/adapters/parts/evidence/ticket05-florence2-code-audit-2026-09-25.md",
+    "load_policy": "local-only; verify all allowlisted file digests before loading; no network; weights_only=True; do not load mutable hub state"
+  }
+}

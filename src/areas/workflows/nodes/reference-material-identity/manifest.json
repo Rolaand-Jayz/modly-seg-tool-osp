@@ -1,0 +1,41 @@
+{
+  "id": "reference-material-identity",
+  "name": "Classify Material Identity",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Runs an explicitly pinned replaceable material classifier and attaches topology-bound identity evidence without reading parts or PBR values. DMS46 dense-label and SigLIP2 masked-region-crop candidates remain independently routed.",
+  "capabilities": [
+    {
+      "capability_id": "classify-material-identity",
+      "contract_version": "1.0.0",
+      "inputs": ["structured-asset", "observation"],
+      "outputs": ["structured-asset", "assertions", "stage-artifacts"],
+      "adapter_id": "modly.reference-material-identity",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "classify-material-identity",
+      "name": "Classify Material Identity",
+      "input": "mesh",
+      "output": "mesh",
+      "params_schema": [
+        {
+          "id": "candidate_id",
+          "label": "Material Classifier",
+          "type": "select",
+          "default": "apple.dms46.v1",
+          "options": [
+            { "value": "apple.dms46.v1", "label": "Apple DMS46 dense classifier" },
+            { "value": "google.siglip2.base-patch16-224", "label": "Google SigLIP2 masked-region classifier (uncalibrated)" }
+          ],
+          "tooltip": "Selects a separately pinned classifier implementation. Candidate-specific materialInference configuration must be supplied by the host; selecting a candidate does not imply quality acceptance."
+        }
+      ]
+    }
+  ]
+}

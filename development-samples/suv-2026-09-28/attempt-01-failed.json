@@ -1,0 +1,11 @@
+{
+  "detail": "cannot import name 'ValidationError' from 'pydantic' (unknown location)",
+  "diagnostic": {
+    "code": "GEOMETRY_GENERATION_FAILED",
+    "exit_code": 0,
+    "message": "cannot import name 'ValidationError' from 'pydantic' (unknown location)",
+    "stage_id": "generate-geometry"
+  },
+  "elapsed_seconds": 0.173,
+  "status": "error"
+}

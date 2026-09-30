@@ -1,0 +1,40 @@
+{
+  "id": "identify-part-semantics",
+  "name": "Identify Part Semantics",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Attaches provenance-bearing, topology-bound semantic part assertions from the configured content-pinned resolver. Geometry segmentation remains independent.",
+  "capabilities": [
+    {
+      "capability_id": "identify-part-semantics",
+      "contract_version": "1.0.0",
+      "inputs": ["structured-asset", "observation"],
+      "outputs": ["structured-asset", "assertions", "stage-artifacts"],
+      "adapter_id": "modly.identify-part-semantics",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "identify-part-semantics",
+      "name": "Identify Part Semantics",
+      "input": "mesh",
+      "output": "mesh",
+      "params_schema": [
+        {
+          "id": "provider",
+          "label": "Vision Resolver",
+          "type": "select",
+          "default": "local_decider_2b_vision",
+          "options": [
+            { "value": "local_decider_2b_vision", "label": "Local Decider 2B Vision (experimental; semantic gates pending)" }
+          ],
+          "tooltip": "Decider 2B Vision is the local resolver. It remains experimental until AMD runtime and Ticket 05 gates pass."
+        }
+      ]
+    }
+  ]
+}
