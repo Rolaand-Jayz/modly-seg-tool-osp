@@ -571,6 +571,25 @@ The next development candidate needs a distinct seeded fixture with
 spatially-varying training normals derived from a documented height field,
 separate hash-bound input and target files, and a coherent normal/detail
 nuisance model. The scorer and all frozen limits remain unchanged. The terminal
-v2 scorer was not rerun and frozen target pixels were not inspected in this
-review. Full diagnosis and evidence boundary:
+v2 scorer was not rerun. During archive inventory, a Python command
+accidentally decompressed all NPZ members while printing only member names and
+shapes, including the target and held-out arrays. No pixel values were
+surfaced or used for tuning, but this is still target-array access and a strict
+isolation breach. Full diagnosis and evidence boundary:
 `api/runtime/adapters/pbr/evidence/ticket08-normal-detail-domain-gap-2026-10-01.md`.
+
+### Height-detail development fixture and latent-normal diagnostic (2026-10-01)
+
+Added `development_fixture_v3.py`, a separate six-view development scene whose
+training RGB includes a hidden spatially-varying height-derived normal field.
+Candidate input and scoring targets are separate, hashed files and the loader
+rejects undeclared input fields. The focused fixture/scorer suite passes 6/6.
+The existing latent-normal estimator fit training RGB to MAE 0.02543, but
+recovered material maps poorly: base-color MAE/SSIM 0.15986/0.26809, roughness
+MAE 0.38785, and metallic MAE 0.20852; development novel-light MAE was
+0.01143. This candidate remains rejected: it does not preserve per-face
+material-region identity, and no spatially coherent normal model is present.
+The one-way development scorer opened only the separate development target
+after the estimate was frozen; frozen acceptance inputs and scorer were not
+used. Exact hashes and limits are recorded in
+`api/runtime/adapters/pbr/evidence/ticket08-height-detail-development-v3-latent-normal-rejection-2026-10-01.md`.

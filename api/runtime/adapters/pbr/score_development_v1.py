@@ -22,6 +22,7 @@ def score_development_estimate(target_path: Path, estimate_path: Path, report_pa
     expected = {"base_color_linear", "roughness", "metallic", "observed"}
     manifest_name = ("ticket08-development-fixture-v1.json" if target_path.name == "ticket08-development-targets-v1.npz"
                      else "ticket08-development-fixture-v2.json" if target_path.name == "ticket08-development-targets-v2.npz"
+                     else "ticket08-development-fixture-v3.json" if target_path.name == "ticket08-development-targets-v3.npz"
                      else "")
     if not manifest_name:
         raise DevelopmentScoreError("only versioned Ticket 08 development targets can be scored")
@@ -30,7 +31,8 @@ def score_development_estimate(target_path: Path, estimate_path: Path, report_pa
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise DevelopmentScoreError("versioned development fixture manifest is required") from exc
-    allowed_schemas = {"modly.ticket08.development-fixture.v1", "modly.ticket08.development-fixture.v2"}
+    allowed_schemas = {"modly.ticket08.development-fixture.v1", "modly.ticket08.development-fixture.v2",
+                       "modly.ticket08.development-fixture.v3"}
     if (manifest.get("schema") not in allowed_schemas
             or target_path.name != manifest.get("scoring_targets", {}).get("file")
             or hashlib.sha256(target_path.read_bytes()).hexdigest() != manifest.get("scoring_targets", {}).get("sha256")):

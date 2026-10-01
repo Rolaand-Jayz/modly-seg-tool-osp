@@ -18,6 +18,12 @@ from runtime.adapters.pbr.development_fixture_v2 import (
     load_candidate_inputs as load_candidate_inputs_v2,
     write_development_fixture as write_development_fixture_v2,
 )
+from runtime.adapters.pbr.development_fixture_v3 import (
+    _detail_normals,
+    build_development_arrays as build_development_arrays_v3,
+    load_candidate_inputs as load_candidate_inputs_v3,
+    write_development_fixture as write_development_fixture_v3,
+)
 
 
 class Ticket08DevelopmentFixtureV1Tests(unittest.TestCase):
@@ -118,6 +124,35 @@ class Ticket08DevelopmentFixtureV1Tests(unittest.TestCase):
             self.assertEqual(coarse_report["estimate_resolution"], [fit_size, fit_size])
             self.assertEqual(coarse_report["score_resolution"], [96, 96])
             self.assertGreater(coarse_report["visible_texel_coverage"], 0.9)
+
+    def test_v3_hides_spatial_detail_normals_from_candidate_inputs(self) -> None:
+        height, normals = _detail_normals()
+        self.assertGreater(float(np.ptp(height)), 0.1)
+        self.assertGreater(float(np.ptp(normals[..., 0])), 0.1)
+        self.assertGreater(float(np.ptp(normals[..., 1])), 0.1)
+        self.assertTrue(np.allclose(np.linalg.norm(normals, axis=-1), 1.0, atol=1e-10))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = write_development_fixture_v3(root)
+            inputs = load_candidate_inputs_v3(root / manifest["candidate_inputs"]["file"])
+            _, targets = build_development_arrays_v3()
+            self.assertEqual(set(inputs), set(manifest["candidate_inputs"]["fields"]))
+            self.assertEqual(set(targets), set(manifest["scoring_targets"]["fields"]))
+            self.assertNotIn("height", inputs)
+            self.assertNotIn("normal", inputs)
+            self.assertNotIn("normal", targets)
+            self.assertEqual(inputs["training_observations_linear"].shape[0], 6)
+            self.assertTrue(all(not np.array_equal(inputs["training_observations_linear"][0], view)
+                                for view in inputs["training_observations_linear"][1:]))
+            estimate_path = root / "v3-estimate.npz"
+            np.savez_compressed(estimate_path, base_color_linear=targets["base_color_linear"],
+                                roughness=targets["roughness"], metallic=targets["metallic"],
+                                observed=targets["visible_mask"])
+            report = score_development_estimate(root / manifest["scoring_targets"]["file"],
+                                                estimate_path, root / "v3-report.json")
+            self.assertEqual(report["fixture_id"], manifest["fixture_id"])
+            self.assertEqual(report["metrics"]["base_color_linear"]["mae"], 0.0)
+            self.assertFalse(report["heldout_accessed"])
 
 
 if __name__ == "__main__":
