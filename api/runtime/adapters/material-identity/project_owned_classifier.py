@@ -21,6 +21,7 @@ SCHEMA = "modly.ticket07.project-owned-material-classifier.v1"
 FEATURE_PROFILES = {
     "all_physics_cues": tuple(range(30)),
     "texture_without_color_or_brightness": (20, 21, 22, 23, 28, 29),
+    "physics_plus_rotation_invariant_texture": tuple(range(40)),
 }
 AUGMENTATION = {
     "id": "view-and-photometric-region-augmentation.v2",
@@ -159,6 +160,45 @@ def _features(rgb: np.ndarray, mask: np.ndarray) -> list[float]:
     return values
 
 
+def _rotation_invariant_texture_features(rgb: np.ndarray, mask: np.ndarray) -> list[float]:
+    """Summarize masked local binary patterns without depending on image rotation."""
+    gray = (rgb.astype(np.float32) @ np.array([.2126, .7152, .0722], dtype=np.float32))
+    center = gray
+    valid = mask.copy()
+    code = np.zeros(mask.shape, dtype=np.uint8)
+    offsets = ((-1, -1), (-1, 0), (-1, 1), (0, 1),
+               (1, 1), (1, 0), (1, -1), (0, -1))
+    for bit, (dy, dx) in enumerate(offsets):
+        neighbor = np.roll(gray, shift=(-dy, -dx), axis=(0, 1))
+        valid &= np.roll(mask, shift=(-dy, -dx), axis=(0, 1))
+        if dy < 0:
+            valid[0, :] = False
+        elif dy > 0:
+            valid[-1, :] = False
+        if dx < 0:
+            valid[:, 0] = False
+        elif dx > 0:
+            valid[:, -1] = False
+        code |= ((neighbor >= center).astype(np.uint8) << bit)
+    if not valid.any():
+        return [0.0] * 10
+    selected = code[valid]
+    ones = np.unpackbits(selected[:, None], axis=1).sum(axis=1)
+    transitions = np.zeros(len(selected), dtype=np.uint8)
+    for bit in range(8):
+        transitions += ((selected >> bit) & 1) != ((selected >> ((bit + 1) % 8)) & 1)
+    bins = np.where(transitions <= 2, ones, 9)
+    counts = np.bincount(bins, minlength=10).astype(np.float64)
+    return (counts / counts.sum()).tolist()
+
+
+def _candidate_features(rgb: np.ndarray, mask: np.ndarray, profile: str) -> list[float]:
+    base = _features(rgb, mask)
+    if profile == "physics_plus_rotation_invariant_texture":
+        return base + _rotation_invariant_texture_features(rgb, mask)
+    return base
+
+
 def _validate_samples(samples: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     result = list(samples)
     if not result:
@@ -287,7 +327,7 @@ def fit(samples: Iterable[dict[str, Any]], *, seed: int = 0, variants_per_view: 
             else:
                 rgb, support = _augmented(image, mask,
                     _seed(seed, row["object_id"], row["region_id"], row["view_id"], str(variant)))
-            vectors.append([_features(rgb, support)[i] for i in feature_indices])
+            vectors.append([_candidate_features(rgb, support, feature_profile)[i] for i in feature_indices])
             labels.append(row["label"])
     x = np.asarray(vectors, dtype=np.float64)
     output_count = len(SUPPORTED_LABELS) + int(unknown_head)
@@ -335,7 +375,9 @@ def fit(samples: Iterable[dict[str, Any]], *, seed: int = 0, variants_per_view: 
             **({"gamma": float(rbf_gamma), "unknown_head": unknown_head,
                 "unknown_head_scale": float(unknown_head_scale)} if classifier_family == "rbf_kernel_ridge" else {})},
         "label_order": list(SUPPORTED_LABELS),
-        "feature_contract": {"id": "topology-masked-physics-region-cues.v2", "profile": feature_profile,
+        "feature_contract": {"id": ("topology-masked-physics-and-rotation-invariant-texture.v1"
+                                      if feature_profile == "physics_plus_rotation_invariant_texture"
+                                      else "topology-masked-physics-region-cues.v2"), "profile": feature_profile,
             "dimensions": int(x.shape[1]), "feature_indices": feature_indices},
         "implementation_sha256": _digest(Path(__file__).read_bytes()),
         "training": {"unit": "annotated material region views", "object_count": len({r['object_id'] for r in all_rows}),
@@ -389,8 +431,8 @@ def _validate_model(model: dict[str, Any]) -> None:
         raise CandidateError("model digest mismatch")
     n = model.get("feature_contract", {}).get("dimensions")
     indices = model.get("feature_contract", {}).get("feature_indices")
-    if (not isinstance(n, int) or not 1 <= n <= 30 or not isinstance(indices, list) or len(indices) != n
-            or len(set(indices)) != n or any(not isinstance(i, int) or not 0 <= i < 30 for i in indices)
+    if (not isinstance(n, int) or not 1 <= n <= 40 or not isinstance(indices, list) or len(indices) != n
+            or len(set(indices)) != n or any(not isinstance(i, int) or not 0 <= i < 40 for i in indices)
             or len(model.get("normalizer", {}).get("mean", [])) != n
             or len(model.get("normalizer", {}).get("scale", [])) != n):
         raise CandidateError("model feature dimensions are invalid")
@@ -452,7 +494,7 @@ def predict(model: dict[str, Any], image: np.ndarray, mask: np.ndarray) -> dict[
 def score_with_diagnostics(model: dict[str, Any], image: np.ndarray, mask: np.ndarray) -> dict[str, Any]:
     """Return supported scores plus the separate unknown head score when available."""
     _validate_model(model)
-    full_feature = _features(image, mask)
+    full_feature = _candidate_features(image, mask, model["feature_contract"]["profile"])
     feature = np.asarray([full_feature[i] for i in model["feature_contract"]["feature_indices"]], dtype=np.float64)
     mean = np.asarray(model["normalizer"]["mean"]); scale = np.asarray(model["normalizer"]["scale"])
     normalized = (feature - mean) / scale

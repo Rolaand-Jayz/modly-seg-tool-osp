@@ -12,7 +12,8 @@ sys.path.insert(0, str(ADAPTER))
 
 from evaluator import SUPPORTED_LABELS
 from project_owned_classifier import (CandidateError, fit, load_model, predict,
-                                      save_model, score, score_views, with_calibration)
+                                      save_model, score, score_views, with_calibration,
+                                      _rotation_invariant_texture_features)
 
 
 def samples():
@@ -154,6 +155,24 @@ class Ticket07ProjectOwnedClassifier(unittest.TestCase):
         one_view = {"image": base[0]["image"], "mask": base[0]["mask"]}
         self.assertEqual(score_views(model, [one_view]), score(model, one_view["image"], one_view["mask"]))
         self.assertEqual(score_views(model, [one_view, one_view]), score(model, one_view["image"], one_view["mask"]))
+
+    def test_texture_descriptor_is_rotation_invariant_and_model_round_trips(self):
+        row = samples()[0]
+        first = _rotation_invariant_texture_features(row["image"], row["mask"])
+        rotated = _rotation_invariant_texture_features(np.rot90(row["image"]), np.rot90(row["mask"]))
+        np.testing.assert_allclose(first, rotated, atol=1e-12, rtol=0)
+        self.assertAlmostEqual(sum(first), 1.0)
+        model = fit(samples(), seed=13, variants_per_view=0, ridge=1.0,
+                    feature_profile="physics_plus_rotation_invariant_texture",
+                    classifier_family="rbf_kernel_ridge", rbf_gamma=1 / 40)
+        self.assertEqual(model["feature_contract"]["dimensions"], 40)
+        self.assertEqual(model["feature_contract"]["id"],
+                         "topology-masked-physics-and-rotation-invariant-texture.v1")
+        self.assertTrue(all(np.isfinite(list(score(model, row["image"], row["mask"]).values()))))
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "texture-model.json"
+            save_model(model, target)
+            self.assertEqual(load_model(target), model)
 
 
 if __name__ == "__main__":
