@@ -78,6 +78,32 @@ class GeoSAM2PromptRegistrationDiagnosticsTests(unittest.TestCase):
         with self.assertRaises(PromptDiagnosticError):
             _host_finite_crosscheck(tensor)
 
+    def test_position_map_host_crosscheck_targets_vision_features_only(self):
+        try:
+            import torch
+        except ImportError:
+            self.skipTest("PyTorch is not installed in this CPU test environment")
+        collector = PromptRegistrationDiagnostics()
+        trace = collector.begin_prompt_numeric_trace(0)
+        vision_features = torch.tensor([1.0, float("nan"), 2.0],
+                                       dtype=torch.bfloat16, device="cpu")
+        nearby_fpn = torch.tensor([4.0, 5.0], dtype=torch.bfloat16, device="cpu")
+
+        collector.record_prompt_numeric_stage(
+            trace, "pos_map_encoder_output",
+            {"vision_features": vision_features, "backbone_fpn": [nearby_fpn]},
+            layer_identity="predictor.pos_map_encoder",
+        )
+
+        summaries = collector.document()["prompt_numeric_traces"][0]["stages"][0]["tensor_summaries"]
+        by_path = {row["tensor_path"]: row for row in summaries}
+        self.assertEqual(by_path["output.vision_features"]["finite_value_count"], 2)
+        self.assertEqual(
+            by_path["output.vision_features"]["host_finite_crosscheck"]["finite_value_count"], 2)
+        self.assertTrue(
+            by_path["output.vision_features"]["host_finite_crosscheck"]["counts_match_device"])
+        self.assertNotIn("host_finite_crosscheck", by_path["output.backbone_fpn[0]"])
+
     class UnsupportedNumpyTensor:
         """Stand-in for torch dtypes NumPy cannot directly expose."""
         dtype = "bfloat16"

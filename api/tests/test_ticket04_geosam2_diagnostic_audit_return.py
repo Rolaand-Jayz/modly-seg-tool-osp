@@ -52,7 +52,7 @@ class GeoSAM2DiagnosticAuditReturnTests(unittest.TestCase):
     def test_prompt_registration_diagnostic_lock_matches_payload_free_collector(self) -> None:
         identity = geosam2._verify_prompt_registration_diagnostics(
             Path(geosam2.__file__).with_name(geosam2.PROMPT_REGISTRATION_DIAGNOSTICS_LOCK_NAME))
-        self.assertEqual(identity["schema"], "modly.geosam2-prompt-registration-diagnostics/6")
+        self.assertEqual(identity["schema"], "modly.geosam2-prompt-registration-diagnostics/7")
         self.assertEqual(identity["module_sha256"], geosam2.PROMPT_REGISTRATION_DIAGNOSTICS_MODULE_SHA256)
         self.assertEqual(identity["lock_sha256"], geosam2.PROMPT_REGISTRATION_DIAGNOSTICS_LOCK_SHA256)
 
@@ -161,7 +161,7 @@ class GeoSAM2DiagnosticAuditReturnTests(unittest.TestCase):
         self.assertEqual(telemetry["views"][0]["view_index"], 0)
         self.assertIn("accelerate_mask_sha256", telemetry["views"][0])
         prompt_telemetry = audit["prompt_registration_telemetry"]
-        self.assertEqual(prompt_telemetry["schema"], "modly.geosam2-prompt-registration-diagnostics/6")
+        self.assertEqual(prompt_telemetry["schema"], "modly.geosam2-prompt-registration-diagnostics/7")
         self.assertFalse(prompt_telemetry["payloads_persisted"])
         self.assertEqual(len(prompt_telemetry["diagnostics"]["registrations"]), 1)
 

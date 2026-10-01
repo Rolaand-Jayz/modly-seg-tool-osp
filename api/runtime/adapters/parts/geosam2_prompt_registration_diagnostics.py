@@ -21,7 +21,7 @@ from typing import Any, Callable
 import numpy as np
 
 
-SCHEMA = "modly.geosam2-prompt-registration-diagnostics/6"
+SCHEMA = "modly.geosam2-prompt-registration-diagnostics/7"
 MAX_REGISTRATIONS = 512
 MAX_PROPAGATED_LOGIT_ROWS = 512
 MAX_SAMPLED_OBJECTS_PER_BATCH = 16
@@ -41,7 +41,6 @@ HOST_CROSSCHECK_CHUNK_ELEMENTS = 1_000_000
 HOST_CROSSCHECK_TARGETS = frozenset({
     "predictor.image_encoder.neck.convs.3.conv",
     "predictor.image_encoder.neck.convs.3",
-    "predictor.pos_map_encoder.backbone_fpn[0]",
 })
 
 
@@ -523,10 +522,10 @@ class PromptRegistrationDiagnostics:
                 is_gated_mask = stage == "object_score_gated" and path == "output[0]"
                 summary = _numeric_summary(value, sentinel=-1024.0 if is_gated_mask else None)
                 if (stage == "pos_map_encoder_output"
-                        and path == "output.backbone_fpn[0]"
-                        and "predictor.pos_map_encoder.backbone_fpn[0]"
+                        and path == "output.vision_features"
+                        and "predictor.pos_map_encoder.vision_features"
                         not in self._host_crosschecks_seen):
-                    identity = "predictor.pos_map_encoder.backbone_fpn[0]"
+                    identity = "predictor.pos_map_encoder.vision_features"
                     self._host_crosschecks_seen.add(identity)
                     try:
                         summary["host_finite_crosscheck"] = _crosscheck_finite_counts(value, summary)
