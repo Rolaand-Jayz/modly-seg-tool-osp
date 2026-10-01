@@ -626,3 +626,20 @@ provenance before target access. This is a quality-only comparison; CPU use
 cannot satisfy the separate RX 7900 GRE, VRAM, or workflow integration gates.
 Plan and the target-inventory incident disclosure:
 `api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-frozen-comparison-plan-2026-10-01.md`.
+
+### Region-spatial v1 frozen screen — rejected (2026-10-01)
+
+The frozen single-score screen failed base-color MAE: 0.08604 against the
+unchanged <=0.08 gate. Base-color SSIM 0.87240, roughness MAE 0.02275, metallic
+MAE 0.02419, and novel-light MAE 0.03102 passed their numeric limits. Coverage
+was 93.33% (informational) and the scorer computed map metrics on
+`visible & candidate_observed` (53,760/57,600 pixels); treatment of unknown
+visible pixels requires a non-weakening audit. The reported metallic-bias value
+0.95385 is not valid evidence: the current helper measures predicted group
+separation instead of error between predicted and reference group separation.
+The one-shot result is preserved and was not recomputed. The candidate is
+rejected on base-color MAE regardless of this separate metric defect. The run
+was CPU-only (52.30 seconds estimator, 413,696 KiB peak host RSS; 0.056 seconds
+scorer, zero accelerators) and does not qualify the RX 7900 GRE/resource gate.
+Exact source, artifact hashes, historical target-access disclosure, and metric
+audit: `api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-frozen-screen-2026-10-01.md`.
