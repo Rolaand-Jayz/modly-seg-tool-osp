@@ -2308,3 +2308,14 @@ MAE independently rejects the candidate. CPU run time was 52.30 seconds with
 was used. The previous target-inventory incident is explicitly retained in the
 report. Full evidence and hashes:
 `api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-frozen-screen-2026-10-01.md`.
+
+### Ticket 04 run-exit diagnosis instrumentation (2026-10-01)
+
+The saved SUV retry-15 record confirms exit code 137 after seven of twelve views,
+with no VRAM-reserve stop. The saved workspace has no container ID file or
+container memory-event snapshot, and the available kernel journal query had no
+matching OOM-kill record; the cause remains unknown. The exact-container
+supervisor now samples cgroup-v2 current/peak/limit and `memory.events` counters
+for the container named by that run's validated ID, alongside the existing
+board-VRAM monitor. Focused supervisor tests pass 7/7. This is observability
+only; no GPU retry was run and Ticket 04 remains unaccepted.

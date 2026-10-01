@@ -91,6 +91,43 @@ def _container_cgroup_path(container_id: str, container_pid: int) -> Path | None
     return candidates[0] if len(candidates) == 1 else None
 
 
+def _container_memory_snapshot(cgroup: Path | None) -> dict[str, Any]:
+    """Read memory pressure counters from this container's validated cgroup."""
+    if cgroup is None:
+        return {"container_memory": "unavailable"}
+    try:
+        current = int((cgroup / "memory.current").read_text(encoding="ascii").strip())
+        peak = int((cgroup / "memory.peak").read_text(encoding="ascii").strip())
+        maximum_text = (cgroup / "memory.max").read_text(encoding="ascii").strip()
+        maximum: int | str = "max" if maximum_text == "max" else int(maximum_text)
+        events = {}
+        for line in (cgroup / "memory.events").read_text(encoding="ascii").splitlines():
+            key, value = line.split()
+            events[key] = int(value)
+    except (OSError, ValueError) as exc:
+        return {"container_memory": "unavailable", "memory_read_error": type(exc).__name__}
+    return {"container_memory": "cgroup_v2", "memory_current_bytes": current,
+            "memory_peak_bytes": peak, "memory_max_bytes": maximum,
+            "memory_events": events}
+
+
+def _discover_container_cgroup(root: Path, cidfile: Path) -> Path | None:
+    """Find only the cgroup belonging to this run's validated container ID."""
+    container_id = _read_container_id(cidfile)
+    if container_id is None:
+        return None
+    command = ["podman", "--root", str(root / ".modly-amd-runtime/storage"),
+               "--runroot", str(root / ".modly-amd-runtime/run"), "inspect",
+               "--format", "{{.State.Pid}}", container_id]
+    try:
+        result = subprocess.run(command, check=False, capture_output=True,
+                                text=True, timeout=3.0)
+        pid = int(result.stdout.strip()) if result.returncode == 0 else 0
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return None
+    return _container_cgroup_path(container_id, pid) if pid > 0 else None
+
+
 def _kill_container_cgroup(container_id: str, container_pid: int) -> dict[str, Any]:
     """Kill all tasks in the exact container cgroup and verify it is empty."""
     if not CID_RE.fullmatch(container_id) or container_pid < 0:
@@ -252,6 +289,8 @@ def supervise(args: argparse.Namespace) -> int:
                     stop_reason = f"monitor_failure:{type(exc).__name__}"
                     break
                 current["elapsed_seconds"] = time.monotonic() - started
+                cgroup = _discover_container_cgroup(root, cidfile)
+                current.update(_container_memory_snapshot(cgroup))
                 monitor.write(json.dumps(current, sort_keys=True) + "\n")
                 monitor.flush()
                 samples += 1
