@@ -2142,3 +2142,28 @@ raised to force a result. These attempts do not meet Ticket 04 acceptance.
 Evidence and isolated partial artifacts are under
 `.modly-amd-runtime/ticket04-v8-rng-diag-20261001-run{3,4}/` and remain
 excluded from publication.
+
+
+### Ticket 08 source-bound region map and frozen v2 score (2026-10-01)
+
+The missing per-face candidate map was built from a real Modly Ticket 06
+`segment-material-regions` stage over the four allowed training views. Its
+source segmenter is still provisional deterministic RGB appearance clustering,
+and its confidence is uncalibrated. The source GLB and frozen fixture GLB have
+identical SHA-256 bytes and six identical indexed faces. Their recorded topology
+revisions differ, so the source map was explicitly rebound only after the
+frozen GLB accessors recomputed the frozen revision; source face IDs were kept
+unchanged and region IDs were recomputed for that revision. The full source,
+stage, map, and rebind hashes are in
+`api/runtime/adapters/pbr/evidence/ticket08-region-inverse-v2-source-bound-score-2026-10-01.md`.
+
+The frozen training-only runner completed on CPU, opened no target/held-out
+arrays, and reported 0 accelerator devices with peak host RSS 209,580 KiB. The
+one-shot scorer verified the saved run and map before opening only the frozen
+target allowlist. It rejected the candidate: base-color MAE 0.12485 / SSIM
+0.55152, roughness MAE 0.38590, metallic MAE 0.26881, and conductor/dielectric
+bias 0.41947 all fail their unchanged gates; novel-light MAE 0.04840 passes.
+Coverage 1.0 remains informational. This does not pass Ticket 08 or the RX
+7900 GRE gate. The frozen lock's forward-renderer SHA had a one-character
+transcription error; it was corrected to the measured source hash and the
+focused frozen protocol tests passed 3/3.
