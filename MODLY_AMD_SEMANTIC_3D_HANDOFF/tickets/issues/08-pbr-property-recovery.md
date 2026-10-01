@@ -643,3 +643,16 @@ was CPU-only (52.30 seconds estimator, 413,696 KiB peak host RSS; 0.056 seconds
 scorer, zero accelerators) and does not qualify the RX 7900 GRE/resource gate.
 Exact source, artifact hashes, historical target-access disclosure, and metric
 audit: `api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-frozen-screen-2026-10-01.md`.
+
+### Reference-relative region metric correction (2026-10-01)
+
+Added `runtime/adapters/pbr/region_metrics_v2.py` for future scorer protocols.
+It measures the average absolute difference between predicted and reference
+mean metallic values, separately for conductor and dielectric texels, over the
+caller-supplied fixed scoring mask. It rejects missing groups, shape mismatch,
+and invalid visible values. Three focused unit tests pass. Existing frozen
+scorers and reports remain unchanged to preserve their locked source identities.
+Their `score_metallic_bias` output measures predicted group separation, not the
+audited reference-relative bias; those historical values must not be used as
+evidence for this criterion. The new function is not yet wired into a new
+frozen scorer, and no prior candidate is upgraded or rescored.
