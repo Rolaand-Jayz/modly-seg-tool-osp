@@ -593,3 +593,21 @@ The one-way development scorer opened only the separate development target
 after the estimate was frozen; frozen acceptance inputs and scorer were not
 used. Exact hashes and limits are recorded in
 `api/runtime/adapters/pbr/evidence/ticket08-height-detail-development-v3-latent-normal-rejection-2026-10-01.md`.
+
+### Region-bound spatial latent-normal development estimator (2026-10-01)
+
+Added `region_spatial_inverse_v1.py` and its training-only development runner.
+The estimator shares supported PBR maps across caller material regions, fits
+latent shading normals per observed UV cell, smooths them only within one
+region, leaves region conflicts unknown, and emits a separate topology-bound
+region map. On the independent height-detail fixture, the vectorized 120-step
+run scored base-color MAE/SSIM 0.02981/0.89933, roughness MAE 0.02644, metallic
+MAE 0.05603, and novel-light MAE 0.00675 at full visible coverage. A 300-step
+comparison met the same numeric references but gave worse base-color and
+roughness maps. Both optimizers reached their iteration ceiling. The 120-step
+CPU run took 17.01 seconds and used 175,504 KiB peak host RSS. The focused
+fixture and region-contract tests pass 7/7. This is a development-only lead,
+not an accepted adapter. It still needs an immutable frozen-data screen, actual
+AMD target measurements, Structured Asset integration, and the other Ticket
+08 gates. Complete hashes and comparisons:
+`api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-development-screen-2026-10-01.md`.

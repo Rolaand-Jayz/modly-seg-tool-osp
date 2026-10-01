@@ -2259,3 +2259,21 @@ as the next step. It remains a diagnostic because it does not output
 material-region-bound maps. No frozen scorer or acceptance data were used in
 this run. Evidence:
 `api/runtime/adapters/pbr/evidence/ticket08-height-detail-development-v3-latent-normal-rejection-2026-10-01.md`.
+
+### Ticket 08 region-bound spatial latent-normal development candidate (2026-10-01)
+
+Implemented a sparse, vectorized project-owned inverse-render estimator that
+shares PBR values within caller material regions, uses hidden per-texel normals
+with same-region spatial smoothing, leaves conflicting region texels unknown,
+and writes an exact topology-bound region-map sidecar. The independent
+height-detail development fixture's 120-evaluation candidate scored base-color
+MAE/SSIM 0.02981/0.89933, roughness MAE 0.02644, metallic MAE 0.05603, and
+novel-light MAE 0.00675 at 100% coverage. A 300-evaluation comparison was
+slightly worse for base color and roughness but similar for other channels; both
+runs hit their iteration limits. The vectorized 120-evaluation run took 17.01
+seconds on CPU and 175,504 KiB peak host RSS. The fixture/scorer and region
+contract tests pass 7/7. This is a promising synthetic candidate, selected for
+one preregistered frozen-quality comparison; frozen acceptance, RX 7900 GRE
+runtime, <=14 GiB GPU use, and application integration remain incomplete.
+Exact hashes, both runs, and comparisons:
+`api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-development-screen-2026-10-01.md`.
