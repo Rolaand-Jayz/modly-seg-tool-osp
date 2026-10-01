@@ -20,6 +20,8 @@ export interface GenerationJob {
   progress: number
   step?: string
   outputUrl?: string
+  /** Workspace-relative Structured Asset sidecar produced by the active workflow. */
+  structuredAssetPath?: string
   originalOutputUrl?: string   // mesh URL before any optimization
   thumbnailUrl?: string
   modelId?: string             // model used for this generation

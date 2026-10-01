@@ -1,0 +1,52 @@
+{
+  "schema": "modly.ticket04.geosam2-hiera-first-conv-lock/1",
+  "source_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "model_revision": "ba92f5f50418f2fe9af1078448b63176df13b1ee",
+  "source_lock_sha256": "6b21ae83fc6c0b257253876a9641d323e5827dfa8ae62c86114529629edc0dd9",
+  "stage_lock_sha256": "d64d334d86a82793467b1645fe522a2ce71a76f163cfe390ef87a01c3203170b",
+  "stage_helper_sha256": "8b2bca468aad3d6cd9404c1286aa76f14d84c604893eff653165d4cd9eb8886d",
+  "stage_runner_sha256": "6e1878761f6f65dedd6d6da141a317828a15597e755e7d45d5cbace2625d6347",
+  "probe_sha256": "30cf5267bebee21353bf54c62e98f5b047962430ba132c7e1353cb56fcf937a5",
+  "helper_sha256": "daea37261889368a05b24e737de4cf591829676fec306683dc71f1c7ecb215d8",
+  "upstream_sources": {
+    "sam2/modeling/backbones/hieradet.py": "03785581ca304d0451ae0df7a08ee0bf1e1dbe66fad285066e6b9ffc0d88d64f",
+    "sam2/modeling/backbones/utils.py": "c4a0657db2a92bda2a7ff116cd4017f6b1c59af6408093d8874eb08a0df476ad"
+  },
+  "capture_roles": [
+    "fresh_predictor",
+    "reused_predictor_after_reset",
+    "new_predictor_shared_model"
+  ],
+  "capture_targets": {
+    "patch_embed": "image_encoder.trunk.patch_embed",
+    "first_conv2d": "image_encoder.trunk.patch_embed.proj"
+  },
+  "first_conv2d_contract": {
+    "in_channels": 3,
+    "out_channels": 112,
+    "kernel_size": [7, 7],
+    "stride": [4, 4],
+    "padding": [3, 3],
+    "groups": 1,
+    "bias": true
+  },
+  "caps": {
+    "tensor_bytes_each": 67108864,
+    "lifecycle_roles": 3
+  },
+  "capture_policy": {
+    "tensor_values": "digest-only; copied transiently to CPU for hashing",
+    "per_call": [
+      "patch_embed input tensor digest",
+      "first Conv2d input tensor digest",
+      "first Conv2d output tensor digest",
+      "first Conv2d weight and bias digests",
+      "input-device autocast enabled and dtype",
+      "deterministic algorithm state",
+      "CUDA matmul TF32 and cuDNN TF32/deterministic flags"
+    ],
+    "model_settings_changed": false,
+    "truth_access": "none",
+    "output_payloads_persisted": false
+  }
+}

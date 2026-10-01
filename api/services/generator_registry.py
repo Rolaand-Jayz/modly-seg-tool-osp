@@ -26,6 +26,7 @@ from typing import Dict, Iterator, List, Optional, Set, Tuple
 
 from services.generators.base import BaseGenerator
 from services.extension_process import ExtensionProcess, _venv_python
+from services.gpu_execution_guard import assert_gpu_runs_allowed
 from schemas.structured_asset import parse_manifest_capabilities
 
 # ------------------------------------------------------------------ #
@@ -773,7 +774,11 @@ class GeneratorRegistry:
 
     def get_active(self) -> BaseGenerator:
         """Returns the active generator. Downloads and loads if necessary."""
+        # Quarantine is a metadata-only check. Surface it before consulting the
+        # GPU hold so callers still get the actionable registration error; the
+        # pause guard remains immediately before any possible model load.
         self._assert_not_quarantined(self._active_id)
+        assert_gpu_runs_allowed(WORKSPACE_DIR)
         gen = self._generators[self._active_id]
         if not gen.is_loaded():
             if not gen.is_downloaded():

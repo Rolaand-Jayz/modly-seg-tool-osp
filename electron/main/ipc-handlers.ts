@@ -17,7 +17,7 @@ import {
 import { getSettings, setSettings } from './settings-store'
 import { checkSetupNeeded, markSetupDone, runFullSetup, getVenvPythonExe, ensureSslPatch } from './python-setup'
 import { logger } from './logger'
-import { getProcessRunner, getPythonProcessRunner, getExtPythonExe, terminateProcessRunner, terminateAllProcessRunners } from './process-runner'
+import { getProcessRunner, getPythonProcessRunner, getExtPythonExe, terminateProcessRunner, terminateAllProcessRunners, persistProcessFailureTelemetry } from './process-runner'
 import { authorizeProcessRunParams, REMOTE_VISION_CONFIRMATION } from './remote-vision-authorization'
 import { getBuiltinExtensionsDir } from './builtin-sync'
 import { spawn, execFile } from 'child_process'
@@ -1828,8 +1828,24 @@ export function setupIpcHandlers(pythonBridge: PythonBridge, getWindow: WindowGe
       const result = await runner.run(input, authorizedParams)
       return { success: true, result }
     } catch (err) {
-      return { success: false, error: String(err) }
+      const telemetry = err && typeof err === 'object' && 'telemetry' in err
+        ? (err as { telemetry: Record<string, unknown> }).telemetry : undefined
+      let evidencePath: string | undefined
+      if (telemetry) {
+        try {
+          evidencePath = await persistProcessFailureTelemetry(workspaceDir, telemetry as never)
+        } catch (persistError) {
+          logger.error(`[extensions:runProcess] Could not persist failure telemetry: ${persistError}`)
+        }
+      }
+      return { success: false, error: String(err), telemetry, evidencePath,
+        cancelled: telemetry?.status === 'cancelled' }
     }
+  })
+
+  ipcMain.handle('extensions:cancelProcess', async (_, extensionId: string) => {
+    terminateProcessRunner(extensionId)
+    return { success: true }
   })
 
   // Terminate all process runners on app quit

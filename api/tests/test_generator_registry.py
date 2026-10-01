@@ -6,10 +6,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import services.generator_registry as registry_module
 from services.extension_process import ExtensionProcess
 from services.generator_registry import GeneratorRegistry
+from services.gpu_execution_guard import GPUProcessingPaused
 
 
 class GeneratorRegistryDiscoveryTests(unittest.TestCase):
@@ -82,6 +84,20 @@ class GeneratorRegistryDiscoveryTests(unittest.TestCase):
             ]),
             encoding="utf-8",
         )
+
+    def test_final_generator_load_boundary_rechecks_gpu_pause(self) -> None:
+        extension = self._make_extension("pause-guarded")
+        self._write_manifest(extension, extension_id="pause-guarded")
+        self._write_test_generator(extension)
+        self.registry.initialize()
+        model_id = "pause-guarded/generate"
+        self.registry.switch_model(model_id)
+        with patch.object(
+            registry_module, "assert_gpu_runs_allowed",
+            side_effect=GPUProcessingPaused("paused for test"),
+        ):
+            with self.assertRaises(GPUProcessingPaused):
+                self.registry.get_active()
 
     def test_legacy_manifest_without_capabilities_still_loads(self) -> None:
         extension = self._make_extension("legacy-no-capabilities")

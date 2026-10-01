@@ -6,6 +6,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from services.gpu_execution_guard import gpu_pause_marker
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -24,6 +25,20 @@ def _load(path: Path):
 
 
 class AMDGPUPauseGuardTests(unittest.TestCase):
+    def test_shared_guard_checks_project_and_workspace_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project, workspace = root / "project", root / "workspace"
+            project.mkdir(); workspace.mkdir()
+            self.assertIsNone(gpu_pause_marker(workspace, project))
+            project_marker = project / ".modly-amd-runtime/GPU_RUNS_PAUSED"
+            project_marker.parent.mkdir(); project_marker.touch()
+            self.assertEqual(gpu_pause_marker(workspace, project), project_marker)
+            project_marker.unlink()
+            workspace_marker = workspace / ".modly-amd-runtime/GPU_RUNS_PAUSED"
+            workspace_marker.parent.mkdir(); workspace_marker.touch()
+            self.assertEqual(gpu_pause_marker(workspace, project), workspace_marker)
+
     def test_project_marker_blocks_external_workspace(self) -> None:
         for processor_path in PROCESSORS:
             with self.subTest(processor=processor_path.parent.name), \

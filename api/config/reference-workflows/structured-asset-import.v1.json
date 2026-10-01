@@ -2,7 +2,7 @@
   "workflow_id": "modly.structured-asset-import.v1",
   "capability_id": "import-geometry",
   "adapter_id": "modly.structured-asset-import",
-  "adapter_tree_digest": "sha256:f9974a500e80fbaad23a269b3ba2156a03340d9373232c87bdfac00f2119e680",
+  "adapter_tree_digest": "sha256:ce68b3aa66cf0d470a4044262afd316ac5101a0f141c102588759d8eba621cb4",
   "weights": null,
   "weights_not_applicable_reason": "The importer validates and records source geometry; it performs no model inference."
 }

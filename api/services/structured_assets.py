@@ -624,6 +624,15 @@ def validate_sidecar(root: Path, sidecar_path: Path) -> StructuredAsset:
         reference_path = _workspace_file(root, reference.workspace_path, label=label)
         if reference_path == path.resolve():
             actual_digest = geometry_digest
+        elif reference.media_type in {"model/gltf+json", "model/gltf-binary"}:
+            # glTF identity covers its local buffers and images as well as the
+            # JSON/GLB file. A historical stage artifact can therefore point
+            # at another copy of the same mesh and must use the same geometry
+            # digest routine as the primary geometry reference.
+            _ref_path, _ref_doc, ref_digest, _ref_topology, _ref_transforms, _ref_uv, _ref_counts, _ref_components = inspect_geometry(
+                root, reference.workspace_path
+            )
+            actual_digest = f"sha256:{ref_digest}"
         else:
             actual_digest = f"sha256:{hashlib.sha256(reference_path.read_bytes()).hexdigest()}"
         if actual_digest != reference.digest:

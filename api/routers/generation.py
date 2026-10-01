@@ -10,6 +10,7 @@ from services.generators.base import smooth_progress, GenerationCancelled
 
 import re as _re
 from services.generator_registry import generator_registry, WORKSPACE_DIR
+from services.gpu_execution_guard import GPUProcessingPaused, assert_gpu_runs_allowed
 from schemas.generation import JobStatus
 
 router = APIRouter(tags=["generation"])
@@ -93,6 +94,11 @@ async def generate_from_image(
 
     if remesh not in VALID_REMESH_MODES:
         raise HTTPException(400, "remesh must be 'quad', 'triangle', or 'none'")
+
+    try:
+        assert_gpu_runs_allowed(WORKSPACE_DIR)
+    except GPUProcessingPaused as exc:
+        raise HTTPException(status_code=503, detail={"code": exc.code, "message": str(exc)}) from exc
 
     collection = sanitize_collection(collection)
 

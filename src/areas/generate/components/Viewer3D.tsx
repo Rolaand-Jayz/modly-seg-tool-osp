@@ -18,8 +18,50 @@ import { useAppStore } from '@shared/stores/appStore'
 import { ViewerToolbar, type ViewMode } from './ViewerToolbar'
 import type { LightSettings } from '@shared/stores/appStore'
 import { DEFAULT_LIGHT_SETTINGS } from '@shared/stores/appStore'
+import StructuredAssetReviewPanel from './StructuredAssetReviewPanel'
+import { useWorkflowRunStore, type WorkflowStageTelemetry } from '@areas/workflows/workflowRunStore'
+import { buildFaceSpatialIndex, queryFacesNearSegment, type FaceSpatialIndex } from '../seamDragSpatial'
 
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
+
+function formatTelemetryBytes(value?: number): string {
+  if (value === undefined) return 'Unknown'
+  if (value === 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1)
+  return `${(value / 1024 ** index).toFixed(index > 0 ? 1 : 0)} ${units[index]}`
+}
+
+function StageTelemetryPanel({ stages }: { stages: WorkflowStageTelemetry[] }): JSX.Element | null {
+  const [open, setOpen] = useState(false)
+  if (stages.length === 0) return null
+  return (
+    <section className="absolute left-3 top-3 z-20 w-[min(360px,calc(100%-24px))] overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-950/95 text-zinc-200 shadow-xl backdrop-blur">
+      <button className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-semibold" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        <span>Workflow performance · {stages.length} stage{stages.length === 1 ? '' : 's'}</span>
+        <span className="text-zinc-500">{open ? 'Hide' : 'Inspect'}</span>
+      </button>
+      {open && (
+        <div className="max-h-[55vh] space-y-2 overflow-auto border-t border-zinc-800 px-3 py-2">
+          {stages.map((stage, index) => (
+            <article key={`${stage.nodeId}:${stage.stageId}:${index}`} className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-2">
+              <h3 className="truncate text-xs font-medium" title={stage.stageId}>{stage.stageId}</h3>
+              <p className="mt-1 text-[11px] text-zinc-400">{stage.nodeLabel} · backend {stage.backend ?? 'Unknown'}</p>
+              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                <dt className="text-zinc-500">Stage time</dt><dd>{stage.latencyMs === undefined ? 'Unknown' : `${stage.latencyMs.toFixed(1)} ms`}</dd>
+                <dt className="text-zinc-500">Peak VRAM used</dt><dd>{formatTelemetryBytes(stage.peakVramAllocatedBytes)}</dd>
+                <dt className="text-zinc-500">Peak VRAM reserved</dt><dd>{formatTelemetryBytes(stage.peakVramReservedBytes)}</dd>
+                <dt className="text-zinc-500">Device</dt><dd className="truncate" title={stage.device}>{stage.device ?? 'Unknown'}</dd>
+              </dl>
+              {stage.evidencePath && <p className="mt-1 truncate text-[10px] text-zinc-600" title={stage.evidencePath}>Evidence: {stage.evidencePath}</p>}
+            </article>
+          ))}
+          <p className="text-[10px] text-zinc-500">Unknown means the stage did not provide that measurement; it is not treated as zero.</p>
+        </div>
+      )}
+    </section>
+  )
+}
 
 const SELECTION_OUTLINE_VISIBLE_COLOR = 0x8b5cf6
 const SELECTION_OUTLINE_HIDDEN_COLOR = 0x5b21b6
@@ -142,17 +184,56 @@ interface MeshModelProps {
   onStats: (stats: { vertices: number; triangles: number }) => void
   onSelect: () => void
   onObject: (obj: THREE.Object3D | null) => void
+  facePickEnabled: boolean
+  onPickFace: (faceId: number) => void
+  pickedFaceIds: number[]
+  highlightedRegionFaceIds: number[]
+  seamDragEnabled?: boolean
+  seamSourceFaceIds?: number[]
+  seamDestinationFaceIds?: number[]
+  onSeamDragFaces?: (faceIds: number[]) => void
+  onSeamBoundaryAvailability?: (available: boolean) => void
+  faceIndexOffsets?: WeakMap<THREE.Mesh, number>
 }
 
-function MeshModel({ url, jobId, viewMode, selected, onStats, onSelect, onObject }: MeshModelProps): JSX.Element {
+function MeshModel({ url, jobId, viewMode, selected, onStats, onSelect, onObject, facePickEnabled, onPickFace, pickedFaceIds, highlightedRegionFaceIds, seamDragEnabled, seamSourceFaceIds, seamDestinationFaceIds, onSeamDragFaces, onSeamBoundaryAvailability }: MeshModelProps): JSX.Element {
   const extension = url.split('?')[0]?.split('.').pop()?.toLowerCase()
-  const common = { url, jobId, viewMode, selected, onStats, onSelect, onObject }
+  const common = { url, jobId, viewMode, selected, onStats, onSelect, onObject, facePickEnabled, onPickFace, pickedFaceIds, highlightedRegionFaceIds, seamDragEnabled, seamSourceFaceIds, seamDestinationFaceIds, onSeamDragFaces, onSeamBoundaryAvailability }
   return extension === 'obj' ? <ObjMeshModel {...common} /> : <GltfMeshModel {...common} />
 }
 
 function GltfMeshModel(props: MeshModelProps): JSX.Element {
-  const { scene } = useGLTF(props.url)
-  return <SceneMeshModel {...props} scene={scene} loaderType="gltf" />
+  const gltf = useGLTF(props.url)
+  const faceIndexOffsets = useMemo(() => {
+    gltf.scene.userData.modlyFaceIdMappingAvailable = false
+    delete gltf.scene.userData.modlyFaceIdCount
+    const associations = gltf.parser?.associations as Map<THREE.Object3D, { meshes?: number; primitives?: number }> | undefined
+    if (!associations) return undefined
+    const rows: Array<{ meshIndex: number; primitiveIndex: number; mesh: THREE.Mesh; faces: number }> = []
+    gltf.scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      const association = associations.get(child)
+      if (!Number.isInteger(association?.meshes) || !Number.isInteger(association?.primitives)) return
+      const count = child.geometry.index?.count ?? child.geometry.attributes.position?.count ?? 0
+      rows.push({ meshIndex: association!.meshes!, primitiveIndex: association!.primitives!, mesh: child, faces: Math.floor(count / 3) })
+    })
+    rows.sort((a, b) => a.meshIndex - b.meshIndex || a.primitiveIndex - b.primitiveIndex)
+    const offsets = new WeakMap<THREE.Mesh, number>()
+    const primitiveKeys = new Set<string>()
+    let offset = 0
+    for (const row of rows) {
+      const primitiveKey = `${row.meshIndex}:${row.primitiveIndex}`
+      if (primitiveKeys.has(primitiveKey)) return undefined
+      primitiveKeys.add(primitiveKey)
+      if (offsets.has(row.mesh)) return undefined
+      offsets.set(row.mesh, offset)
+      offset += row.faces
+    }
+    gltf.scene.userData.modlyFaceIdMappingAvailable = rows.length > 0
+    gltf.scene.userData.modlyFaceIdCount = offset
+    return rows.length > 0 ? offsets : undefined
+  }, [gltf.scene, gltf.parser])
+  return <SceneMeshModel {...props} faceIndexOffsets={faceIndexOffsets} scene={gltf.scene} loaderType="gltf" />
 }
 
 function ObjMeshModel(props: MeshModelProps): JSX.Element {
@@ -167,6 +248,16 @@ function SceneMeshModel({
   onStats,
   onSelect,
   onObject,
+  facePickEnabled,
+  onPickFace,
+  pickedFaceIds,
+  highlightedRegionFaceIds,
+  seamDragEnabled,
+  seamSourceFaceIds = [],
+  seamDestinationFaceIds = [],
+  onSeamDragFaces,
+  onSeamBoundaryAvailability,
+  faceIndexOffsets,
   scene,
   loaderType,
 }: MeshModelProps & {
@@ -175,6 +266,118 @@ function SceneMeshModel({
 }): JSX.Element {
   const captured = useRef(false)
   const edgeHelpers = useRef<THREE.LineSegments[]>([])
+  const pickedFaceHelpers = useRef<THREE.LineSegments[]>([])
+  const boundaryDrag = useRef<{ active: boolean; path: THREE.Vector3[]; lastPoint: THREE.Vector3 | null; source: Set<number>; moved: Set<number>; lastPublishedAt: number }>({ active: false, path: [], lastPoint: null, source: new Set(), moved: new Set(), lastPublishedAt: 0 })
+  const { controls } = useThree() as { controls?: { enabled: boolean } }
+
+  const seamHandleData = useMemo(() => {
+    if (!faceIndexOffsets || seamSourceFaceIds.length === 0 || seamDestinationFaceIds.length === 0) return []
+    const source = new Set(seamSourceFaceIds)
+    const destination = new Set(seamDestinationFaceIds)
+    const handles: THREE.Vector3[] = []
+    scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      const offset = faceIndexOffsets.get(child)
+      const position = child.geometry.getAttribute('position')
+      if (offset === undefined || !position) return
+      const index = child.geometry.index
+      const faceCount = Math.floor((index?.count ?? position.count) / 3)
+      const edges = new Map<string, { a: number; b: number; sourceFace?: number; destination: boolean }>()
+      for (let face = 0; face < faceCount; face++) {
+        const globalFace = offset + face
+        const isSource = source.has(globalFace)
+        const isDestination = destination.has(globalFace)
+        if (!isSource && !isDestination) continue
+        const vertices = [0, 1, 2].map((corner) => index ? index.getX(face * 3 + corner) : face * 3 + corner)
+        for (const [left, right] of [[0, 1], [1, 2], [2, 0]]) {
+          const a = Math.min(vertices[left], vertices[right]); const b = Math.max(vertices[left], vertices[right])
+          const key = `${a}:${b}`
+          const edge = edges.get(key) ?? { a, b, destination: false }
+          if (isSource) edge.sourceFace = globalFace
+          if (isDestination) edge.destination = true
+          edges.set(key, edge)
+        }
+      }
+      for (const edge of edges.values()) {
+        if (edge.sourceFace === undefined || !edge.destination) continue
+        const midpoint = new THREE.Vector3().fromBufferAttribute(position, edge.a)
+          .add(new THREE.Vector3().fromBufferAttribute(position, edge.b)).multiplyScalar(0.5)
+        child.localToWorld(midpoint)
+        handles.push(midpoint)
+      }
+    })
+    return handles
+  }, [faceIndexOffsets, scene, seamDestinationFaceIds, seamSourceFaceIds])
+  const sourceFaceSpatialIndex = useMemo<FaceSpatialIndex | null>(() => {
+    const source = new Set(seamSourceFaceIds)
+    if (!seamDragEnabled || !faceIndexOffsets || source.size === 0) return null
+    const sphere = new THREE.Sphere()
+    new THREE.Box3().setFromObject(scene).getBoundingSphere(sphere)
+    const brushRadius = Math.max(sphere.radius * 0.035, 1e-5)
+    const faces: Array<readonly [number, readonly [number, number, number]]> = []
+    scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      const offset = faceIndexOffsets.get(child)
+      const positions = child.geometry.getAttribute('position')
+      if (offset === undefined || !positions) return
+      const index = child.geometry.index
+      const count = Math.floor((index?.count ?? positions.count) / 3)
+      for (let face = 0; face < count; face++) {
+        const globalFace = offset + face
+        if (!source.has(globalFace)) continue
+        const vertices = [0, 1, 2].map((corner) => index ? index.getX(face * 3 + corner) : face * 3 + corner)
+        const center = new THREE.Vector3().fromBufferAttribute(positions, vertices[0])
+          .add(new THREE.Vector3().fromBufferAttribute(positions, vertices[1]))
+          .add(new THREE.Vector3().fromBufferAttribute(positions, vertices[2])).multiplyScalar(1 / 3)
+        child.localToWorld(center)
+        faces.push([globalFace, [center.x, center.y, center.z]])
+      }
+    })
+    return buildFaceSpatialIndex(faces, brushRadius)
+  }, [faceIndexOffsets, scene, seamDragEnabled, seamSourceFaceIds])
+  useEffect(() => { onSeamBoundaryAvailability?.(seamHandleData.length > 0) }, [onSeamBoundaryAvailability, seamHandleData])
+
+  const updateSeamDrag = useCallback((point: THREE.Vector3, hitFace?: number) => {
+    const drag = boundaryDrag.current
+    if (!drag.active) return
+    const previousPoint = drag.lastPoint ?? point
+    drag.lastPoint = point.clone()
+    drag.path.push(point.clone())
+    if (drag.path.length > 256) drag.path.shift()
+    if (hitFace != null && drag.source.has(hitFace)) drag.moved.add(hitFace)
+    // Query only bins near this new segment. Prior pointer samples are never
+    // rescanned; the one-time index and sampling cap keep pointer work bounded.
+    if (sourceFaceSpatialIndex) {
+      const radius = sourceFaceSpatialIndex.cellSize
+      const start: readonly [number, number, number] = [previousPoint.x, previousPoint.y, previousPoint.z]
+      const end: readonly [number, number, number] = [point.x, point.y, point.z]
+      for (const candidate of queryFacesNearSegment(sourceFaceSpatialIndex, start, end, radius)) drag.moved.add(candidate)
+    }
+    const now = performance.now()
+    if (now - drag.lastPublishedAt >= 100) {
+      drag.lastPublishedAt = now
+      onSeamDragFaces?.([...drag.moved].sort((a, b) => a - b))
+    }
+  }, [onSeamDragFaces, sourceFaceSpatialIndex])
+
+  useEffect(() => {
+    if (seamDragEnabled) return
+    boundaryDrag.current.active = false
+    if (controls) controls.enabled = true
+  }, [controls, seamDragEnabled])
+
+  useEffect(() => {
+    const finish = () => {
+      const drag = boundaryDrag.current
+      if (!drag.active) return
+      drag.active = false
+      if (controls) controls.enabled = true
+      if (drag.moved.size > 0) onSeamDragFaces?.([...drag.moved].sort((a, b) => a - b))
+    }
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('blur', finish)
+    return () => { window.removeEventListener('pointerup', finish); window.removeEventListener('blur', finish) }
+  }, [controls, onSeamDragFaces])
 
   // Expose the scene object so Viewer3D can attach the transform gizmo to it.
   useEffect(() => {
@@ -219,6 +422,56 @@ function SceneMeshModel({
       })
     }
   }, [scene])
+
+  useEffect(() => {
+    pickedFaceHelpers.current.forEach((lines) => {
+      lines.parent?.remove(lines)
+      lines.geometry.dispose()
+      ;(lines.material as THREE.Material).dispose()
+    })
+    pickedFaceHelpers.current = []
+    if (!faceIndexOffsets || (pickedFaceIds.length === 0 && highlightedRegionFaceIds.length === 0)) return
+    scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return
+      const offset = faceIndexOffsets.get(child)
+      if (offset === undefined) return
+      const position = child.geometry.getAttribute('position')
+      if (!position) return
+      const index = child.geometry.index
+      const faceCount = Math.floor((index?.count ?? position.count) / 3)
+      const picked = new Set<number>(pickedFaceIds)
+      const region = new Set<number>(highlightedRegionFaceIds.filter((id) => !picked.has(id)))
+      const drawFaces = (globalIds: Set<number>, color: number) => {
+        const vertices: number[] = []
+        for (const globalId of globalIds) {
+          const localFace = globalId - offset
+          if (localFace < 0 || localFace >= faceCount) continue
+          const tri = [0, 1, 2].map((corner) => index ? index.getX(localFace * 3 + corner) : localFace * 3 + corner)
+          const points = tri.map((vertex) => new THREE.Vector3().fromBufferAttribute(position, vertex))
+          for (const edge of [[0, 1], [1, 2], [2, 0]]) {
+            vertices.push(...points[edge[0]].toArray(), ...points[edge[1]].toArray())
+          }
+        }
+        if (vertices.length === 0) return
+        const geometry = new THREE.BufferGeometry()
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+        const helper = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true, opacity: 0.95 }))
+        helper.renderOrder = 1000
+        child.add(helper)
+        pickedFaceHelpers.current.push(helper)
+      }
+      drawFaces(region, 0x47d7ff)
+      drawFaces(picked, 0xffc94a)
+    })
+    return () => {
+      pickedFaceHelpers.current.forEach((lines) => {
+        lines.parent?.remove(lines)
+        lines.geometry.dispose()
+        ;(lines.material as THREE.Material).dispose()
+      })
+      pickedFaceHelpers.current = []
+    }
+  }, [faceIndexOffsets, highlightedRegionFaceIds, pickedFaceIds, scene])
 
   // Centre the mesh on the grid. Runs only on first load / model change — never
   // on plain re-renders, so a live gizmo transform is not silently overwritten.
@@ -297,8 +550,56 @@ function SceneMeshModel({
     <Select enabled={selected}>
       <primitive
         object={scene}
-        onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); onSelect() }}
+        onClick={(e: { stopPropagation: () => void }) => { e.stopPropagation(); if (!facePickEnabled) onSelect() }}
+        onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+          if (!facePickEnabled || seamDragEnabled) return
+          const mesh = event.object as THREE.Mesh
+          const offset = faceIndexOffsets?.get(mesh)
+      if (event.faceIndex != null && offset !== undefined) {
+            event.stopPropagation()
+            onPickFace(offset + event.faceIndex)
+          }
+        }}
+        onPointerMove={(event: ThreeEvent<PointerEvent>) => {
+          if (seamDragEnabled && boundaryDrag.current.active && event.faceIndex != null && faceIndexOffsets) {
+            const mesh = event.object as THREE.Mesh
+            const offset = faceIndexOffsets.get(mesh)
+            if (offset !== undefined) { event.stopPropagation(); updateSeamDrag(event.point, offset + event.faceIndex) }
+            return
+          }
+          if (!facePickEnabled || (event.nativeEvent.buttons & 1) === 0) return
+          const mesh = event.object as THREE.Mesh
+          const offset = faceIndexOffsets?.get(mesh)
+      if (event.faceIndex != null && offset !== undefined) {
+            event.stopPropagation()
+            onPickFace(offset + event.faceIndex)
+          }
+        }}
+        onPointerUp={() => {
+          const drag = boundaryDrag.current
+          if (!drag.active) return
+          drag.active = false
+          if (controls) controls.enabled = true
+          if (drag.moved.size > 0) onSeamDragFaces?.([...drag.moved].sort((a, b) => a - b))
+        }}
       />
+      {seamDragEnabled && seamHandleData.map((handlePosition, index) => (
+        <mesh key={`seam-handle-${index}`} position={handlePosition} onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation()
+          boundaryDrag.current = { active: true, path: [event.point.clone()], lastPoint: event.point.clone(), source: new Set(seamSourceFaceIds), moved: new Set(), lastPublishedAt: 0 }
+          if (controls) controls.enabled = false
+        }} onPointerUp={(event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation()
+          const drag = boundaryDrag.current
+          if (!drag.active) return
+          drag.active = false
+          if (controls) controls.enabled = true
+          if (drag.moved.size > 0) onSeamDragFaces?.([...drag.moved].sort((a, b) => a - b))
+        }}>
+          <sphereGeometry args={[0.014, 8, 6]} />
+          <meshBasicMaterial color="#ff4fa3" depthTest={false} />
+        </mesh>
+      ))}
     </Select>
   )
 
@@ -808,6 +1109,9 @@ type TransformSnapshot = { p: THREE.Vector3; q: THREE.Quaternion; s: THREE.Vecto
 export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmoMode = null, gizmoUndoRef }: { lightSettings?: LightSettings; gizmoMode?: GizmoMode | null; gizmoUndoRef?: MutableRefObject<(() => boolean) | null> }): JSX.Element {
   const { currentJob } = useGeneration()
   const apiUrl = useAppStore((s) => s.apiUrl)
+  const workflowRunState = useWorkflowRunStore((s) => s.runState)
+  const stageTelemetry = workflowRunState.stageTelemetryOutputUrl === currentJob?.outputUrl
+    ? (workflowRunState.stageTelemetry ?? []) : []
 
   const setStoreMeshStats = useAppStore((s) => s.setMeshStats)
   const meshStats = useAppStore((s) => s.meshStats)
@@ -821,6 +1125,17 @@ export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmo
   const splatRef = useRef<SplatViewerHandle | null>(null)
 
   const [meshObject, setMeshObject] = useState<THREE.Object3D | null>(null)
+  const [facePickEnabled, setFacePickEnabled] = useState(false)
+  const [pickedFaceIds, setPickedFaceIds] = useState<number[]>([])
+  const [highlightedRegionFaceIds, setHighlightedRegionFaceIds] = useState<number[]>([])
+  const [seamDragEnabled, setSeamDragEnabled] = useState(false)
+  const [seamBoundaryAvailable, setSeamBoundaryAvailable] = useState(false)
+  const [seamDraftFaceIds, setSeamDraftFaceIds] = useState<number[]>([])
+  const [seamSourceFaceIdsForViewer, setSeamSourceFaceIdsForViewer] = useState<number[]>([])
+  const [seamDestinationFaceIdsForViewer, setSeamDestinationFaceIdsForViewer] = useState<number[]>([])
+  const handlePickFace = useCallback((faceId: number) => {
+    setPickedFaceIds((current) => current.includes(faceId) ? current : [...current, faceId].sort((a, b) => a - b))
+  }, [])
 
   // Local gizmo-transform history (live TRS), undoable with Ctrl+Z. A snapshot
   // is taken when a drag starts and committed on release only if it changed.
@@ -847,6 +1162,8 @@ export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmo
   useEffect(() => {
     setSelected(false)
     setViewMode('solid')
+    setFacePickEnabled(false)
+    setPickedFaceIds([])
     setStoreMeshStats(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the model changes; setters are stable
   }, [modelUrl])
@@ -997,6 +1314,15 @@ export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmo
                   onStats={setStoreMeshStats}
                   onSelect={() => setSelected(true)}
                   onObject={setMeshObject}
+                  facePickEnabled={facePickEnabled}
+                  onPickFace={handlePickFace}
+                  pickedFaceIds={pickedFaceIds}
+                  highlightedRegionFaceIds={highlightedRegionFaceIds}
+                  seamDragEnabled={seamDragEnabled}
+                  seamSourceFaceIds={seamSourceFaceIdsForViewer}
+                  seamDestinationFaceIds={seamDestinationFaceIdsForViewer}
+                  onSeamDragFaces={(faceIds) => { setSeamDraftFaceIds(faceIds); setPickedFaceIds(faceIds) }}
+                  onSeamBoundaryAvailability={setSeamBoundaryAvailable}
                 />
               </Suspense>
             </Selection>
@@ -1042,6 +1368,29 @@ export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmo
             showViewModes={!isSplat}
           />
         )}
+
+        {modelUrl && currentJob?.structuredAssetPath && (
+          <StructuredAssetReviewPanel
+            apiUrl={apiUrl}
+            sidecarPath={currentJob.structuredAssetPath}
+            faceCount={meshStats?.triangles}
+            canPickFaces={meshObject?.userData.modlyFaceIdMappingAvailable === true
+              && meshObject.userData.modlyFaceIdCount === meshStats?.triangles}
+            facePickEnabled={facePickEnabled}
+            pickedFaceIds={pickedFaceIds}
+            onHighlightFaces={setHighlightedRegionFaceIds}
+            onPickModeChange={setFacePickEnabled}
+            onClearPickedFaces={() => setPickedFaceIds([])}
+            seamDragEnabled={seamDragEnabled}
+            seamDraftFaceIds={seamDraftFaceIds}
+            onSeamDragModeChange={setSeamDragEnabled}
+            onClearSeamDraft={() => { setSeamDraftFaceIds([]); setPickedFaceIds([]) }}
+            onHighlightSeamSource={setSeamSourceFaceIdsForViewer}
+            onHighlightSeamDestination={setSeamDestinationFaceIdsForViewer}
+            seamBoundaryAvailable={seamBoundaryAvailable}
+          />
+        )}
+        {modelUrl && currentJob?.structuredAssetPath && <StageTelemetryPanel stages={stageTelemetry} />}
 
         {/* Bottom-left stats overlay */}
         {meshStats && (

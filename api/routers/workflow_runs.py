@@ -14,7 +14,8 @@ from routers.generation import (
     sanitize_collection,
 )
 from schemas.generation import JobStatus
-from services.generator_registry import generator_registry
+from services.generator_registry import generator_registry, WORKSPACE_DIR
+from services.gpu_execution_guard import GPUProcessingPaused, assert_gpu_runs_allowed
 
 router = APIRouter(tags=["workflow-runs"])
 
@@ -69,6 +70,11 @@ async def create_run_from_image(
         raise HTTPException(400, "remesh must be 'quad', 'triangle', or 'none'")
 
     collection = sanitize_collection(collection)
+
+    try:
+        assert_gpu_runs_allowed(WORKSPACE_DIR)
+    except GPUProcessingPaused as exc:
+        raise HTTPException(status_code=503, detail={"code": exc.code, "message": str(exc)}) from exc
 
     try:
         generator_registry.get_generator(model_id)

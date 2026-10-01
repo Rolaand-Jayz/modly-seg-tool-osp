@@ -286,6 +286,40 @@ class StructuredAssetImportTests(unittest.TestCase):
         self.assertEqual(asset.geometry.workspace_path, "triangle.gltf")
         self.assertEqual(asset.geometry.digest, asset.geometry.artifact_id)
 
+    def test_gltf_stage_artifact_digest_includes_its_external_dependencies(self) -> None:
+        data = struct.pack("<9f3H", 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0, 1, 2)
+        (self.root / "triangle.bin").write_bytes(data)
+        gltf = {
+            "asset": {"version": "2.0"},
+            "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1}]}],
+            "buffers": [{"uri": "triangle.bin", "byteLength": len(data)}],
+            "bufferViews": [
+                {"buffer": 0, "byteOffset": 0, "byteLength": 36},
+                {"buffer": 0, "byteOffset": 36, "byteLength": 6},
+            ],
+            "accessors": [
+                {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"},
+                {"bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR"},
+            ],
+        }
+        (self.root / "triangle.gltf").write_text(json.dumps(gltf))
+        asset, _ = create_imported_asset(self.root, "triangle.gltf")
+
+        # Exported geometry is a byte-identical copy while stage provenance
+        # remains bound to the original imported glTF and its .bin dependency.
+        exported_dir = self.root / "export"
+        exported_dir.mkdir()
+        (exported_dir / "triangle.bin").write_bytes(data)
+        (exported_dir / "triangle.gltf").write_text(json.dumps(gltf))
+        payload = asset.model_dump(mode="json")
+        payload["geometry"]["workspace_path"] = "export/triangle.gltf"
+        sidecar = self.root / "exported-sidecar.json"
+        sidecar.write_text(json.dumps(payload))
+
+        loaded = validate_sidecar(self.root, sidecar)
+        self.assertEqual(loaded.geometry.workspace_path, "export/triangle.gltf")
+        self.assertEqual(loaded.stage_artifacts[0].artifact.workspace_path, "triangle.gltf")
+
     def test_geometry_mutation_invalidates_digest_before_further_processing(self) -> None:
         _, sidecar = create_imported_asset(self.root, "triangle.glb")
         changed = bytearray(make_glb())

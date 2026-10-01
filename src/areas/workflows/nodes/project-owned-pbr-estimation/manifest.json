@@ -1,0 +1,47 @@
+{
+  "id": "project-owned-pbr-estimation",
+  "name": "Estimate PBR Properties (Project Candidate)",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Estimates supported PBR channels from calibrated RGB views using unchanged geometry, exact topology correspondence, and validated material-region assignments. CPU candidate; quality and AMD gates remain open.",
+  "capabilities": [
+    {
+      "capability_id": "estimate-pbr-properties",
+      "contract_version": "1.0.0",
+      "inputs": ["structured-asset", "observation", "mesh"],
+      "outputs": ["structured-asset", "assertions", "stage-artifacts"],
+      "adapter_id": "modly.project-owned-region-inverse-render",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "project-owned-pbr-estimation",
+      "name": "Estimate PBR Properties (Project Candidate)",
+      "input": "mesh",
+      "output": "mesh",
+      "params_schema": [
+        {
+          "id": "observation_bundle_path",
+          "label": "Calibrated observation bundle",
+          "type": "string",
+          "default": "",
+          "tooltip": "Workspace-relative JSON bundle containing calibrated training lights, source-observation identities, and a topology-bound CPU array archive. Missing or uncalibrated evidence fails closed."
+        },
+        {
+          "id": "resolution",
+          "label": "UV map resolution",
+          "type": "int",
+          "default": 64,
+          "min": 2,
+          "max": 1024,
+          "step": 1,
+          "tooltip": "Output UV map resolution for the provisional estimator."
+        }
+      ]
+    }
+  ]
+}

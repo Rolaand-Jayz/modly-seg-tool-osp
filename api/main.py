@@ -23,6 +23,7 @@ from routers import (
     settings,
     status,
     structured_assets,
+    structured_asset_export,
     structured_workflow_runs,
     workflow_runs,
 )
@@ -74,6 +75,7 @@ app.include_router(workflow_runs.router,   prefix="/workflow-runs")
 app.include_router(structured_workflow_runs.router)
 app.include_router(process_runs.router)
 app.include_router(structured_assets.router)
+app.include_router(structured_asset_export.router)
 app.include_router(agent.router)
 
 # Serve generated files from workspace — dynamic so path changes take effect immediately

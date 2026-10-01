@@ -387,14 +387,14 @@ runpy.run_module("runtime.adapters.parts.geosam2_probe",run_name="__main__")
     ;;
   trace-geosam2-lifecycle)
     if [[ $# -lt 3 || $# -gt 4 ]]; then
-      printf 'Usage: %s trace-geosam2-lifecycle WORKSPACE_DIR OUTPUT_DIR_RELATIVE_PATH [plain|image-boundaries|encoder-stages]\n' "$0" >&2
+      printf 'Usage: %s trace-geosam2-lifecycle WORKSPACE_DIR OUTPUT_DIR_RELATIVE_PATH [plain|image-boundaries|encoder-stages|encoder-first-conv]\n' "$0" >&2
       exit 2
     fi
     WORKSPACE_DIR="$(realpath "$2")"
     OUTPUT_RELATIVE_PATH="$3"
     LIFECYCLE_MODE="${4:-plain}"
-    if [[ "$LIFECYCLE_MODE" != plain && "$LIFECYCLE_MODE" != image-boundaries && "$LIFECYCLE_MODE" != encoder-stages ]]; then
-      printf 'Lifecycle mode must be plain, image-boundaries, or encoder-stages.\n' >&2
+    if [[ "$LIFECYCLE_MODE" != plain && "$LIFECYCLE_MODE" != image-boundaries && "$LIFECYCLE_MODE" != encoder-stages && "$LIFECYCLE_MODE" != encoder-first-conv ]]; then
+      printf 'Lifecycle mode must be plain, image-boundaries, encoder-stages, or encoder-first-conv.\n' >&2
       exit 2
     fi
     if [[ "$OUTPUT_RELATIVE_PATH" == /* || "$OUTPUT_RELATIVE_PATH" =~ (^|/)\.\.(/|$) || -z "$OUTPUT_RELATIVE_PATH" ]]; then
@@ -427,7 +427,7 @@ runpy.run_module("runtime.adapters.parts.geosam2_probe",run_name="__main__")
       printf 'Lifecycle diagnostic lock failed pinned SHA-256 verification.\n' >&2
       exit 2
     fi
-    if [[ "$LIFECYCLE_MODE" == image-boundaries || "$LIFECYCLE_MODE" == encoder-stages ]]; then
+    if [[ "$LIFECYCLE_MODE" == image-boundaries || "$LIFECYCLE_MODE" == encoder-stages || "$LIFECYCLE_MODE" == encoder-first-conv ]]; then
       BOUNDARY_LOCK="$ROOT_DIR/api/runtime/adapters/parts/GEOSAM2_IMAGE_PATH_BOUNDARY_LOCK.v1.json"
       EXPECTED_BOUNDARY_LOCK_SHA256='969128a913f36c57a8830dcb6ff079d493057a7fe8b434e6d20832fccbf0d756'
       if [[ "$(sha256sum "$BOUNDARY_LOCK" | cut -d ' ' -f 1)" != "$EXPECTED_BOUNDARY_LOCK_SHA256" ]]; then
@@ -439,7 +439,7 @@ runpy.run_module("runtime.adapters.parts.geosam2_probe",run_name="__main__")
       BOUNDARY_LOCK_ARGS+=(--expected-boundary-lock-sha256 "$EXPECTED_BOUNDARY_LOCK_SHA256")
     fi
     STAGE_LOCK_ARGS=()
-    if [[ "$LIFECYCLE_MODE" == encoder-stages ]]; then
+    if [[ "$LIFECYCLE_MODE" == encoder-stages || "$LIFECYCLE_MODE" == encoder-first-conv ]]; then
       STAGE_LOCK="$ROOT_DIR/api/runtime/adapters/parts/GEOSAM2_IMAGE_ENCODER_STAGE_LOCK.v1.json"
       EXPECTED_STAGE_LOCK_SHA256='d64d334d86a82793467b1645fe522a2ce71a76f163cfe390ef87a01c3203170b'
       EXPECTED_STAGE_RUNNER_SHA256='6e1878761f6f65dedd6d6da141a317828a15597e755e7d45d5cbace2625d6347'
@@ -451,6 +451,20 @@ runpy.run_module("runtime.adapters.parts.geosam2_probe",run_name="__main__")
       LIFECYCLE_PROBE_MODULE='runtime.adapters.parts.geosam2_image_encoder_stage_probe'
       STAGE_LOCK_ARGS+=(--stage-lock /modly/api/runtime/adapters/parts/GEOSAM2_IMAGE_ENCODER_STAGE_LOCK.v1.json)
       STAGE_LOCK_ARGS+=(--expected-stage-lock-sha256 "$EXPECTED_STAGE_LOCK_SHA256")
+    fi
+    FIRST_CONV_LOCK_ARGS=()
+    if [[ "$LIFECYCLE_MODE" == encoder-first-conv ]]; then
+      FIRST_CONV_LOCK="$ROOT_DIR/api/runtime/adapters/parts/GEOSAM2_FIRST_CONV_LOCK.v1.json"
+      EXPECTED_FIRST_CONV_LOCK_SHA256='080f0c09aacf402fd79d58243e754f63c21dc2a5407a6c75a7561f4a774b7dad'
+      EXPECTED_FIRST_CONV_PROBE_SHA256='30cf5267bebee21353bf54c62e98f5b047962430ba132c7e1353cb56fcf937a5'
+      ACTUAL_FIRST_CONV_PROBE_SHA256="$(sha256sum "$ROOT_DIR/api/runtime/adapters/parts/geosam2_first_conv_probe.py" | cut -d ' ' -f 1)"
+      if [[ "$(sha256sum "$FIRST_CONV_LOCK" | cut -d ' ' -f 1)" != "$EXPECTED_FIRST_CONV_LOCK_SHA256" || "$ACTUAL_FIRST_CONV_PROBE_SHA256" != "$EXPECTED_FIRST_CONV_PROBE_SHA256" ]]; then
+        printf 'First-convolution diagnostic lock/runner identity check failed.\n' >&2
+        exit 2
+      fi
+      LIFECYCLE_PROBE_MODULE='runtime.adapters.parts.geosam2_first_conv_probe'
+      FIRST_CONV_LOCK_ARGS+=(--first-conv-lock /modly/api/runtime/adapters/parts/GEOSAM2_FIRST_CONV_LOCK.v1.json)
+      FIRST_CONV_LOCK_ARGS+=(--expected-first-conv-lock-sha256 "$EXPECTED_FIRST_CONV_LOCK_SHA256")
     fi
     # shellcheck source=/dev/null
     source "$ROOT_DIR/scripts/geosam2-image-id.sh"
@@ -496,8 +510,11 @@ runpy.run_module(os.environ["MODLY_LIFECYCLE_PROBE_MODULE"],run_name="__main__")
         --expected-diagnostic-lock-sha256 "$EXPECTED_DIAGNOSTIC_LOCK_SHA256" \
         "${BOUNDARY_LOCK_ARGS[@]}" \
         "${STAGE_LOCK_ARGS[@]}" \
+        "${FIRST_CONV_LOCK_ARGS[@]}" \
         --output "/output-parent/$OUTPUT_NAME"; then
-      if [[ "$LIFECYCLE_MODE" == encoder-stages ]]; then
+      if [[ "$LIFECYCLE_MODE" == encoder-first-conv ]]; then
+        printf 'GeoSAM2 first-convolution diagnostic completed. Artifact: %s/lifecycle-diagnostic.json\n' "$OUTPUT_PATH"
+      elif [[ "$LIFECYCLE_MODE" == encoder-stages ]]; then
         printf 'GeoSAM2 image-encoder stage diagnostic completed. Artifact: %s/lifecycle-diagnostic.json\n' "$OUTPUT_PATH"
       elif [[ "$LIFECYCLE_MODE" == image-boundaries ]]; then
         printf 'GeoSAM2 image-path boundary diagnostic completed. Artifact: %s/lifecycle-diagnostic.json\n' "$OUTPUT_PATH"
