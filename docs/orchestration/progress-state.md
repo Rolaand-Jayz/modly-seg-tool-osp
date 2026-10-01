@@ -2106,3 +2106,21 @@ topology-bound per-face material-region map; no map was derived from target
 labels, and no frozen target arrays were accessed. Therefore the real Ticket
 08 candidate run and score remain blocked. The three-ticket changes were
 checked in the publish clone with `git diff --check`; no GPU work was used.
+
+### Ticket 04 v8 monitored GPU diagnostic attempts (2026-10-01)
+
+After the bounded v8 diagnostics and focused tests passed, two same-input
+attempts were made through Modly's registered GeoSAM2 workflow using separate
+new workspaces and a two-second board-wide VRAM monitor with a 4 GiB stop
+reserve. The first attempt stopped safely when PyTorch rejected a 9.50 GiB
+allocation with 8.57 GiB allowed. A second attempt enabled the existing CPU
+offload option and stopped safely when PyTorch rejected a 7.88 GiB allocation
+with 8.57 GiB allowed. Monitor peaks were 7,767,351,296 and 7,417,511,936
+bytes of total board use; minimum sampled free memory was 9,395,740,672 bytes
+on the first attempt and remained above 4 GiB on the second. Both returned to
+baseline and no KFD process remained. Neither reached face-label generation,
+so neither yielded segmentation or RNG-state comparison evidence. No limit was
+raised to force a result. These attempts do not meet Ticket 04 acceptance.
+Evidence and isolated partial artifacts are under
+`.modly-amd-runtime/ticket04-v8-rng-diag-20261001-run{3,4}/` and remain
+excluded from publication.
