@@ -135,6 +135,24 @@ the bootstrap history and audit log remain present. Runtime outputs, caches,
 build products, and development-generated correspondence datasets were
 excluded from publication.
 
+### Ticket 07 rotation-invariant texture classifier screen (2026-10-01)
+
+Added one fixed 10-bin rotation-invariant local binary pattern descriptor to
+the existing 30 topology-masked appearance cues and preregistered one RBF
+mean-view candidate before scoring. The object-disjoint development run
+retained the frozen gates, evaluated only 140 development views, and did not
+open held-out truth. It failed four gates: macro-F1 0.8015 (>=0.85), minimum
+class recall 0.40 for glass (>=0.80), supported coverage 0.84 (>=0.87), and
+unknown abstention 0.40 (>=0.90); ambiguous abstention was 1.00 (>=0.90).
+There were zero feasible threshold pairs. The candidate performed worse than
+the existing mean-view RBF candidate and was not promoted. The focused
+classifier suite passes 11/11, including rotation invariance, finite scoring,
+model integrity, and artifact round-trip; process-node integration passes
+12/12. The project test venv lacks Pillow, so the development-only scoring
+used installed system Python 3.14 without GPU. Exact source, candidate,
+unchanged thresholds, and report/OOF hashes are in
+`api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_RI_LBP_DEV_PREREGISTRATION_2026-10-01.md`.
+
 Ticket 04's locked, opt-in prompt-seed-lift candidate was tried on the frozen
 1,536-face car input in isolated run `8c745798-3ac2-4d68-b25b-d3d5fd37c6d9`.
 It accepted 43 automatic proposals across the 12 views, including three at
