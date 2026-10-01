@@ -52,6 +52,7 @@ class Ticket08DevelopmentFixtureV1Tests(unittest.TestCase):
             self.assertEqual(report["status"], "development_measurement_only_not_acceptance_or_generalization")
             self.assertFalse(report["heldout_accessed"])
             self.assertEqual(report["metrics"]["base_color_linear"]["mae"], 0.0)
+            self.assertGreater(report["metrics"]["base_color_linear"]["ssim"], .99)
             self.assertIn("development_novel_light", report["metrics"])
             np.savez_compressed(estimate_path, **valid, material_id=np.zeros((2, 2)))
             with self.assertRaises(DevelopmentScoreError):

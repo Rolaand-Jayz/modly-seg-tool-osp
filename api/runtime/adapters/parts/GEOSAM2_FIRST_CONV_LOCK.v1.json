@@ -6,7 +6,7 @@
   "stage_lock_sha256": "d64d334d86a82793467b1645fe522a2ce71a76f163cfe390ef87a01c3203170b",
   "stage_helper_sha256": "8b2bca468aad3d6cd9404c1286aa76f14d84c604893eff653165d4cd9eb8886d",
   "stage_runner_sha256": "6e1878761f6f65dedd6d6da141a317828a15597e755e7d45d5cbace2625d6347",
-  "probe_sha256": "30cf5267bebee21353bf54c62e98f5b047962430ba132c7e1353cb56fcf937a5",
+  "probe_sha256": "b81ed031345977f9628361ab7b8eecbf000644ad1ae78dd979199c5d6c98b9ac",
   "helper_sha256": "daea37261889368a05b24e737de4cf591829676fec306683dc71f1c7ecb215d8",
   "upstream_sources": {
     "sam2/modeling/backbones/hieradet.py": "03785581ca304d0451ae0df7a08ee0bf1e1dbe66fad285066e6b9ffc0d88d64f",
@@ -24,9 +24,18 @@
   "first_conv2d_contract": {
     "in_channels": 3,
     "out_channels": 112,
-    "kernel_size": [7, 7],
-    "stride": [4, 4],
-    "padding": [3, 3],
+    "kernel_size": [
+      7,
+      7
+    ],
+    "stride": [
+      4,
+      4
+    ],
+    "padding": [
+      3,
+      3
+    ],
     "groups": 1,
     "bias": true
   },
@@ -48,5 +57,8 @@
     "model_settings_changed": false,
     "truth_access": "none",
     "output_payloads_persisted": false
-  }
+  },
+  "gpu_budget_policy": "live-free-minus-display-reserve-v1",
+  "gpu_budget_applied_before_model_load": true,
+  "budget_module_sha256": "6e75e62bf74aaff2114da574f67ec7f6e8f1f0178eab7e552658f32cc5041d7a"
 }

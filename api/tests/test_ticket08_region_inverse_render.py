@@ -9,6 +9,7 @@ from runtime.adapters.pbr.region_inverse_render import (
     estimate_region_pbr,
     mesh_fingerprint,
 )
+from runtime.adapters.pbr.region_inverse_render_v2 import _solve_cell, estimate_region_pbr_v2
 from runtime.adapters.pbr.registered_fixed_geometry_v2 import _render_terms
 
 
@@ -96,6 +97,61 @@ class RegionInverseRenderTests(unittest.TestCase):
         }), resolution=4, max_nfev=20, min_samples=2)
         self.assertTrue(result.observed.any())
         self.assertEqual(set(result.region_ids[result.observed]), {"rubber"})
+
+    def test_v2_profiled_fit_is_bounded_deterministic_and_fills_only_assigned_uv_regions(self):
+        inputs = self._inputs()
+        params = {"resolution": 8, "max_nfev": 25, "min_samples": 1,
+                  "region_sample_cap": 256, "roughness_prior_weight": .02}
+        result = estimate_region_pbr_v2(inputs, **params)
+        again = estimate_region_pbr_v2(inputs, **params)
+        np.testing.assert_array_equal(result.observed, again.observed)
+        np.testing.assert_array_equal(result.directly_observed, again.directly_observed)
+        np.testing.assert_array_equal(result.base_color_linear, again.base_color_linear)
+        np.testing.assert_array_equal(result.roughness, again.roughness)
+        np.testing.assert_array_equal(result.metallic, again.metallic)
+        self.assertTrue(np.all(result.directly_observed <= result.observed))
+        self.assertTrue(np.isfinite(result.base_color_linear[result.observed]).all())
+        self.assertTrue(np.isfinite(result.roughness[result.observed]).all())
+        self.assertTrue(np.isfinite(result.metallic[result.observed]).all())
+        self.assertTrue(np.all((result.base_color_linear[result.observed] >= 0) &
+                               (result.base_color_linear[result.observed] <= 1)))
+        self.assertTrue(np.all((result.roughness[result.observed] >= .045) &
+                               (result.roughness[result.observed] <= 1)))
+        self.assertTrue(np.all((result.metallic[result.observed] >= 0) &
+                               (result.metallic[result.observed] <= 1)))
+        self.assertEqual(set(result.region_ids[result.observed]), {"paint", "rubber"})
+        self.assertEqual(result.topology_revision, inputs.topology_revision)
+        self.assertIn("same caller-assigned material region", result.provenance["parameters"]["sparse_fill"])
+
+    def test_v2_leaves_unassigned_uv_faces_unknown(self):
+        inputs = self._inputs()
+        result = estimate_region_pbr_v2(RegionInverseInputs(**{
+            **inputs.__dict__, "material_region_by_face": (None, "rubber"),
+        }), resolution=8, max_nfev=20, min_samples=1, region_sample_cap=128)
+        self.assertTrue(result.observed.any())
+        self.assertEqual(set(result.region_ids[result.observed]), {"rubber"})
+        self.assertTrue(np.isnan(result.roughness[~result.observed]).all())
+        self.assertTrue(np.isnan(result.base_color_linear[~result.observed]).all())
+
+    def test_v2_albedo_region_prior_changes_only_base_color(self):
+        lights = ({"direction": (0., 0., 1.), "radiance": (.6, .55, .5)},)
+        view = np.asarray(((0., 0., 1.),) * 3)
+        normal = view.copy()
+        target = _render_terms(np.asarray((.72, .33, .22)), .45, .2,
+                               normal, view, lights)
+        unregularized = _solve_cell(
+            target, view, normal, lights, metallic=.2, region_roughness=.45,
+            roughness_prior_weight=.02, region_base_color=np.asarray((.2, .2, .2)),
+            albedo_region_prior_strength=0., fit_local_roughness=False,
+        )
+        pooled = _solve_cell(
+            target, view, normal, lights, metallic=.2, region_roughness=.45,
+            roughness_prior_weight=.02, region_base_color=np.asarray((.2, .2, .2)),
+            albedo_region_prior_strength=1., fit_local_roughness=False,
+        )
+        self.assertEqual(unregularized[1], pooled[1])
+        np.testing.assert_allclose(unregularized[0], np.asarray((.72, .33, .22)), atol=1e-12)
+        self.assertFalse(np.allclose(unregularized[0], pooled[0]))
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ sys.path.insert(0, str(ADAPTER))
 
 from evaluator import SUPPORTED_LABELS
 from project_owned_classifier import (CandidateError, fit, load_model, predict,
-                                      save_model, with_calibration)
+                                      save_model, score, score_views, with_calibration)
 
 
 def samples():
@@ -101,6 +101,34 @@ class Ticket07ProjectOwnedClassifier(unittest.TestCase):
                          view_id=base[0]["view_id"])
         with self.assertRaises(CandidateError):
             fit(base, variants_per_view=0, abstention_samples=[collision])
+
+    def test_project_owned_rbf_head_is_reproducible_and_provenance_bound(self):
+        base = samples()
+        rejection = []
+        for index, label in enumerate(("__unknown__", "__ambiguous__")):
+            row = dict(base[index])
+            row.update(sample_id=f"rbf-reject-{index}", object_id=f"rbf-reject-object-{index}",
+                       region_id=f"rbf-reject-region-{index}", label=label)
+            rejection.append(row)
+        model = fit(base, seed=31, variants_per_view=0, ridge=1.0,
+                    classifier_family="rbf_kernel_ridge", rbf_gamma=1 / 30,
+                    truth_source="unit-test development labels", unknown_head=True,
+                    abstention_samples=rejection)
+        repeated = fit(base, seed=31, variants_per_view=0, ridge=1.0,
+                       classifier_family="rbf_kernel_ridge", rbf_gamma=1 / 30,
+                       truth_source="unit-test development labels", unknown_head=True,
+                       abstention_samples=rejection)
+        self.assertEqual(model, repeated)
+        self.assertEqual(model["candidate_id"], "modly.material-region.rbf-kernel-ridge-unknown-head.v1")
+        self.assertEqual(model["classifier"], {"family": "rbf_kernel_ridge", "gamma": 1 / 30,
+                                                "unknown_head": True, "unknown_head_scale": 1.0})
+        self.assertTrue(model["training"]["explicit_unknown_output"])
+        self.assertEqual(len(model["support_vectors"]), len(base) + len(rejection))
+        result = predict(model, base[0]["image"], base[0]["mask"])
+        self.assertEqual(result["label"], "unknown")
+        one_view = {"image": base[0]["image"], "mask": base[0]["mask"]}
+        self.assertEqual(score_views(model, [one_view]), score(model, one_view["image"], one_view["mask"]))
+        self.assertEqual(score_views(model, [one_view, one_view]), score(model, one_view["image"], one_view["mask"]))
 
 
 if __name__ == "__main__":

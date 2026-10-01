@@ -60,13 +60,14 @@ def score_development_estimate(target_path: Path, estimate_path: Path, report_pa
         if (estimate[channel].shape[:2] != source_size or estimate[channel].ndim != target[channel].ndim
                 or estimate[channel].shape[2:] != target[channel].shape[2:]):
             raise DevelopmentScoreError(f"{channel} estimate raster shape does not match its observation mask")
-        # The estimator intentionally leaves unsupported texels as NaN. They
-        # are excluded by `mask`; use a finite neutral value elsewhere because
-        # the shared quality helpers validate/render full arrays before masking.
+        # Preserve every finite estimate for map-space neighborhood metrics
+        # and full-image rendering. Unsupported/unobserved texels may remain
+        # NaN; only those need a finite neutral value for the shared helpers.
         expanded = estimate[channel][scale[:, None], scale[None, :]]
         if not np.isfinite(expanded[mask]).all():
             raise DevelopmentScoreError(f"{channel} estimate has non-finite values in scored development texels")
-        scored_estimate[channel] = np.where(mask[..., None], expanded, 0.0) if expanded.ndim == 3 else np.where(mask, expanded, 0.0)
+        finite = np.isfinite(expanded)
+        scored_estimate[channel] = np.where(finite, expanded, 0.0)
     if mask.sum() < 1:
         raise DevelopmentScoreError("estimate has no observed development target texels")
     metrics = {
@@ -92,6 +93,7 @@ def score_development_estimate(target_path: Path, estimate_path: Path, report_pa
         "candidate_executed_by_scorer": False,
         "target_sha256": hashlib.sha256(target_path.read_bytes()).hexdigest(),
         "estimate_sha256": hashlib.sha256(estimate_path.read_bytes()).hexdigest(),
+        "scorer_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "scored_texels": int(mask.sum()),
         "visible_texel_coverage": float(mask.sum() / max(1, target_visibility.sum())),
         "estimate_resolution": list(source_size),

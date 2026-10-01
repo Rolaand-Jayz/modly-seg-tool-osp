@@ -72,6 +72,10 @@ from .geosam2_video_index_policy import (
     install_video_index_policy,
 )
 from .geosam2_cpu_offload import GeoSAM2OffloadError, install_cpu_offload
+from .geosam2_box_reduction_runtime import (
+    create_audit_telemetry as create_box_reduction_audit_telemetry,
+    install_bounded_mask_box_runtime,
+)
 from . import geosam2_finite_retry_candidate
 from .geosam2_proposal_registration_lift_trace import (
     install_trace as install_proposal_lift_trace,
@@ -111,11 +115,94 @@ VIDEO_INDEX_POLICY_LOCK_SHA256 = "805752960029076cf9dc74fa731d0a46b5601bbbbc0b87
 VIDEO_INDEX_POLICY_MODULE_SHA256 = "b97b9fb4ca769444de6164691821a4b4b4a73489f43b11d713c44f147dc41174"
 PROPOSAL_LIFT_TRACE_LOCK_NAME = "GEOSAM2_PROPOSAL_REGISTRATION_LIFT_TRACE.v2.lock.json"
 PROPOSAL_LIFT_TRACE_ENV = "MODLY_GEOSAM2_PROPOSAL_LIFT_TRACE"
+BOX_REDUCTION_POLICY_LOCK_NAME = "GEOSAM2_BOX_REDUCTION_POLICY_LOCK.v1.json"
+BOX_REDUCTION_POLICY_LOCK_SHA256 = "6739254a2d0a74a317ba6efaad49c9607eb0cc57e33332545a38a6809f380775"
+BOX_REDUCTION_RUNTIME_MODULE_SHA256 = "29d2591fb9a9509399e99156458300978f06aafa030f47bab7bdbcbeb670cceb"
+BOX_REDUCTION_COMPAT_MODULE_SHA256 = "aff1e89c0a8b529162472c2aafd4a096875bb47db7eec5eb9f426e6c2cbb4519"
+BOX_REDUCTION_AMG_SOURCE_SHA256 = "b7b33090e2af72e04dbb815c8f32aff41a4ed1abf9668f62b59f1bdd640ca5d8"
+BOX_REDUCTION_ENV = "MODLY_GEOSAM2_BOUNDED_BOX_REDUCTION"
+BOX_REDUCTION_POLICY_ID = "geosam2-bounded-mask-box-reduction-production-requalification-v1"
 ADAPTER_CODE_PATH = Path(__file__)
 SEED_POLICY = "all_rendered_views"
 SEED = 42
+PROPOSAL_POINTS_PER_BATCH = 32
 UNASSIGNED_LABELS = frozenset({-1, 999})
 PROMPT_SEED_LIFT_ENV = "MODLY_GEOSAM2_PROMPT_SEED_LIFT"
+
+
+def _verify_box_reduction_policy(lock_path: Path) -> dict[str, Any]:
+    """Verify the additive opt-in box-reduction identity; historical locks stay immutable."""
+    runtime_module = Path(__file__).with_name("geosam2_box_reduction_runtime.py")
+    reducer_module = Path(__file__).with_name("geosam2_box_reduction_compat.py")
+    try:
+        raw = lock_path.read_bytes()
+        record = json.loads(raw)
+        runtime_digest = _sha256(runtime_module.resolve(strict=True))
+        reducer_digest = _sha256(reducer_module.resolve(strict=True))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PartSegmentationError(
+            "GEOSAM2_BOX_REDUCTION_POLICY_LOCK_INVALID",
+            "could not load the bounded box-reduction policy identity",
+        ) from exc
+    if (hashlib.sha256(raw).hexdigest() != BOX_REDUCTION_POLICY_LOCK_SHA256
+            or runtime_digest != BOX_REDUCTION_RUNTIME_MODULE_SHA256
+            or reducer_digest != BOX_REDUCTION_COMPAT_MODULE_SHA256
+            or not isinstance(record, dict)
+            or record.get("schema") != "modly.ticket04.geosam2-box-reduction-policy-lock.v1"
+            or record.get("policy_id") != BOX_REDUCTION_POLICY_ID
+            or record.get("upstream_revision") != SOURCE_REVISION
+            or record.get("upstream_generator_sha256") != PROPOSAL_FILTER_UPSTREAM_SOURCE_SHA256
+            or record.get("upstream_amg_sha256") != BOX_REDUCTION_AMG_SOURCE_SHA256
+            or record.get("runtime_module") != runtime_module.name
+            or record.get("runtime_module_sha256") != BOX_REDUCTION_RUNTIME_MODULE_SHA256
+            or record.get("reducer_module") != reducer_module.name
+            or record.get("reducer_module_sha256") != BOX_REDUCTION_COMPAT_MODULE_SHA256
+            or record.get("max_chunk_rows") != 4
+            or record.get("preserved_points_per_side") != 64
+            or record.get("preserved_points_per_batch") != PROPOSAL_POINTS_PER_BATCH
+            or record.get("preserved_seed_views") != 12
+            or record.get("preserved_use_m2m") is not True
+            or record.get("preserved_thresholds") != {
+                "pred_iou_thresh": 0.7,
+                "stability_score_thresh": 0.7,
+                "stability_score_offset": 0.7,
+            }
+            or record.get("model_revision") != MODEL_REVISION
+            or record.get("model_sha256") != MODEL_SHA256
+            or record.get("activation") != "explicit-opt-in-requalification"):
+        raise PartSegmentationError(
+            "GEOSAM2_BOX_REDUCTION_POLICY_LOCK_INTEGRITY_FAILED",
+            "bounded box-reduction code or policy differs from its immutable candidate identity",
+        )
+    return {
+        "policy_id": BOX_REDUCTION_POLICY_ID,
+        "lock_sha256": BOX_REDUCTION_POLICY_LOCK_SHA256,
+        "runtime_module_sha256": runtime_digest,
+        "reducer_module_sha256": reducer_digest,
+        "upstream_revision": SOURCE_REVISION,
+        "upstream_generator_sha256": record["upstream_generator_sha256"],
+        "upstream_amg_sha256": record["upstream_amg_sha256"],
+        "max_chunk_rows": record["max_chunk_rows"],
+        "activation": record["activation"],
+    }
+
+
+def _create_mask_generator(generator_type: Any, model: Any) -> Any:
+    """Build the pinned proposal generator with complete-grid chunking.
+
+    Upstream ``generate`` samples its full prompt set once and passes it
+    through ``batch_iterator(points_per_batch, points_for_image)``. The same
+    value also chunks M2M refinement. Reducing this batch therefore stages
+    the exact same prompts and candidate masks instead of dropping work.
+    """
+    return generator_type(
+        model=model, points_per_side=64,
+        points_per_batch=PROPOSAL_POINTS_PER_BATCH,
+        pred_iou_thresh=0.7, stability_score_thresh=0.7,
+        stability_score_offset=0.7, crop_n_layers=0,
+        box_nms_thresh=0.7, crop_n_points_downscale_factor=2,
+        min_mask_region_area=25.0, use_m2m=True,
+    )
 
 
 @dataclass(frozen=True)
@@ -428,7 +515,8 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
                                     mask_stage_diagnostics_identity: dict[str, str] | None = None,
                                     prompt_registration_diagnostics_identity: dict[str, str] | None = None,
                                     diagnostic_telemetry_identity: dict[str, str] | None = None,
-                                    proposal_lift_trace_identity: dict[str, str] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+                                    proposal_lift_trace_identity: dict[str, str] | None = None,
+                                    box_reduction_policy_identity: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
     """Run upstream with unchanged segmentation behavior and durable seed telemetry."""
     upstream_function = inference.segment_with_mask_prompts
     upstream_show_anns = inference.show_anns
@@ -437,6 +525,7 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
     restore_predictor = None
     restore_diagnostics = None
     restore_finite_retry = None
+    restore_box_reduction = None
     proposal_lift_trace = None
     cpu_offload_flag = os.environ.get("MODLY_GEOSAM2_CPU_OFFLOAD", "0")
     if cpu_offload_flag not in {"0", "1"}:
@@ -466,6 +555,11 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
             "seed_view_proposal_counts": [],
             "seed_view_object_registrations": [],
         }
+        box_reduction_telemetry, record_box_reduction = create_box_reduction_audit_telemetry(
+            mask_generator, box_reduction_policy_identity,
+            enabled=box_reduction_policy_identity is not None,
+        )
+        audit_state["mask_box_reduction_telemetry"] = box_reduction_telemetry
         diagnostics_enabled = os.environ.get("MODLY_GEOSAM2_DIAGNOSTICS") == "1"
         restore_diagnostics = None
         restore_mask_stage_diagnostics = None
@@ -502,7 +596,7 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
         # existing success/failure boundary, rather than serializing it per row.
         pending_audit_batches = {"proposal": 0, "registration": 0,
                                  "generator": 0, "mask_stage": 0,
-                                 "prompt_registration": 0}
+                                 "prompt_registration": 0, "box_reduction": 0}
 
         def persist_batched(key: str, threshold: int) -> None:
             pending_audit_batches[key] += 1
@@ -540,6 +634,10 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
             audit_state["prompt_registration_telemetry"]["diagnostics"] = document
             persist_batched("prompt_registration", 4)
 
+        def update_box_reduction_telemetry(row: dict[str, Any]) -> None:
+            record_box_reduction(row)
+            persist_batched("box_reduction", 8)
+
         restore_video_index, video_index_identity = install_video_index_policy(predictor)
         patch_identity["video_index_policy"] = {**video_index_identity, **video_index_lock}
         if cpu_offload_flag == "1":
@@ -551,6 +649,12 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
             upstream_show_anns, seed_views, on_record=update_proposals)
         restore_predictor, registrations = instrument_predictor_points(
             predictor, seed_views, on_record=update_registrations)
+        if box_reduction_policy_identity is not None:
+            restore_box_reduction, box_runtime_identity = install_bounded_mask_box_runtime(
+                mask_generator, on_record=update_box_reduction_telemetry,
+                max_rows=int(box_reduction_policy_identity["max_chunk_rows"]),
+            )
+            audit_state["mask_box_reduction_telemetry"]["installation"] = box_runtime_identity
         if os.environ.get("MODLY_GEOSAM2_FINITE_RETRY_CANDIDATE") == "1":
             image_predictor = getattr(mask_generator, "predictor", None)
             if image_predictor is None:
@@ -572,6 +676,8 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
     except BaseException as exc:
         if restore_diagnostics is not None:
             restore_diagnostics()
+        if restore_box_reduction is not None:
+            restore_box_reduction()
         if restore_finite_retry is not None:
             restore_finite_retry()
         if restore_predictor is not None:
@@ -628,6 +734,7 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
                                               if row["accepted_proposal_count"] == 0]
         audit_state["state"] = "proposal_collection_complete"
         audit_state["policy"] = patch_identity
+        patch_identity["mask_box_reduction_telemetry"] = audit_state["mask_box_reduction_telemetry"]
         persist_audit()
         if diagnostics_enabled:
             patch_identity["diagnostic_telemetry"] = audit_state["diagnostic_telemetry"]
@@ -648,6 +755,7 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
         }
         audit_state["policy"] = {
             **patch_identity,
+            "mask_box_reduction_telemetry": audit_state["mask_box_reduction_telemetry"],
             "seed_view_proposal_counts": proposal_counts,
             "seed_view_object_registrations": registrations,
             "empty_seed_views": [row["view_index"] for row in proposal_counts
@@ -679,6 +787,8 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
                 }
         if restore_finite_retry is not None:
             restore_finite_retry()
+        if restore_box_reduction is not None:
+            restore_box_reduction()
         if restore_prompt_registration_diagnostics is not None:
             restore_prompt_registration_diagnostics()
         if restore_mask_stage_diagnostics is not None:
@@ -881,6 +991,21 @@ def segment_geosam2(
     package_versions, dependency_lock_digest = _verify_dependencies(dependency_lock)
     adapter_policy = _verify_empty_proposal_policy(Path(__file__).with_name(EMPTY_PROPOSAL_POLICY_LOCK_NAME))
     completion_policy = _verify_unassigned_completion_policy(Path(__file__).with_name(UNASSIGNED_COMPLETION_POLICY_LOCK_NAME))
+    box_reduction_flag = os.environ.get(BOX_REDUCTION_ENV, "0")
+    if box_reduction_flag not in {"0", "1"}:
+        raise PartSegmentationError(
+            "GEOSAM2_BOX_REDUCTION_FLAG_INVALID",
+            f"{BOX_REDUCTION_ENV} must be 0 or 1",
+        )
+    box_reduction_policy_identity = (
+        _verify_box_reduction_policy(Path(__file__).with_name(BOX_REDUCTION_POLICY_LOCK_NAME))
+        if box_reduction_flag == "1" else None
+    )
+    if box_reduction_policy_identity is not None:
+        adapter_policy = {
+            **adapter_policy,
+            "box_reduction_requalification": box_reduction_policy_identity,
+        }
     candidate_flag = os.environ.get(PROMPT_SEED_LIFT_ENV, "0")
     if candidate_flag not in {"0", "1"}:
         raise PartSegmentationError("GEOSAM2_PROMPT_SEED_POLICY_FLAG_INVALID", f"{PROMPT_SEED_LIFT_ENV} must be 0 or 1")
@@ -956,12 +1081,7 @@ def segment_geosam2(
         random.seed(seed)
         sam2 = build_sam2("configs/geosam2.yaml", str(checkpoint), device=device, apply_postprocessing=False)
         predictor = build_sam2_video_predictor_geosam2("configs/geosam2.yaml", str(checkpoint), device=device)
-        mask_generator = SAM2AutomaticMaskGenerator(
-            model=sam2, points_per_side=64, points_per_batch=128,
-            pred_iou_thresh=0.7, stability_score_thresh=0.7,
-            stability_score_offset=0.7, crop_n_layers=0, box_nms_thresh=0.7,
-            crop_n_points_downscale_factor=2, min_mask_region_area=25.0, use_m2m=True,
-        )
+        mask_generator = _create_mask_generator(SAM2AutomaticMaskGenerator, sam2)
         data = inference.read_data(str(renders))
         if len(data["images"]) != 12 or len(data["mesh_vanilla"].faces) != face_count:
             raise PartSegmentationError("GEOSAM2_INPUT_TOPOLOGY_MISMATCH", "pinned GeoSAM2 loader changed the canonical view or face count")
@@ -976,7 +1096,8 @@ def segment_geosam2(
             mask_stage_diagnostics_identity=mask_stage_diagnostics_identity,
             prompt_registration_diagnostics_identity=prompt_registration_diagnostics_identity,
             diagnostic_telemetry_identity=diagnostic_telemetry_identity,
-            proposal_lift_trace_identity=proposal_lift_trace_identity)
+            proposal_lift_trace_identity=proposal_lift_trace_identity,
+            box_reduction_policy_identity=box_reduction_policy_identity)
         proposal_audit_document = {
             "schema": "modly.geosam2-proposal-audit/1",
             "state": "proposal_collection_complete",
@@ -1046,7 +1167,7 @@ def segment_geosam2(
             "runtime": f"PyTorch {torch.__version__} ROCm {torch.version.hip}",
             "backend": "pytorch-rocm",
             "input_digests": ["sha256:" + _sha256(face_map_path), "sha256:" + _sha256(renders / "render_manifest.json"), "sha256:" + _sha256(renders / "mesh.glb")],
-            "parameters": {"seed_policy": SEED_POLICY, "seed": seed, "render_camera_seed": 42, "adapter_code_digest": adapter_code_digest, "adapter_policy": adapter_policy, "unassigned_completion_policy": completion_policy, "prompt_seed_lift_policy": prompt_seed_lift_policy or {"state": "not_enabled"}, "unassigned_completion": fill_record, "proposal_audit_artifact": proposal_audit_artifact_record, "gpu_budget": gpu_budget.as_dict(), "start_frames": [0], "start_to_seed_views": {"0": list(range(12))}, "render_views": 12, "points_per_side": 64, "points_per_batch": 128, "pred_iou_thresh": 0.7, "stability_score_thresh": 0.7, "stability_score_offset": 0.7, "crop_n_layers": 0, "box_nms_thresh": 0.7, "min_mask_region_area": 25.0, "use_m2m": True, "overlap_policy": "disjoint-complete-face-partition"},
+            "parameters": {"seed_policy": SEED_POLICY, "seed": seed, "render_camera_seed": 42, "adapter_code_digest": adapter_code_digest, "adapter_policy": adapter_policy, "unassigned_completion_policy": completion_policy, "prompt_seed_lift_policy": prompt_seed_lift_policy or {"state": "not_enabled"}, "unassigned_completion": fill_record, "proposal_audit_artifact": proposal_audit_artifact_record, "gpu_budget": gpu_budget.as_dict(), "start_frames": [0], "start_to_seed_views": {"0": list(range(12))}, "render_views": 12, "points_per_side": 64, "points_per_batch": int(mask_generator.points_per_batch), "batching_policy": "complete-prompt-grid-chunking-v1", "pred_iou_thresh": 0.7, "stability_score_thresh": 0.7, "stability_score_offset": 0.7, "crop_n_layers": 0, "box_nms_thresh": 0.7, "min_mask_region_area": 25.0, "use_m2m": True, "overlap_policy": "disjoint-complete-face-partition"},
             "seed": seed,
             "device": f"{properties.name} ({getattr(properties, 'gcnArchName', 'unknown')})",
             "evidence_source": "model",

@@ -940,6 +940,14 @@ async function executeExtensionNode(
       processResult?.stageOutputArtifact,
       processResult?.classification,
       processResult?.telemetry,
+      processResult?.cacheReuse && typeof processResult.cacheReuse === 'object'
+        ? {
+          stage_id: `${node.data.extensionId || node.id}:cache`,
+          backend: 'content-addressed-cache',
+          status: (processResult.cacheReuse as Record<string, unknown>).state,
+          cache_key: (processResult.cacheReuse as Record<string, unknown>).key,
+        }
+        : undefined,
     ]
     for (const report of directReports) nodeStageTelemetry.push(...telemetryRows(report, telemetryBase))
     nodeStageTelemetry.push(...await readStructuredStageTelemetry(processResult?.structuredAsset, workspaceDir, telemetryBase))

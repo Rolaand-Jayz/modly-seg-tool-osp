@@ -1,0 +1,27 @@
+{
+  "schema": "modly.ticket04.geosam2-box-reduction-policy-lock.v1",
+  "policy_id": "geosam2-bounded-mask-box-reduction-production-requalification-v1",
+  "activation": "explicit-opt-in-requalification",
+  "runtime_module": "geosam2_box_reduction_runtime.py",
+  "runtime_module_sha256": "29d2591fb9a9509399e99156458300978f06aafa030f47bab7bdbcbeb670cceb",
+  "reducer_module": "geosam2_box_reduction_compat.py",
+  "reducer_module_sha256": "aff1e89c0a8b529162472c2aafd4a096875bb47db7eec5eb9f426e6c2cbb4519",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "upstream_generator_file": "sam2/automatic_mask_generator_geosam2.py",
+  "upstream_generator_sha256": "cefa1934b0410119950514310728b811192e9f02584a479a7388bfe5a2e2bdac",
+  "upstream_amg_file": "sam2/utils/amg.py",
+  "upstream_amg_sha256": "b7b33090e2af72e04dbb815c8f32aff41a4ed1abf9668f62b59f1bdd640ca5d8",
+  "max_chunk_rows": 4,
+  "preserved_points_per_side": 64,
+  "preserved_points_per_batch": 32,
+  "preserved_seed_views": 12,
+  "preserved_use_m2m": true,
+  "preserved_thresholds": {
+    "pred_iou_thresh": 0.7,
+    "stability_score_thresh": 0.7,
+    "stability_score_offset": 0.7
+  },
+  "model_revision": "ba92f5f50418f2fe9af1078448b63176df13b1ee",
+  "model_sha256": "2e391c0d9455fe92b69d61cdc94754d9b8081b9b541d09e1b6a3a55ebf6c6de0",
+  "historical_policy_locks_modified": false
+}

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from . import geosam2_image_encoder_stage_probe as stage_probe
 
 LOCK_SCHEMA = "modly.ticket04.geosam2-hiera-first-conv-lock/1"
 STAGE_LOCK_SHA256 = "d64d334d86a82793467b1645fe522a2ce71a76f163cfe390ef87a01c3203170b"
+GPU_BUDGET_POLICY = "live-free-minus-display-reserve-v1"
 
 
 def _sha256(path: Path) -> str:
@@ -32,6 +34,8 @@ def _verify_first_conv_lock(args: argparse.Namespace) -> tuple[dict[str, Any], s
     source_root = Path(args.source_root).resolve(strict=True)
     if (lock.get("schema") != LOCK_SCHEMA
             or lock.get("probe_sha256") != _sha256(Path(__file__).resolve())
+            or lock.get("budget_module_sha256") != _sha256(
+                Path(__file__).resolve().parents[2] / "amd" / "gpu_budget.py")
             or lock.get("helper_sha256") != _sha256(Path(first_conv.__file__).resolve())
             or lock.get("stage_lock_sha256") != STAGE_LOCK_SHA256
             or lock.get("stage_helper_sha256") != _sha256(Path(stage_diagnostics.__file__).resolve())
@@ -46,7 +50,9 @@ def _verify_first_conv_lock(args: argparse.Namespace) -> tuple[dict[str, Any], s
             }
             or lock.get("first_conv2d_contract") != first_conv.EXPECTED_CONV
             or lock.get("caps") != {"tensor_bytes_each": first_conv.MAX_CAPTURE_BYTES,
-                                      "lifecycle_roles": len(stage_probe.lifecycle_diagnostics.CALL_ROLES)}):
+                                      "lifecycle_roles": len(stage_probe.lifecycle_diagnostics.CALL_ROLES)}
+            or lock.get("gpu_budget_policy") != GPU_BUDGET_POLICY
+            or lock.get("gpu_budget_applied_before_model_load") is not True):
         raise RuntimeError("first-convolution diagnostic lock contract mismatch")
     source_lock_path = Path(args.source_lock).resolve(strict=True)
     source_lock = json.loads(source_lock_path.read_text(encoding="utf-8"))
@@ -62,8 +68,37 @@ def _verify_first_conv_lock(args: argparse.Namespace) -> tuple[dict[str, Any], s
     return lock, digest
 
 
+def _atomic_update_budget_record(output: Path, budget: dict[str, Any]) -> None:
+    artifact = output / "lifecycle-diagnostic.json"
+    if not artifact.is_file():
+        return
+    document = json.loads(artifact.read_text(encoding="utf-8"))
+    document["gpu_budget"] = budget
+    temporary = artifact.with_name(artifact.name + ".gpu-budget.partial")
+    with temporary.open("xb") as stream:
+        stream.write((json.dumps(document, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, artifact)
+
+
+def _apply_diagnostic_budget(torch_module: Any) -> dict[str, Any]:
+    from runtime.amd.gpu_budget import apply_gpu_budget
+
+    if not torch_module.cuda.is_available():
+        raise RuntimeError("first-convolution diagnostic requires the pinned ROCm device")
+    device = torch_module.device("cuda", torch_module.cuda.current_device())
+    return apply_gpu_budget(torch_module, device).as_dict()
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     lock, digest = _verify_first_conv_lock(args)
+    import torch
+
+    # Apply a live-free-memory bound before importing the upstream inference
+    # module or constructing GeoSAM2. A static device fraction is not a GPU
+    # partition; it only caps allocations routed through PyTorch's allocator.
+    budget = _apply_diagnostic_budget(torch)
     original = stage_diagnostics.run_with_image_encoder_stages
 
     def with_first_conv(**kwargs: Any) -> dict[str, Any]:
@@ -78,7 +113,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     stage_diagnostics.run_with_image_encoder_stages = with_first_conv
     try:
-        return stage_probe.run(args)
+        try:
+            result = stage_probe.run(args)
+        except BaseException:
+            _atomic_update_budget_record(Path(args.output).resolve(), budget)
+            raise
+        _atomic_update_budget_record(Path(args.output).resolve(), budget)
+        result["gpu_budget"] = budget
+        return result
     finally:
         stage_diagnostics.run_with_image_encoder_stages = original
 

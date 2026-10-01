@@ -31,7 +31,8 @@ class FusedClaim(BaseModel):
 
     subject_id: str
     property: str
-    status: Literal["resolved", "conflict", "unknown"]
+    status: Literal["resolved", "ambiguous", "conflict", "unknown"]
+    confidence_state: Literal["unknown", "uncalibrated", "calibrated", "mixed"] = "unknown"
     value: object | None = None
     assertion_ids: list[str]
     evidence: list[Assertion]
@@ -66,6 +67,22 @@ def _assertion_revision(assertion: Assertion) -> str | None:
             return revision
     revision = assertion.provenance.parameters.get("topology_revision") or assertion.provenance.parameters.get("target_topology_revision")
     return revision if isinstance(revision, str) else None
+
+
+def _confidence_state(assertions: list[Assertion]) -> str:
+    """Summarize state labels without comparing numeric scores across evidence."""
+    states = {item.confidence.state.value for item in assertions}
+    if not states:
+        return "unknown"
+    return next(iter(states)) if len(states) == 1 else "mixed"
+
+
+def _is_explicitly_ambiguous(assertion: Assertion) -> bool:
+    value = assertion.value
+    return isinstance(value, dict) and (
+        value.get("status") == "ambiguous" or value.get("label") == "ambiguous"
+        or value.get("ambiguous") is True
+    )
 
 
 def fuse_assertions(asset: StructuredAsset) -> FusionView:
@@ -112,6 +129,7 @@ def fuse_assertions(asset: StructuredAsset) -> FusionView:
             correction_ids = [item.correction_id for item in target_corrections]
             claims.append(FusedClaim(
                 subject_id=subject_id, property=property_name, status="conflict",
+                confidence_state=_confidence_state(assertions),
                 value=None, assertion_ids=[item.assertion_id for item in assertions],
                 evidence=all_assertions, correction_ids=correction_ids,
                 conflicting_correction_ids=correction_ids,
@@ -121,6 +139,7 @@ def fuse_assertions(asset: StructuredAsset) -> FusionView:
             correction = target_corrections[0]
             claims.append(FusedClaim(
                 subject_id=subject_id, property=property_name, status="resolved",
+                confidence_state="unknown",  # user-confirmed corrections do not claim model confidence
                 value=correction.value, assertion_ids=[item.assertion_id for item in assertions],
                 evidence=all_assertions,
                 correction_id=correction.correction_id,
@@ -130,20 +149,30 @@ def fuse_assertions(asset: StructuredAsset) -> FusionView:
             ))
         elif (target is None or target.state != "valid" or target.topology_revision != asset.topology_revision):
             claims.append(FusedClaim(subject_id=subject_id, property=property_name, status="unknown",
+                                      confidence_state=_confidence_state(assertions),
                                       assertion_ids=[item.assertion_id for item in assertions],
                                       evidence=all_assertions,
                                       discarded_assertion_ids=[], stale_assertion_ids=stale_ids))
         elif not assertions:
             claims.append(FusedClaim(subject_id=subject_id, property=property_name, status="unknown",
+                                      confidence_state=_confidence_state(assertions),
                                       assertion_ids=[], evidence=all_assertions, discarded_assertion_ids=[],
+                                      stale_assertion_ids=stale_ids))
+        elif any(_is_explicitly_ambiguous(item) for item in assertions):
+            claims.append(FusedClaim(subject_id=subject_id, property=property_name, status="ambiguous",
+                                      confidence_state=_confidence_state(assertions), value=None,
+                                      assertion_ids=[item.assertion_id for item in assertions],
+                                      evidence=all_assertions, discarded_assertion_ids=[],
                                       stale_assertion_ids=stale_ids))
         elif len(distinct_values) > 1:
             claims.append(FusedClaim(subject_id=subject_id, property=property_name, status="conflict",
+                                      confidence_state=_confidence_state(assertions),
                                       assertion_ids=[item.assertion_id for item in assertions],
                                       evidence=all_assertions,
                                       discarded_assertion_ids=[], stale_assertion_ids=stale_ids))
         else:
             claims.append(FusedClaim(subject_id=subject_id, property=property_name, status="resolved",
+                                      confidence_state=_confidence_state(assertions),
                                       value=assertions[0].value,
                                       assertion_ids=[item.assertion_id for item in assertions],
                                       evidence=all_assertions,

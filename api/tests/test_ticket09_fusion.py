@@ -70,6 +70,29 @@ class Ticket09FusionTests(unittest.TestCase):
         unknown = next(item for item in first.claims if item.subject_id == "mat-a1" and item.property == "material.identity")
         self.assertEqual(unknown.status, "unknown")
 
+    def test_explicit_ambiguous_assertion_stays_ambiguous_with_confidence_state_and_evidence(self):
+        current = asset().model_copy(update={"assertions": [
+            assertion("amb-1", "mat-a1", "material.identity",
+                      {"status": "ambiguous", "candidates": ["glass", "clear_plastic"]},
+                      "material-candidate", .74),
+        ]})
+        claim = next(item for item in fuse_assertions(current).claims
+                     if item.subject_id == "mat-a1" and item.property == "material.identity")
+        self.assertEqual((claim.status, claim.value, claim.confidence_state), ("ambiguous", None, "uncalibrated"))
+        self.assertEqual(claim.assertion_ids, ["amb-1"])
+        self.assertEqual(claim.evidence[0].value["candidates"], ["glass", "clear_plastic"])
+
+    def test_same_value_from_mixed_confidence_states_is_resolved_but_marked_mixed(self):
+        calibrated = assertion("cal", "part-a", "part.semantic-label", "door", "adapter-cal", .92)
+        calibrated.confidence = Confidence(state="calibrated", score=.92,
+                                           score_kind="calibrated", calibration="fold-cal-v1")
+        uncalibrated = assertion("uncal", "part-a", "part.semantic-label", "door", "adapter-uncal", .99)
+        current = asset().model_copy(update={"assertions": [calibrated, uncalibrated]})
+        claim = next(item for item in fuse_assertions(current).claims
+                     if item.subject_id == "part-a" and item.property == "part.semantic-label")
+        self.assertEqual((claim.status, claim.value, claim.confidence_state), ("resolved", "door", "mixed"))
+        self.assertEqual([item.assertion_id for item in claim.evidence], ["cal", "uncal"])
+
     def test_correction_overrides_exact_target_but_keeps_displaced_claim_ids(self):
         current = asset().model_copy(update={"assertions": [
             assertion("a1", "part-a", "part.semantic-label", "door", "adapter-a", .8),
