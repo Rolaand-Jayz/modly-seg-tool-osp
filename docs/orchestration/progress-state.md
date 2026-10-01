@@ -2278,6 +2278,18 @@ runtime, <=14 GiB GPU use, and application integration remain incomplete.
 Exact hashes, both runs, and comparisons:
 `api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-development-screen-2026-10-01.md`.
 
+### Ticket 08 follow-up: correct region-bias metric (2026-10-01)
+
+Added `api/runtime/adapters/pbr/region_metrics_v2.py` and three focused tests.
+The corrected metric compares predicted and reference metallic means separately
+for conductor and dielectric texels. It is ready for a future scorer to pin;
+existing frozen scorers/reports are unchanged because their source hashes are
+part of prior locks. Their reported `score_metallic_bias` values do not measure
+the audited reference-relative criterion and cannot support acceptance. No old
+candidate was rescored. Integrating this function into a newly locked one-shot
+scorer, deciding how incomplete visible-map coverage is scored without relaxing
+the fixed-visible requirement, and all hardware/workflow gates remain.
+
 ### Ticket 08 region-spatial v1 frozen screen (2026-10-01)
 
 The locked training-only runner consumed the frozen source region map and
