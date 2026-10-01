@@ -4,6 +4,55 @@ Updated: 2026-10-01
 
 ## Latest continuation (2026-10-01)
 
+Corrected Ticket 04 same-code repeat `47eb0d54-bfbf-47f3-8913-0c9b92460bee`
+completed all 12 views with exit 0 and a valid Structured Asset sidecar. The
+host/device finite counts again match for the exact position-map
+`vision_features` output (1,048,576/1,048,576) and the image convolution
+child/parent (16,777,216/16,777,216 each). It used the same frozen geometry
+and input sidecar as run `fbff9d6f-9cb6-426b-95d3-93986d7d072a`, but its
+upstream, canonical, and completed face-label arrays are not byte-identical.
+All arrays agree elementwise on 768/1,536 faces. The first run's canonical
+output has two regions of 768 faces; the repeat's canonical output has one
+region of 1,536 faces, even though its raw upstream labels contain two labels
+of 768 faces. Therefore the required exact-output repeatability precondition
+for the one-time frozen-truth scorer is not met. No truth was opened and no
+score was made. Keep Ticket 04 open and investigate why the completion step
+collapses the repeat's two raw labels. The 5-second supervisor recorded a
+10,765,660,160-byte peak board use and at least 6,397,431,808 bytes free; it
+never crossed the 4 GiB stop line and the workflow exited 0. Run evidence is
+under `.modly-amd-runtime/ticket04-v7-repeat-20261001-run2/` and is excluded
+from publication.
+
+Same-input Ticket 04 follow-up run `b76b3cf1-1266-42ae-a9c8-f3f35e0c39b1`
+completed all 12 rendered views and exited 0. Geometry and input-sidecar
+digests match the frozen car input. On this run, both historical image
+convolution child/parent outputs were fully finite, and device counts matched
+independent CPU-copy counts at 16,777,216/16,777,216 for each. Nine captured
+position-map `vision_features` summaries were fully finite at
+1,048,576/1,048,576, but v6 accidentally host-checked the neighboring
+`backbone_fpn[0]` output instead; it does not answer whether the historical
+position-map discrepancy was a measurement error. Raw labels again cover
+768/1,536 faces; the locked completion policy fills the other 768, resulting
+in one valid final region. No truth was opened and no quality score was made.
+The 5-second supervisor recorded a 10,710,204,416-byte peak board use with
+6,452,887,552 bytes free; it never crossed the 4 GiB stop line, and use
+returned to 3,737,739,264 bytes after exit. Version 7 now host-checks the exact
+`vision_features` tensor and has 37/37 focused diagnostic/lock tests passing.
+
+Corrected Ticket 04 same-input run `fbff9d6f-9cb6-426b-95d3-93986d7d072a`
+completed all 12 views with exit 0 and a valid sidecar. It independently
+checked the exact position-map `vision_features` output: host and device
+counts both report 1,048,576/1,048,576 finite values. The image convolution
+child and parent likewise match at 16,777,216/16,777,216 each. The earlier
+non-finite count remains unexplained because it has not recurred in these
+same-input runs. This v7 run's raw labels form two 768-face groups with no
+unassigned faces, unlike the prior one-group, half-covered outputs. No fixture
+truth was opened and no score was made: this exact v7 implementation still
+needs a repeat run before the frozen one-time scorer can be considered. Its
+5-second supervisor recorded a 10,996,363,264-byte peak board use and
+6,166,728,704 bytes of minimum free VRAM; it stayed above the 4 GiB stop line
+and returned to 3,643,510,784 bytes used after exit.
+
 The Ticket 04 opt-in prompt/layer trace now has a versioned v6 diagnostic that
 independently copies only three capped outputs to a temporary CPU snapshot:
 the anomalous image-convolution child, its parent, and the position-map
@@ -11,11 +60,13 @@ encoder's first feature tensor. It records host and device finite counts plus
 shape/stride/dtype metadata, then discards the tensor copy. The diagnostic
 byte cap is 64 MiB per captured output, and each target is sampled once per
 run. The lock verification and diagnostic suites pass **36/36**; Python
-compilation passes. A separate CPU-only venv run of the current pending
-Ticket 05/08/11/12 changes passes **28/28** focused tests. The new host count
-path has not yet been exercised on a live ROCm activation, so no measurement
-contradiction or model cause is resolved; a same-input target run is still
-required. The test venv is outside the repository.
+compilation passes. Its target run verified only the convolution child and
+parent counts; the position-map host check was attached to adjacent
+`backbone_fpn[0]`, so that result did not resolve the earlier position-map
+anomaly. Version 7 corrects this target. A separate CPU-only venv run of the
+current pending Ticket 05/08/11/12 changes passes **28/28** focused tests. A
+single finite v7 run does not explain the earlier discrepancy or pass
+segmentation quality/repeatability. The test venv is outside the repository.
 
 Ticket 05's workflow-binding assembler now has a pure join helper for its
 seven required inputs, with regression coverage for the real registered
