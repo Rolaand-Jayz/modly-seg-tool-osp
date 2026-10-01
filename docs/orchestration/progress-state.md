@@ -2277,3 +2277,22 @@ one preregistered frozen-quality comparison; frozen acceptance, RX 7900 GRE
 runtime, <=14 GiB GPU use, and application integration remain incomplete.
 Exact hashes, both runs, and comparisons:
 `api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-development-screen-2026-10-01.md`.
+
+### Ticket 08 region-spatial v1 frozen screen (2026-10-01)
+
+The locked training-only runner consumed the frozen source region map and
+current-topology correspondence, then saved PBR maps, an exact region-map
+sidecar, confidence semantics, and provenance before target access. The
+one-shot frozen score rejected this candidate on base-color MAE 0.08604
+(<=0.08); SSIM 0.87240, roughness MAE 0.02275, metallic MAE 0.02419, and
+novel-light MAE 0.03102 passed their existing limits. Coverage was 93.33% and
+informational; the score applied channel metrics to `visible & candidate_observed`
+(53,760/57,600 texels), so the all-fixed-visible scoring treatment still needs
+a non-weakening audit. The reported 0.95385 metallic bias is invalid: its helper
+measures candidate group separation rather than error against reference group
+separation. The terminal result is preserved and was not recomputed. Base-color
+MAE independently rejects the candidate. CPU run time was 52.30 seconds with
+413,696 KiB peak host RSS; the CPU scorer took 0.056 seconds; no accelerator
+was used. The previous target-inventory incident is explicitly retained in the
+report. Full evidence and hashes:
+`api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-frozen-screen-2026-10-01.md`.
