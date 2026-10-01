@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -102,6 +103,50 @@ class MonitoredGeoSAM2WorkflowTests(unittest.TestCase):
         resolve.assert_called_once_with(container_id, 321)
         command = run.call_args.args[0]
         self.assertEqual(command[-1], container_id)
+
+    def test_supervisor_writes_container_memory_samples_to_monitor_log(self):
+        class FinishedProcess:
+            pid = 12345
+            returncode = 0
+
+            def __init__(self):
+                self.poll_count = 0
+
+            def poll(self):
+                self.poll_count += 1
+                return None if self.poll_count == 1 else 0
+
+            def wait(self, timeout=None):
+                return 0
+
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            (workspace / "mesh.glb").write_bytes(b"glb")
+            (workspace / "asset.json").write_text("{}")
+            process = FinishedProcess()
+            args = monitor.argparse.Namespace(
+                workspace=str(workspace), geometry="mesh.glb", sidecar="asset.json",
+                run_id="d3ba1d04-6a77-4d44-8c9b-f00000000099", reserve_gib=4.0,
+                start_margin_gib=2.0, interval=0.25, diagnostics=False,
+                bounded_box_reduction=False, cpu_offload=False,
+            )
+            with patch.object(monitor, "sample_vram", side_effect=[
+                    {"total_bytes": 20 * 1024**3, "used_bytes": 5 * 1024**3, "free_bytes": 15 * 1024**3},
+                    {"total_bytes": 20 * 1024**3, "used_bytes": 6 * 1024**3, "free_bytes": 14 * 1024**3},
+                    {"total_bytes": 20 * 1024**3, "used_bytes": 5 * 1024**3, "free_bytes": 15 * 1024**3},
+                ]), patch.object(monitor.subprocess, "Popen", return_value=process), \
+                 patch.object(monitor, "_discover_container_cgroup", return_value=Path("/fake/cgroup")), \
+                 patch.object(monitor, "_container_memory_snapshot", return_value={
+                     "container_memory": "cgroup_v2", "memory_current_bytes": 100,
+                     "memory_peak_bytes": 200, "memory_max_bytes": "max",
+                     "memory_events": {"oom_kill": 0},
+                 }), patch.object(monitor.time, "sleep"):
+                self.assertEqual(monitor.supervise(args), 0)
+            lines = (workspace / f"gpu-board-monitor-{args.run_id}.jsonl").read_text().splitlines()
+            samples = [json.loads(line) for line in lines]
+        sample = next(row for row in samples if "container_memory" in row)
+        self.assertEqual(sample["memory_peak_bytes"], 200)
+        self.assertEqual(sample["memory_events"]["oom_kill"], 0)
 
 
 if __name__ == "__main__":
