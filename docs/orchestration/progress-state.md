@@ -2190,3 +2190,15 @@ violated. Five focused CPU tests passed, and a real detached CPU-only container
 was killed by the exact cgroup path and removed by Podman. The two SUV attempts
 remain incomplete and do not qualify the GPU box-reduction path, quality, or
 Ticket 04 acceptance.
+
+### Ticket 04 SUV monitored retry 15 (2026-10-01)
+
+The exact-container supervisor ran for 828.3 seconds on the same 75,000-face
+SUV and produced seven of twelve view outputs. Board-wide free VRAM stayed at
+or above 5.30 GiB, above the 4 GiB stop reserve. The workflow then exited with
+container status 137 and event-filter status 1; its monitor recorded no reserve
+stop reason. The available logs do not establish the cause. After exit, KFD
+had no processes and board memory returned to the measured 3.65 GB-use
+baseline. There is no completed segmentation asset, manifest, or score. This
+does not qualify the path or Ticket 04. Full run details and the monitor hash
+are in `api/runtime/adapters/parts/evidence/TICKET04_SUV_VRAM_RESERVE_STOP_AND_CONTAINER_CLEANUP_2026-10-01.md`.
