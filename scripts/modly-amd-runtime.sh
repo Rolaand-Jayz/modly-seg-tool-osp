@@ -174,11 +174,20 @@ print(json.dumps({"device_total_bytes":target_total,
     if [[ "$BOX_REDUCTION_FLAG" == "1" ]]; then
       BOX_REDUCTION_ENV+=(--env MODLY_GEOSAM2_BOUNDED_BOX_REDUCTION=1)
     fi
+    RETAIN_CONTAINER_FLAG="${MODLY_AMD_WORKFLOW_RETAIN_CONTAINER:-0}"
+    if [[ "$RETAIN_CONTAINER_FLAG" != "0" && "$RETAIN_CONTAINER_FLAG" != "1" ]]; then
+      printf 'MODLY_AMD_WORKFLOW_RETAIN_CONTAINER must be 0 or 1.\n' >&2
+      exit 2
+    fi
+    CONTAINER_REMOVE_ARGS=(--rm)
+    if [[ "$RETAIN_CONTAINER_FLAG" == "1" ]]; then
+      CONTAINER_REMOVE_ARGS=()
+    fi
     set +e
     python -c 'import json,sys; print(json.dumps({"workspaceDir":"/workspace","input":{"filePath":sys.argv[1],"structuredAssetPath":sys.argv[2]},"params":{"run_id":sys.argv[3],"backend":"geosam2","seed":42}}))' \
       "$GEOMETRY_RELATIVE_PATH" "$SIDECAR_RELATIVE_PATH" "$RUN_ID" \
       2>"$WORKFLOW_INPUT_STDERR_LOG" \
-      | podman_local run --rm --interactive --name "$WORKFLOW_CONTAINER_NAME" \
+      | podman_local run "${CONTAINER_REMOVE_ARGS[@]}" --interactive --name "$WORKFLOW_CONTAINER_NAME" \
           --cidfile "$WORKFLOW_CONTAINER_CIDFILE" --userns=host --network=none \
           --device /dev/kfd --device /dev/dri --group-add video --ipc=host \
           --cap-add SYS_PTRACE --security-opt seccomp=unconfined \

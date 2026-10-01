@@ -73,6 +73,34 @@ class MonitoredGeoSAM2WorkflowTests(unittest.TestCase):
         text = launcher.read_text()
         self.assertIn('WORKFLOW_CONTAINER_NAME="modly-geosam2-$RUN_ID"', text)
         self.assertIn('--cidfile "$WORKFLOW_CONTAINER_CIDFILE"', text)
+        self.assertIn('MODLY_AMD_WORKFLOW_RETAIN_CONTAINER must be 0 or 1', text)
+        self.assertIn('CONTAINER_REMOVE_ARGS=(--rm)', text)
+
+    def test_completed_container_exit_state_is_captured_before_exact_cleanup(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cidfile = root / "run.cid"
+            container_id = "c" * 64
+            cidfile.write_text(container_id)
+            inspected = subprocess.CompletedProcess([], 0, "true|137|oom observed|exited\n", "")
+            with patch.object(monitor.subprocess, "run", return_value=inspected) as run:
+                result = monitor._inspect_completed_container(root, cidfile)
+            self.assertEqual(result["container_exit_state"], "captured")
+            self.assertTrue(result["oom_killed"])
+            self.assertEqual(result["container_exit_code"], 137)
+            run.reset_mock()
+            removed = subprocess.CompletedProcess([], 0, "", "")
+            with patch.object(monitor.subprocess, "run", return_value=removed) as run:
+                cleanup = monitor._remove_completed_container(root, container_id)
+        self.assertEqual(cleanup["container_cleanup"], "removed")
+        self.assertEqual(run.call_args.args[0][-1], container_id)
+
+    def test_invalid_completed_container_identity_is_never_removed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.object(monitor.subprocess, "run") as run:
+                cleanup = monitor._remove_completed_container(Path(temporary), "bad-id")
+        self.assertEqual(cleanup["container_cleanup"], "unavailable")
+        run.assert_not_called()
 
     def test_reads_memory_pressure_only_from_validated_container_cgroup(self):
         with tempfile.TemporaryDirectory() as temporary:

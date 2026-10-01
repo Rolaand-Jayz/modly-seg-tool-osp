@@ -683,7 +683,7 @@ were acquired. Ticket 07 gates remain unchanged. Evidence:
 
 - Pattern: full implementation in an existing application, governed by the audited ticket graph.
 - Phase 0: recover the actual Modly host source while preserving the handoff. Complete: upstream source retrieved at `1476fd0b1c19c9ab177c1ca3ee4d1842119e9f65` and copied into this workspace without replacing the handoff.
-- Phase 1: Tickets 01, 02, 03, and 06 have passed acceptance. Ticket 01 was reopened for FINAL_AUDITED_SPEC §15 camera/capture metadata revalidation and has now passed with digest-bound optional metadata plus a real headless worker no-op round-trip. Ticket 04 remains acceptance-open: same-code RX 7900 GRE runs 3 and 4 produced bitwise-identical canonical labels, enabling the one-time frozen score; macro-IoU was 0.50 (<0.90), raw model coverage was 0.50, completed coverage 1.0, and overlap zero. Its quality gate fails. The prior macro-IoU 1.0 and bitwise-repeatable runs are historical evidence only. Ticket 05 has its frozen ontology contract, verified 280-object fixture/evaluator, reviewed pinned Florence files, and synthetic AMD inference evidence. Florence's prompt/abstention adapter tests pass 10/10; its Modly integration still lacks packaged/registered `modly.semantic_adapters` discovery and installed-package asset-path validation. No fixture development predictions have been committed or scored; semantic quality and unknown-versus-ambiguous policy remain unaccepted. Tickets 07 and 08 remain open; their latest source screens found no eligible new candidate, while existing candidates remain stopped by source/rights or quality gates. Ticket 05 remains blocked by Ticket 04 and its remaining integration/quality gates; Tickets 09–13 remain blocked by unmet gates and transitive dependencies. Ticket 13 now records the user's car seam-edit requirements and uses a synthetic car development fixture, but remains blocked by Ticket 12.
+- Phase 1: Tickets 01, 02, 03, and 06 have passed acceptance. Ticket 01 was reopened for FINAL_AUDITED_SPEC §15 camera/capture metadata revalidation and has now passed with digest-bound optional metadata plus a real headless worker no-op round-trip. Ticket 04 remains acceptance-open: same-code RX 7900 GRE runs 3 and 4 produced bitwise-identical canonical labels, enabling the one-time frozen score; macro-IoU was 0.50 (<0.90), raw model coverage was 0.50, completed coverage 1.0, and overlap zero. Its quality gate fails. The prior macro-IoU 1.0 and bitwise-repeatable runs are historical evidence only. Ticket 05 has its frozen ontology contract, verified 280-object fixture/evaluator, reviewed pinned Florence files, and synthetic AMD inference evidence. Florence's prompt/abstention adapter tests pass 10/10; its Modly integration still lacks packaged/registered `modly.semantic_adapters` discovery and installed-package asset-path validation. No fixture development predictions have been committed or scored; semantic quality and unknown-versus-ambiguous policy remain unaccepted. Tickets 07 and 08 remain open; their latest source screens found no eligible new candidate, while existing candidates remain stopped by source/rights or quality gates. Ticket 05 remains blocked by Ticket 04 and its remaining integration/quality gates; Tickets 09–13 remain blocked by unmet gates and transitive dependencies. Ticket 13 records the user's car seam-edit requirements. The rejected procedural car fixture and preview were deleted on 2026-10-01; the realistic user-provided SUV is the intended vehicle sample. Ticket 13 remains blocked by Ticket 12.
 
 - Ticket 05 frontier update: the frozen 8-role contract, object-disjoint cohorts, verified rendered fixture, and truth-boundary evaluator are implemented. Florence-2's exact nine-file snapshot is locally digest-pinned and reviewed; the corrected production `predict_jsonl` entrypoint completed network-disabled synthetic inference on RX 7900 GRE using the project's pinned Transformers 4.51.3 overlay. It returned a versioned header and preserved an unnormalized full-prompt category hallucination with a near-full-frame box on a uniform synthetic image. This is runtime/protocol evidence and a serious negative semantic signal, not a quality score. The 4.57.1 route failed Florence generation/cache compatibility and is excluded. The Modly renderer pins `FORCE_ROTATION=0` and binds camera transforms from `meta.json` into the render manifest. The automatic node-to-producer integration and public source-provenance binding pass together: 38 tests, 12 subtests, two non-failing synthetic NetworkX discovery warnings, in the project AMD container. A deterministic four-view exact-consensus policy and development-only runner are now frozen; the runner's synthetic boundary tests pass 6/6 and commit raw predictions before truth scoring. No fixture development predictions have been committed or scored. A read-only deployment audit found the Florence module is not yet packaged/registered as an installed `modly.semantic_adapters` entry point and its source-checkout-relative asset root will not work from site-packages; this must be resolved before claiming actual Modly node execution. Next are that deployment seam, then a truth-isolated development-only semantic evaluation; stop if any frozen quality/abstention threshold fails. Synthetic output detail: `api/runtime/adapters/parts/evidence/ticket05-florence-adapter-open-vocabulary-synthetic-2026-09-25.md`; model/runtime evidence: `api/runtime/adapters/parts/evidence/ticket05-florence2-amd-synthetic-preflight-2026-09-25.md` and the issue.
 - Contract integrity: the v1 semantic evaluation contract's `status`, model/weight access flags, and initial limitation list remain immutable freeze-time declarations. An independent source audit confirmed its full-file digest is bound into the fixture manifest and tests, so changing only those metadata fields would invalidate the existing fixture verification. Current execution state is recorded in this orchestration ledger and the Ticket 05 issue; the contract JSON is unchanged.
@@ -1549,15 +1549,12 @@ real adapter path and through the frozen registered workflow before any
 production change. No truth or quality score was used; Ticket 04 remains open.
 Details: `api/runtime/adapters/parts/evidence/TICKET04_GEOSAM2_LIFECYCLE_TARGET_RESULTS_2026-09-28.md`.
 
-The workspace has no identified car asset. A development car check must not
-replace Ticket 03's frozen chair/flamingo/teapot acceptance set. Preferred
-source is a user-owned or otherwise permission-cleared car mesh and observation
-image. If none is supplied, a procedural car mesh with independently authored
-face labels can be made as an explicitly synthetic development fixture. Record
-source/recipe, rights, file digests, import settings, face correspondence, and
-its own topology revision. Treat it as development evidence until applicable
-ticket gates are dependency-ready and passed. The car seam-edit viewer test is
-still Ticket 13 work, blocked on Ticket 12.
+The user supplied a realistic SUV image and Modly produced an imported SUV model
+for development. Do not replace it with a procedural car. Any segmentation
+review must preserve source/import provenance and bind corrections to that
+model's topology revision. The rejected 656-face procedural car and its saved
+preview were deleted on 2026-10-01. The car seam-edit viewer test is still
+Ticket 13 work, blocked on Ticket 12.
 
 ### Ticket 04 retry candidate and car development fixture (2026-09-28)
 
@@ -1580,14 +1577,7 @@ Full candidate and run evidence:
 `api/runtime/adapters/parts/evidence/TICKET04_FINITE_FEATURE_RETRY_CANDIDATE_2026-09-28.md`;
 `api/runtime/adapters/parts/evidence/TICKET04_FINITE_RETRY_REGISTERED_WORKFLOW_2026-09-28.md`.
 
-A deterministic synthetic car development fixture is now available at
-`api/runtime/adapters/parts/fixtures/car-development/`: 656 triangles and
-topology-bound face categories for body, cabin, window, tire, rim, and
-headlight. It has explicit synthetic/no-external-asset provenance and passed
-its two structural tests. It is a simple overlapping-primitives model, not a
-realistic car benchmark; it has not been rendered, run through segmentation,
-or loaded in the Modly viewer. It can support later viewer seam-edit
-development, while the frozen acceptance fixture set stays unchanged.
+Retired sample: the 656-face procedural car and its preview/evidence bundle were deleted on 2026-10-01 at the user's direction because it was not a realistic vehicle. Historical run records remain below for audit context only. Do not use or recreate that sample. Continue car development with the user-provided realistic SUV; its segmentation result and seam corrections have not passed acceptance.
 Generator SHA-256:
 `f1512aca2c17457261fc60497d206e407c2ab6ed9c517b9054c229e0788f8c63`; manifest
 SHA-256: `6af2cb88fe13ef03381173593b40c8ccb963f538e4ef414347890577ec5d7100`;

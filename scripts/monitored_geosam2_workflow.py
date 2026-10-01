@@ -125,7 +125,49 @@ def _discover_container_cgroup(root: Path, cidfile: Path) -> Path | None:
         pid = int(result.stdout.strip()) if result.returncode == 0 else 0
     except (OSError, subprocess.TimeoutExpired, ValueError):
         return None
-    return _container_cgroup_path(container_id, pid) if pid > 0 else None
+    return _container_cgroup_path(container_id, pid)
+
+
+def _inspect_completed_container(root: Path, cidfile: Path) -> dict[str, Any]:
+    """Read terminal Podman state before the monitored run removes its container."""
+    container_id = _read_container_id(cidfile)
+    if container_id is None:
+        return {"container_exit_state": "unavailable", "reason": "run_container_id_missing"}
+    command = ["podman", "--root", str(root / ".modly-amd-runtime/storage"),
+               "--runroot", str(root / ".modly-amd-runtime/run"), "inspect", "--format",
+               "{{.State.OOMKilled}}|{{.State.ExitCode}}|{{.State.Error}}|{{.State.Status}}",
+               container_id]
+    try:
+        result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=5.0)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {"container_exit_state": "unavailable", "reason": type(exc).__name__}
+    if result.returncode != 0:
+        return {"container_exit_state": "unavailable", "reason": "podman_inspect_failed",
+                "inspect_returncode": result.returncode, "inspect_stderr": result.stderr[-1000:]}
+    fields = result.stdout.rstrip("\n").split("|", 3)
+    if len(fields) != 4 or fields[0] not in {"true", "false"}:
+        return {"container_exit_state": "unavailable", "reason": "podman_inspect_output_invalid"}
+    try:
+        exit_code = int(fields[1])
+    except ValueError:
+        return {"container_exit_state": "unavailable", "reason": "podman_exit_code_invalid"}
+    return {"container_exit_state": "captured", "container_id": container_id,
+            "oom_killed": fields[0] == "true", "container_exit_code": exit_code,
+            "container_error": fields[2], "container_status": fields[3]}
+
+
+def _remove_completed_container(root: Path, container_id: str | None) -> dict[str, Any]:
+    """Remove only a validated, completed container owned by this run."""
+    if container_id is None or not CID_RE.fullmatch(container_id):
+        return {"container_cleanup": "unavailable", "reason": "run_container_id_missing"}
+    command = ["podman", "--root", str(root / ".modly-amd-runtime/storage"),
+               "--runroot", str(root / ".modly-amd-runtime/run"), "rm", "--force", container_id]
+    try:
+        result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=10.0)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {"container_cleanup": "failed", "reason": type(exc).__name__}
+    return {"container_cleanup": "removed" if result.returncode == 0 else "failed",
+            "remove_returncode": result.returncode, "remove_stderr": result.stderr[-1000:]}
 
 
 def _kill_container_cgroup(container_id: str, container_pid: int) -> dict[str, Any]:
@@ -260,6 +302,7 @@ def supervise(args: argparse.Namespace) -> int:
 
     environment = os.environ.copy()
     environment["MODLY_AMD_WORKFLOW_LOG_DIR"] = str(workspace / "workflow-logs")
+    environment["MODLY_AMD_WORKFLOW_RETAIN_CONTAINER"] = "1"
     if args.diagnostics:
         environment["MODLY_GEOSAM2_DIAGNOSTICS"] = "1"
     if args.bounded_box_reduction:
@@ -318,6 +361,15 @@ def supervise(args: argparse.Namespace) -> int:
                     _stop_process_group(process, sig=signal.SIGKILL)
                     process.wait()
             code = process.wait()
+            terminal_container = (_inspect_completed_container(root, cidfile)
+                                  if stop_reason is None else
+                                  {"container_exit_state": "stopped_by_supervisor"})
+            container_id = _read_container_id(cidfile)
+            final_container_memory = _container_memory_snapshot(
+                _container_cgroup_path(container_id, 0) if container_id else None)
+            container_cleanup = (_remove_completed_container(root, container_id)
+                                 if stop_reason is None else
+                                 {"container_cleanup": "handled_by_stop_supervisor"})
             try:
                 final = sample_vram()
             except RuntimeError as exc:
@@ -326,6 +378,9 @@ def supervise(args: argparse.Namespace) -> int:
                 "returncode": code, "stop_reason": stop_reason,
                 "elapsed_seconds": time.monotonic() - started,
                 "sample_count": samples, "stop_result": stop_result,
+                "container_exit": terminal_container,
+                "container_memory_final": final_container_memory,
+                "container_cleanup": container_cleanup,
                 "final": final}, sort_keys=True) + "\n")
             monitor.flush()
     finally:

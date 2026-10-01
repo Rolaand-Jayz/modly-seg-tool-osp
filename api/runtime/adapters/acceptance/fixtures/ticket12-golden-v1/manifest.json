@@ -1,58 +1,81 @@
 {
   "schema": "modly.ticket12-golden-fixtures.v1",
   "status": "fixture-package-only-not-ticket-acceptance",
-  "oracle_policy": "Only procedural geometry labels, explicitly authored JSON values, and deterministic topology mutations are truth. No model-generated predictions are included.",
+  "oracle_policy": "Only explicitly authored JSON values, deterministic topology mutations, and the independently authored PBR plane are truth. No procedural car fixture or model-generated predictions are included.",
   "cases": [
-    {
-      "id": "imported-known-multipart-car",
-      "source": "../../../parts/fixtures/car-development",
-      "source_manifest": "manifest.json",
-      "source_manifest_sha256": "6af2cb88fe13ef03381173593b40c8ccb963f538e4ef414347890577ec5d7100",
-      "oracle": "Procedural primitive recipe and per-face authored labels, bound to geometry_digest and topology_revision in the source manifest/face-labels.json.",
-      "covers": ["imported-mesh", "known-part-truth", "multiple-parts", "single-authored-material-assignment-not-claimed"]
-    },
     {
       "id": "known-pbr-three-region-plane",
       "source": "three-region-pbr-truth.npz",
       "source_sha256": "31ff3993e2453708472432daebd7dc72eabd365ba54e4040fb2078f33b11b618",
       "provenance": "Locally stored, compressed subset of the deterministic Ticket08 synthetic PBR fixture. Original source archive sha256=b69e9d1853b6c3f207a4f7d737c1e4cbf1542b3c2b7574045901a4e85a7cd7b1; this package carries only authored truth maps, material-region IDs, and the tiny plane geometry. It excludes rendered observations and runtime/model outputs.",
       "oracle": "Procedurally authored albedo, roughness, metallic, tangent normal, height, material IDs, and plane mesh are stored in the local NPZ. This is a flat surface, not an object with semantic part truth.",
-      "covers": ["single-part-multi-material", "synthetic-pbr-ground-truth", "three-material-regions"]
+      "covers": [
+        "single-part-multi-material",
+        "synthetic-pbr-ground-truth",
+        "three-material-regions"
+      ]
     },
     {
       "id": "unknown-semantic-explicit-input",
       "oracle": "The expected semantic assertion is explicitly unknown because the authored input supplies no semantic label. This is a contract case, not an inference-quality claim.",
-      "expected": {"label": null, "confidence_state": "unknown", "evidence_kind": "model_inferred"},
-      "covers": ["low-confidence-or-unknown-semantic"],
+      "expected": {
+        "label": null,
+        "confidence_state": "unknown",
+        "evidence_kind": "model_inferred"
+      },
+      "covers": [
+        "low-confidence-or-unknown-semantic"
+      ],
       "model_output": false
     },
     {
       "id": "ambiguous-part-boundary-authored",
       "oracle": "Two adjacent authored face groups are intentionally designated as a boundary dispute. The expected state is ambiguous; no predicted seam location is asserted.",
-      "expected": {"confidence_state": "ambiguous", "candidate_labels": ["part_a", "part_b"]},
-      "covers": ["ambiguous-part-boundary"],
+      "expected": {
+        "confidence_state": "ambiguous",
+        "candidate_labels": [
+          "part_a",
+          "part_b"
+        ]
+      },
+      "covers": [
+        "ambiguous-part-boundary"
+      ],
       "model_output": false
     },
     {
       "id": "ambiguous-material-boundary-authored",
       "oracle": "Boundary pixels/faces are explicitly marked ambiguous in the authored contract; they are not scored as one true material side.",
-      "expected": {"confidence_state": "ambiguous", "candidate_labels": ["material_a", "material_b"]},
-      "covers": ["ambiguous-material-boundary"],
+      "expected": {
+        "confidence_state": "ambiguous",
+        "candidate_labels": [
+          "material_a",
+          "material_b"
+        ]
+      },
+      "covers": [
+        "ambiguous-material-boundary"
+      ],
       "model_output": false
     },
     {
       "id": "topology-revision-invalidates-old-mapping",
-      "oracle": "Use a deterministic ordered face-index table derived from the imported fixture face count, append one face row, recompute the table digest, and require the old mapping revision to fail equality. This is a contract mutation, not a claim that the mesh was rerun through an adapter.",
-      "derives_from": "imported-known-multipart-car",
-      "expected": {"old_mapping_valid_for_mutated_topology": false},
-      "covers": ["topology-changing-rerun", "topology-invalidation"]
+      "oracle": "Append one authored face-index row to a deterministic ordered index table, recompute its digest, and require the old mapping revision to fail equality. This contract mutation has no vehicle-mesh dependency.",
+      "expected": {
+        "old_mapping_valid_for_mutated_topology": false
+      },
+      "covers": [
+        "topology-changing-rerun",
+        "topology-invalidation"
+      ]
     }
   ],
   "omitted_cases": {
-    "simple-single-material-object": "The current procedural car is multi-part and its GLB does not encode validated material assignments. No separate simple object with checked material slots is present.",
-    "multi-part-single-material-object": "The car mesh has authored part groups, but no checked single-material truth; omitted until a material-slot oracle is authored.",
+    "realistic-suv-part-and-seam-truth": "The user-provided SUV has no reviewed, topology-bound face-label oracle yet. The rejected procedural car fixture was deleted and is not valid substitute truth.",
+    "simple-single-material-object": "No imported object with validated material assignments is present.",
+    "multi-part-single-material-object": "No imported object has checked part and single-material truth.",
     "plastic-rubber-metal-painted-surfaces": "No current fixture defensibly encodes all four identities as separate known regions. The PBR plane has three synthetic material classes and cannot substantiate rubber identity.",
-    "known-part-and-material-import": "Existing car fixture provides part labels only; its material identity is not ground truth.",
+    "known-part-and-material-import": "No imported asset currently has validated part and material identity labels.",
     "multi-view-camera-metadata": "No multi-view observations are included in the referenced fixtures with a validated camera-to-geometry binding."
   }
 }
