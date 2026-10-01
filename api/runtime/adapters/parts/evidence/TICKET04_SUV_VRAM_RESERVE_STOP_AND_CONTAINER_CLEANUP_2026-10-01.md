@@ -91,3 +91,27 @@ yet prove a reserve-triggered RX 7900 GRE end-to-end stop under inference, nor
 does it establish box-reduction parity, quality, or Ticket 04 acceptance. The
 partial workspaces and runtime monitor logs remain ignored and are excluded
 from Git publication.
+
+## Run 15: partial completion without a reserve crossing
+
+Workspace: `.modly-amd-runtime/suv-box-reduction-run15/`.
+Run ID: `d3ba1d04-6a77-4d44-8c9b-f00000000015`. This retry used the updated
+exact-container supervisor and the same 75,000-face imported SUV and opt-in
+settings. Its 414 board-wide samples covered 828.3 seconds. Minimum free VRAM
+was 5,692,243,968 bytes (5.30 GiB), so the supervisor did not cross its 4 GiB
+stop threshold. Maximum sampled board use was 11,471,826,944 bytes (10.68
+GiB), and use returned to the 3,649,896,448-byte pre-run baseline after exit.
+The monitor log SHA-256 is
+`57c9536ca435796968baac9628a3ed9c58a725da8133d7cee69fa901951a5ca4`.
+
+Seven of the twelve automatic view outputs were written. The workflow status
+file reports `container=137` and `event_filter=1`; input preparation and stdout
+capture returned zero. The monitor ended with `stop_reason: null`, so the
+available evidence does not identify why the container exited with 137. It
+does not support attributing this run to the board-wide VRAM reserve. No final
+face-label array, segmentation manifest, scored result, or run output
+Structured Asset was produced. At the post-exit check, `rocm-smi --showpids`
+reported no KFD processes and board use had returned to baseline. The partial
+run remains unqualified; the cause of exit 137 and a successful end-to-end
+supervisor run remain unresolved. Monitor and partial output files remain
+ignored and excluded from Git publication.
