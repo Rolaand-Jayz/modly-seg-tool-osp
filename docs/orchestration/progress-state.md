@@ -32,8 +32,11 @@ processed all 12 views; the opt-in exact-output bounded box reducer recorded
 topology-bound regions covering all 75,000 faces exactly once, zero unassigned
 faces, and 25 membership assertions. Sidecar `validation_state=valid`; the
 output labels match its region face memberships. The model's confidence state
-is explicitly `unknown`. A qualitative render is saved only in the isolated
-runtime run folder. Its largest region contains about 61% of faces, so the
+is explicitly `unknown`. Raw model masks covered 61,966/75,000 faces (82.6%);
+the completion policy filled the remaining 13,034, so complete final coverage
+must not be reported as complete raw prediction coverage. The largest region
+contains 45,739 faces (61.0%), the second 6,705, and the smallest 7. A
+qualitative render is saved only in the isolated runtime run folder. The
 visible grouping is coarse and no ground-truth quality gate or user correction
 has been completed; do not claim Ticket 04 acceptance from this run.
 
@@ -43,6 +46,14 @@ allocator at 7.64 GiB; sampled board readings peaked around 10.7 GiB used of
 16 GiB, leaving over 4 GiB free. No continuous peak sampler was active, so
 these readings are diagnostic evidence, not a complete VRAM trace. The process
 exited and sampled VRAM use returned to about 3.5 GiB.
+
+The Electron production build passed using the bundled Node runtime and
+`build-builtins.mjs` followed by `electron-vite build`; this confirms the
+current source compiles but does not establish packaged launch or interactive
+viewer acceptance. The implementation snapshot is published on GitHub `main`;
+the bootstrap history and audit log remain present. Runtime outputs, caches,
+build products, and development-generated correspondence datasets were
+excluded from publication.
 
 ## Implementation continuation (2026-10-01)
 
