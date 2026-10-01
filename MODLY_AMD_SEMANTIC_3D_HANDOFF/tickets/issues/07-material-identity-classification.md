@@ -75,6 +75,21 @@ Official Ai2 sources do not establish that the released Molmo2-4B checkpoint is 
 
 ## Frozen rendered evaluation result (CPU quality evidence only)
 
+### Ordered four-view feature candidate (2026-10-01)
+
+A second project-owned multi-view candidate added the ordered per-view profile
+of six fixed highlight/contrast cues to the same 30-cue mean/variation
+signature. A preregistered 48-setting CPU screen on the development-only
+split performed worse than the unordered candidate: best macro-F1 `0.65286`,
+minimum supported-class recall `0.40`, supported coverage `0.92`, unknown
+abstention recall `0.40`, and ambiguous abstention recall `0.80`; zero settings
+met all gates. Clear plastic and glass confusion increased, and three of five
+unknown regions were named as painted surface. No held-out data/GPU was used
+and no model was promoted. Evidence:
+[`PROJECT_OWNED_ORDERED_MULTIVIEW_RBF_PREREGISTRATION_2026-10-01.md`](../../../api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_ORDERED_MULTIVIEW_RBF_PREREGISTRATION_2026-10-01.md)
+and [`PROJECT_OWNED_ORDERED_MULTIVIEW_RBF_DEV_2026-10-01.md`](../../../api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_ORDERED_MULTIVIEW_RBF_DEV_2026-10-01.md).
+Ticket 07 remains acceptance-blocked.
+
 ### Project-owned four-view RBF development candidate (2026-10-01)
 
 The preregistered mean-plus-population-standard-deviation four-view RBF

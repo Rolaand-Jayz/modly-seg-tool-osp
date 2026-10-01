@@ -2214,3 +2214,15 @@ class recall was 0.60 for clear plastic and unknown abstention recall was
 promoted, no heldout truth was opened, and no GPU run occurred. Detailed
 identities, hashes, tests, and failure analysis are in
 `api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_MULTIVIEW_RBF_DEV_2026-10-01.md`.
+
+### Ticket 07 ordered four-view classifier screen (2026-10-01)
+
+A second preregistered CPU-only screen preserved the order of six highlight
+and contrast cues across four views, alongside the existing per-view averages
+and variation. Its best setting measured macro-F1 0.6529, minimum supported
+class recall 0.40, supported coverage 0.92, unknown abstention recall 0.40,
+and ambiguous abstention recall 0.80; no setting met the frozen gates. The
+ordered cues increased clear-plastic/glass confusion and did not solve unknown
+rejection. No heldout data or GPU was used and no model was promoted. Full
+report hashes and implementation checks are in
+`api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_ORDERED_MULTIVIEW_RBF_DEV_2026-10-01.md`.
