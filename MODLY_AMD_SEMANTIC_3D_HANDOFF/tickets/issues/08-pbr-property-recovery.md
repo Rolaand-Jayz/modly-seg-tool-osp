@@ -611,3 +611,18 @@ not an accepted adapter. It still needs an immutable frozen-data screen, actual
 AMD target measurements, Structured Asset integration, and the other Ticket
 08 gates. Complete hashes and comparisons:
 `api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-development-screen-2026-10-01.md`.
+
+### Region-spatial v1 frozen comparison preregistered (2026-10-01)
+
+The development-only region-spatial v1 candidate was fixed for one comparison
+against the unchanged frozen Ticket 08 PBR fixture. Lock `region_spatial_v1_frozen_lock.py`
+pins the existing fixture, mesh, scene, correspondence, source material-region
+map, estimator, dependencies, and parameters (32x32, 120 evaluations, minimum
+three views/cell, same-region normal weight 0.15, geometric offset weight
+0.015). The frozen scorer retains all six original numeric limits verbatim and
+keeps coverage informational. Its training runner opens only the two declared
+training NPZ members. It stores maps, exact region mapping, confidence, and
+provenance before target access. This is a quality-only comparison; CPU use
+cannot satisfy the separate RX 7900 GRE, VRAM, or workflow integration gates.
+Plan and the target-inventory incident disclosure:
+`api/runtime/adapters/pbr/evidence/ticket08-region-spatial-v1-frozen-comparison-plan-2026-10-01.md`.
