@@ -638,3 +638,19 @@ quality. No face labels or truth were accessed. Full report and bounded JSON:
 [`TICKET04_IMAGE_ENCODER_INTERNAL_STAGES_2026-09-28.md`](../../../api/runtime/adapters/parts/evidence/TICKET04_IMAGE_ENCODER_INTERNAL_STAGES_2026-09-28.md),
 [`digest-only capture`](../../../api/runtime/adapters/parts/evidence/TICKET04_IMAGE_ENCODER_INTERNAL_STAGES_2026-09-28.json).
 Ticket 04 remains unaccepted; gates are unchanged.
+
+
+### SUV box-reduction reserve-stop and process cleanup (2026-10-01)
+
+The opt-in 32-prompt-batch bounded box-reduction path was attempted twice on
+the 75,000-face SUV through Modly. Both runs were terminated by the board-wide
+4 GiB reserve monitor before final labels, after VRAM rose close to the reserve.
+Each produced five partial per-view label arrays only; neither was scored. The
+first shell-group stop and a second Podman stopped-state report both left the
+container Python task alive, which was then force-stopped by its exact observed
+PID. The launcher now saves a unique container ID and the reusable monitor
+kills and verifies the exact container cgroup before reporting stopped. A
+CPU-only Podman container test passed, but no monitored inference stop has yet
+validated the new cgroup cleanup path. Evidence and partial-run limits are in
+`api/runtime/adapters/parts/evidence/TICKET04_SUV_VRAM_RESERVE_STOP_AND_CONTAINER_CLEANUP_2026-10-01.md`.
+The GPU candidate remains unqualified; no acceptance gate changed.

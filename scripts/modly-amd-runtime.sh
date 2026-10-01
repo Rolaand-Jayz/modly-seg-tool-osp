@@ -101,6 +101,12 @@ print(json.dumps({"device_total_bytes":target_total,
     GEOMETRY_RELATIVE_PATH="$3"
     SIDECAR_RELATIVE_PATH="$4"
     RUN_ID="$5"
+    WORKFLOW_CONTAINER_NAME="modly-geosam2-$RUN_ID"
+    WORKFLOW_CONTAINER_CIDFILE="$WORKSPACE_DIR/.${RUN_ID}.container.cid"
+    if [[ -e "$WORKFLOW_CONTAINER_CIDFILE" || -L "$WORKFLOW_CONTAINER_CIDFILE" ]]; then
+      printf 'Refusing to reuse GeoSAM2 container identity file: %s\n' "$WORKFLOW_CONTAINER_CIDFILE" >&2
+      exit 2
+    fi
     if [[ ! -d "$WORKSPACE_DIR" || ! -f "$WORKSPACE_DIR/$GEOMETRY_RELATIVE_PATH" || ! -f "$WORKSPACE_DIR/$SIDECAR_RELATIVE_PATH" ]]; then
       printf 'Workspace, geometry, and Structured Asset sidecar must exist before the workflow starts.\n' >&2
       exit 2
@@ -172,7 +178,8 @@ print(json.dumps({"device_total_bytes":target_total,
     python -c 'import json,sys; print(json.dumps({"workspaceDir":"/workspace","input":{"filePath":sys.argv[1],"structuredAssetPath":sys.argv[2]},"params":{"run_id":sys.argv[3],"backend":"geosam2","seed":42}}))' \
       "$GEOMETRY_RELATIVE_PATH" "$SIDECAR_RELATIVE_PATH" "$RUN_ID" \
       2>"$WORKFLOW_INPUT_STDERR_LOG" \
-      | podman_local run --rm --interactive --userns=host --network=none \
+      | podman_local run --rm --interactive --name "$WORKFLOW_CONTAINER_NAME" \
+          --cidfile "$WORKFLOW_CONTAINER_CIDFILE" --userns=host --network=none \
           --device /dev/kfd --device /dev/dri --group-add video --ipc=host \
           --cap-add SYS_PTRACE --security-opt seccomp=unconfined \
           --volume /sys:/sys:ro \

@@ -2167,3 +2167,26 @@ Coverage 1.0 remains informational. This does not pass Ticket 08 or the RX
 7900 GRE gate. The frozen lock's forward-renderer SHA had a one-character
 transcription error; it was corrected to the measured source hash and the
 focused frozen protocol tests passed 3/3.
+
+
+### Ticket 04 SUV VRAM reserve interruption and exact container cleanup (2026-10-01)
+
+Two monitored attempts of the opt-in bounded box-reduction path on the
+75,000-face SUV stopped after board free memory crossed just below 4 GiB. Each
+produced only five per-view label files and a partial proposal audit; neither
+produced a final segmentation sidecar or scored result. Run 13's shell process
+group stop left its Podman task alive. Run 14 added a unique cidfile, but Podman
+reported the container stopped while its Python task remained active in the
+run's cgroup. Both exact task PIDs were then stopped and GPU use returned to
+the pre-run baseline. No other task process was killed. Details and monitor
+hashes are in
+`api/runtime/adapters/parts/evidence/TICKET04_SUV_VRAM_RESERVE_STOP_AND_CONTAINER_CLEANUP_2026-10-01.md`.
+
+The launcher now names the container and writes its full ID into the new run
+workspace. The reusable GeoSAM2 monitor now validates that ID, kills only the
+matching delegated cgroup, and requires an empty `cgroup.procs` before it calls
+the run stopped; it continues exact cleanup retries while the reserve is
+violated. Five focused CPU tests passed, and a real detached CPU-only container
+was killed by the exact cgroup path and removed by Podman. The two SUV attempts
+remain incomplete and do not qualify the GPU box-reduction path, quality, or
+Ticket 04 acceptance.
