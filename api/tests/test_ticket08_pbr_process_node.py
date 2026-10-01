@@ -200,6 +200,35 @@ class Ticket08PbrProcessNodeTests(unittest.TestCase):
             self.assertEqual(len(unknown_regions), 2)
             self.assertEqual(updated["stage_artifacts"][-1]["stage_id"], NODE.STAGE_ID)
 
+    def test_v2_lambda_one_is_bound_to_stage_identity_and_keeps_unknown_channels(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            os.environ["MODLY_API_DIR"] = str(ROOT / "api")
+            request, _original, _bundle_path = self._workspace(root, one_region_observed=True)
+            request["params"]["albedo_region_prior_strength"] = 1.0
+            result = run_python_process_extension(
+                PROCESSOR.parent, root, request["input"], request["params"],
+                api_dir=ROOT / "api", entry="processor.py",
+                stage_id="project-owned-pbr-estimation", timeout_seconds=60,
+            )
+            stage_path = root / result["evidenceArtifact"]["workspace_path"]
+            stage = json.loads(stage_path.read_text(encoding="utf-8"))
+            self.assertEqual(stage["estimator_id"], "modly.project-owned-region-inverse-render-v2")
+            self.assertEqual(stage["estimator_parameters"]["albedo_region_prior_strength"], 1.0)
+            self.assertTrue(stage["estimator_digest"].startswith("sha256:"))
+            self.assertTrue(stage["candidate_config_digest"].startswith("sha256:"))
+            self.assertIn(stage["candidate_config_digest"], stage["input_digests"])
+            self.assertEqual(result["candidateStatus"],
+                             "provisional_not_ticket08_quality_or_amd_accepted")
+            for assertion in result["structuredAsset"]["assertions"]:
+                if assertion["provenance"].get("stage_id") != NODE.STAGE_ID:
+                    continue
+                self.assertEqual(assertion["provenance"]["parameters"]["estimator_id"],
+                                 "modly.project-owned-region-inverse-render-v2")
+                self.assertEqual(assertion["provenance"]["parameters"]["albedo_region_prior_strength"], 1.0)
+                if assertion["property"] in {"pbr.bump_height", "pbr.tangent_space_normal"}:
+                    self.assertEqual(assertion["value"]["state"], "unknown")
+
     def test_missing_calibrated_lights_and_unregistered_source_fail_closed(self):
         for failure in ("lights", "provenance"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:

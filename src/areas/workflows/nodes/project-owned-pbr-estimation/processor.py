@@ -249,8 +249,9 @@ def _run(request: dict[str, Any]) -> dict[str, Any]:
     )
     from services.structured_assets import validate_sidecar
     from runtime.adapters.pbr.region_inverse_render import (
-        RegionInverseInputs, estimate_region_pbr, mesh_fingerprint,
+        RegionInverseInputs, mesh_fingerprint,
     )
+    from runtime.adapters.pbr.region_inverse_render_v2 import estimate_region_pbr_v2
 
     mesh = _contained(workspace, inputs.get("filePath"), "mesh")
     sidecar_path = _contained(workspace, inputs.get("structuredAssetPath"), "Structured Asset sidecar")
@@ -269,6 +270,13 @@ def _run(request: dict[str, Any]) -> dict[str, Any]:
     if isinstance(raw_resolution, bool) or not isinstance(raw_resolution, (int, float)) or int(raw_resolution) != raw_resolution or not 2 <= raw_resolution <= 1024:
         raise NodeError("PARAMETER_INVALID", "resolution must be a whole number from 2 through 1024")
     resolution = int(raw_resolution)
+    raw_albedo_prior = params.get("albedo_region_prior_strength", 0.0)
+    if (isinstance(raw_albedo_prior, bool)
+            or not isinstance(raw_albedo_prior, (int, float))
+            or not np.isfinite(raw_albedo_prior)
+            or not 0.0 <= raw_albedo_prior <= 10.0):
+        raise NodeError("PARAMETER_INVALID", "albedo_region_prior_strength must be a finite number from 0 through 10")
+    albedo_region_prior_strength = float(raw_albedo_prior)
     bundle_path = _contained(workspace, params.get("observation_bundle_path"), "calibrated observation bundle")
 
     positions, uvs, faces = _mesh_arrays(workspace, asset.geometry.workspace_path)
@@ -294,22 +302,47 @@ def _run(request: dict[str, Any]) -> dict[str, Any]:
         source_id=asset.asset_id,
         material_region_by_face=tuple(face_region),
     )
-    estimate = estimate_region_pbr(candidate_inputs, resolution=resolution)
+    estimate = estimate_region_pbr_v2(
+        candidate_inputs, resolution=resolution,
+        albedo_region_prior_strength=albedo_region_prior_strength,
+    )
 
     source_ids = list(bundle["source_observation_ids"])
+    estimator_sources = {
+        "api/runtime/adapters/pbr/region_inverse_render_v2.py":
+            PROJECT_ROOT / "api/runtime/adapters/pbr/region_inverse_render_v2.py",
+        "api/runtime/adapters/pbr/region_inverse_render.py":
+            PROJECT_ROOT / "api/runtime/adapters/pbr/region_inverse_render.py",
+        "api/runtime/adapters/pbr/registered_fixed_geometry_v2.py":
+            PROJECT_ROOT / "api/runtime/adapters/pbr/registered_fixed_geometry_v2.py",
+    }
+    estimator_source_digests = {
+        relative: _sha(path.read_bytes()) for relative, path in estimator_sources.items()
+    }
+    estimator_digest = _sha(_canonical(estimator_source_digests))
+    candidate_config_digest = _sha(_canonical({
+        "estimator_id": "modly.project-owned-region-inverse-render-v2",
+        "estimator_digest": estimator_digest,
+        "parameters": estimate.provenance["parameters"],
+    }))
     digests = sorted(set([
         asset.geometry.digest, "sha256:" + hashlib.sha256(sidecar_path.read_bytes()).hexdigest(),
         "sha256:" + hashlib.sha256(bundle_path.read_bytes()).hexdigest(),
         "sha256:" + hashlib.sha256(archive_path.read_bytes()).hexdigest(),
-        *source_ids,
+        *source_ids, estimator_digest, candidate_config_digest,
     ]))
-    code_digest = _sha((Path(__file__).read_bytes() + (PROJECT_ROOT / "api/runtime/adapters/pbr/region_inverse_render.py").read_bytes()))
+    code_digest = _sha(Path(__file__).read_bytes() + _canonical(estimator_source_digests))
     provenance = Provenance(
         adapter_id=NODE_ID, adapter_revision=code_digest, adapter_trust="builtin",
         runtime=estimate.provenance["runtime"], backend="cpu", input_digests=digests,
         parameters={**estimate.provenance["parameters"], "topology_revision": asset.topology_revision,
                     "mesh_fingerprint": fingerprint, "training_light_count": len(bundle["training_lights"]),
                     "training_view_ids": list(bundle["view_ids"]), "evidence_bundle_digest": _sha(bundle_path.read_bytes()),
+                    "estimator_id": "modly.project-owned-region-inverse-render-v2",
+                    "estimator_digest": estimator_digest,
+                    "estimator_source_digests": estimator_source_digests,
+                    "candidate_config_digest": candidate_config_digest,
+                    "albedo_region_prior_strength": albedo_region_prior_strength,
                     "unsupported_channels": estimate.provenance["unsupported_channels"]},
         source_observation_ids=source_ids, stage_id=STAGE_ID, run_id=run_id, evidence_source="extension",
     )
@@ -409,6 +442,11 @@ def _run(request: dict[str, Any]) -> dict[str, Any]:
         "run_id": run_id, "asset_id": asset.asset_id, "geometry_digest": asset.geometry.digest,
         "topology_revision": asset.topology_revision, "adapter_id": NODE_ID,
         "adapter_revision": code_digest, "backend": "cpu", "runtime": provenance.runtime,
+        "estimator_id": "modly.project-owned-region-inverse-render-v2",
+        "estimator_digest": estimator_digest,
+        "estimator_source_digests": estimator_source_digests,
+        "candidate_config_digest": candidate_config_digest,
+        "estimator_parameters": estimate.provenance["parameters"],
         "latency_ms": elapsed_ms, "input_digests": digests, "map_artifact_digest": map_digest,
         "map_artifact_path": map_path.relative_to(workspace).as_posix(), "region_index_table": region_index,
         "supported_channels": list(CHANNELS), "unsupported_channels": estimate.provenance["unsupported_channels"],

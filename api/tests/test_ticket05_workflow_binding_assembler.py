@@ -12,7 +12,9 @@ from unittest.mock import patch
 from runtime.adapters.parts.ticket05_workflow_binding_assembler import (
     OUTPUT_DIRECTORY,
     PREPARATION_SCHEMA,
+    WORKFLOW_BINDING_FIELDS,
     WorkflowBindingAssemblyError,
+    _make_workflow_binding,
     _read_preparation,
     _registered_artifacts,
     assemble_workflow_candidate,
@@ -22,6 +24,7 @@ from runtime.adapters.parts.fixtures.ticket05_source_mask_binding import (
     bind_source_authored_target_mask,
     make_development_candidate_manifest,
 )
+from schemas.structured_asset import ArtifactReference, StageArtifact
 
 
 def sha(raw: bytes) -> str:
@@ -29,6 +32,56 @@ def sha(raw: bytes) -> str:
 
 
 class Ticket05WorkflowBindingAssemblerTests(unittest.TestCase):
+    def test_successful_live_segmentation_record_joins_to_seven_binding_paths(self) -> None:
+        """Model the small registered-record shape emitted by GeoSAM2.
+
+        Ticket 04's recent successful live output uses these media types and
+        filenames in its registered segmentation stage. Part evidence and the
+        predicted segment mapping are derived later by this assembler.
+        """
+        def ref(path: str, media: str) -> ArtifactReference:
+            digest = sha(path.encode("utf-8"))
+            return ArtifactReference(artifact_id=digest, digest=digest,
+                                     workspace_path=path, media_type=media)
+
+        run = "StructuredAssets/runs/synthetic-run"
+        registered = [
+            ref(f"{run}/geosam2-input/face-correspondence.json",
+                "application/vnd.modly.topology-map+json"),
+            ref(f"{run}/geosam2-render/render_manifest.json",
+                "application/vnd.modly.render-manifest+json"),
+            ref(f"{run}/geosam2-render/meta.json", "application/json"),
+            *[ref(f"{run}/geosam2-render/color_{index:04d}.webp", "image/webp")
+              for index in range(12)],
+        ]
+        asset = SimpleNamespace(stage_artifacts=[
+            StageArtifact(stage_id="reference-part-segmentation", artifact=item)
+            for item in registered
+        ])
+        refs, indexed = _registered_artifacts(asset)
+        binding = _make_workflow_binding(
+            structured_asset_path="StructuredAssets/object.structured-asset.json",
+            geometry_path="source.glb",
+            part_scoped_manifest="StructuredAssets/part-scoped-observations/object/part-scoped-image-manifest.json",
+            registered=refs,
+            segment_mapping="workflow-bindings/object.segment-mapping.json",
+        )
+
+        self.assertEqual(set(binding), WORKFLOW_BINDING_FIELDS)
+        self.assertEqual(binding["topology_map"], registered[0].workspace_path)
+        self.assertEqual(binding["render_manifest"], registered[1].workspace_path)
+        self.assertEqual(binding["camera_metadata"], registered[2].workspace_path)
+        self.assertEqual(len(indexed), 15)
+        self.assertTrue(all(isinstance(path, str) and path for path in binding.values()))
+
+    def test_live_binding_join_rejects_missing_registered_stage_output(self) -> None:
+        with self.assertRaisesRegex(WorkflowBindingAssemblyError, "registered segmentation stage"):
+            _make_workflow_binding(
+                structured_asset_path="asset.json", geometry_path="mesh.glb",
+                part_scoped_manifest="part-manifest.json", registered={},
+                segment_mapping="mapping.json",
+            )
+
     def test_preparation_reader_requires_exact_80_rows_and_digest(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

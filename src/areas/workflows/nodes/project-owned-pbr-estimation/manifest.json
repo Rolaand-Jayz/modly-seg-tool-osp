@@ -3,7 +3,7 @@
   "name": "Estimate PBR Properties (Project Candidate)",
   "type": "process",
   "entry": "processor.py",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "Modly",
   "description": "Estimates supported PBR channels from calibrated RGB views using unchanged geometry, exact topology correspondence, and validated material-region assignments. CPU candidate; quality and AMD gates remain open.",
   "capabilities": [
@@ -13,7 +13,7 @@
       "inputs": ["structured-asset", "observation", "mesh"],
       "outputs": ["structured-asset", "assertions", "stage-artifacts"],
       "adapter_id": "modly.project-owned-region-inverse-render",
-      "adapter_revision": "builtin:1.0.0",
+      "adapter_revision": "builtin:2.0.0",
       "adapter_trust": "builtin"
     }
   ],
@@ -40,6 +40,16 @@
           "max": 1024,
           "step": 1,
           "tooltip": "Output UV map resolution for the provisional estimator."
+        },
+        {
+          "id": "albedo_region_prior_strength",
+          "label": "Base-color region prior",
+          "type": "float",
+          "default": 0.0,
+          "min": 0.0,
+          "max": 10.0,
+          "step": 0.1,
+          "tooltip": "Strength of the within-region base-color prior. Zero disables it; values and estimator identity are recorded in stage provenance."
         }
       ]
     }

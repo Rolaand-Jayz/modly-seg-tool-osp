@@ -23,6 +23,9 @@ class ExportRequest(BaseModel):
     # required for non-glTF-native basis/units; no inferred conversion occurs.
     source_to_gltf: list[float] | None = None
     compatibility_stages: list[dict[str, Any]] | None = None
+    # Stage id to persisted /process-runs run_id. Telemetry is read from the
+    # run store under the workspace; measurements absent from that record stay null.
+    process_run_ids: dict[str, str] | None = None
 
 
 @router.post("/export")
@@ -34,6 +37,7 @@ def export_asset(request: ExportRequest) -> dict[str, Any]:
             request.output_directory,
             source_to_gltf=request.source_to_gltf,
             compatibility_stages=request.compatibility_stages,
+            process_run_ids=request.process_run_ids,
         )
     except ExportError as error:
         status = 404 if error.code == "SIDECAR_NOT_FOUND" else 409 if error.code == "OUTPUT_EXISTS" else 422

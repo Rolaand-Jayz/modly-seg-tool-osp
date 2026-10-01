@@ -21,7 +21,7 @@ from typing import Any, Callable
 import numpy as np
 
 
-SCHEMA = "modly.geosam2-prompt-registration-diagnostics/5"
+SCHEMA = "modly.geosam2-prompt-registration-diagnostics/6"
 MAX_REGISTRATIONS = 512
 MAX_PROPAGATED_LOGIT_ROWS = 512
 MAX_SAMPLED_OBJECTS_PER_BATCH = 16
@@ -36,6 +36,13 @@ MAX_ENCODER_MODULE_OUTPUTS_PER_RUN = 2048
 MAX_ENCODER_TENSORS_PER_MODULE_OUTPUT = 8
 MAX_CHECKPOINT_SCAN_MODULES = 3
 MAX_CHECKPOINT_SCAN_FAILURE_NAMES = 8
+MAX_HOST_CROSSCHECK_SOURCE_BYTES = 64 * 1024 * 1024
+HOST_CROSSCHECK_CHUNK_ELEMENTS = 1_000_000
+HOST_CROSSCHECK_TARGETS = frozenset({
+    "predictor.image_encoder.neck.convs.3.conv",
+    "predictor.image_encoder.neck.convs.3",
+    "predictor.pos_map_encoder.backbone_fpn[0]",
+})
 
 
 class PromptDiagnosticError(ValueError):
@@ -179,6 +186,56 @@ def _torch_numeric_summary(value: Any, *, sentinel: float | None = None) -> dict
     return summary
 
 
+def _host_finite_crosscheck(value: Any) -> dict[str, Any]:
+    """Independently count finite values from one bounded CPU tensor snapshot."""
+    if not _is_torch_tensor(value):
+        raise PromptDiagnosticError("host cross-check requires a torch tensor")
+    tensor = value.detach()
+    if tensor.is_complex():
+        raise PromptDiagnosticError("complex host cross-check is unsupported")
+    numel = int(tensor.numel())
+    source_bytes = numel * int(tensor.element_size())
+    if numel < 1 or source_bytes > MAX_HOST_CROSSCHECK_SOURCE_BYTES:
+        raise PromptDiagnosticError("host cross-check tensor exceeds its fixed byte cap")
+    shape = [int(dimension) for dimension in tensor.shape]
+    stride = [int(item) for item in tensor.stride()]
+    source_dtype = str(tensor.dtype)[:32]
+    try:
+        # The copy forces a distinct host snapshot. Float32 represents all
+        # BF16/FP16 finite values exactly and preserves NaN/Inf classification.
+        snapshot = tensor.to(device="cpu", copy=True).contiguous().float().numpy().reshape(-1)
+    except Exception as exc:
+        raise PromptDiagnosticError("bounded host tensor snapshot failed") from exc
+    finite_count = 0
+    for start in range(0, int(snapshot.size), HOST_CROSSCHECK_CHUNK_ELEMENTS):
+        finite_count += int(np.count_nonzero(np.isfinite(
+            snapshot[start:start + HOST_CROSSCHECK_CHUNK_ELEMENTS])))
+    return {
+        "state": "complete",
+        "shape": shape[:8],
+        "omitted_dimension_count": max(0, len(shape) - 8),
+        "stride": stride[:8],
+        "source_dtype": source_dtype,
+        "source_bytes": source_bytes,
+        "finite_value_count": finite_count,
+        "numel": numel,
+        "snapshot": "one bounded detached contiguous CPU float32 copy; values discarded",
+    }
+
+
+def _crosscheck_finite_counts(value: Any, device_summary: dict[str, Any]) -> dict[str, Any]:
+    """Compare the independent host count with the existing device reduction."""
+    host = _host_finite_crosscheck(value)
+    device_count = device_summary.get("finite_value_count")
+    host["device_finite_value_count"] = device_count
+    host["counts_match_device"] = (
+        isinstance(device_count, int)
+        and not isinstance(device_count, bool)
+        and device_count == host["finite_value_count"]
+    )
+    return host
+
+
 def _numeric_summary_batch_item(values: Any, index: int, *,
                                 sentinel: float | None = None) -> dict[str, Any]:
     if _is_torch_tensor(values):
@@ -246,6 +303,7 @@ class PromptRegistrationDiagnostics:
         self._prompt_numeric_traces_omitted = 0
         self._encoder_module_output_records = 0
         self._encoder_module_outputs_omitted = 0
+        self._host_crosschecks_seen: set[str] = set()
         self._encoder_module_hook_inventory: dict[str, Any] = {
             "image_encoder": {"state": "not_installed", "hooked_module_count": 0,
                               "module_scan_truncated": False},
@@ -334,6 +392,15 @@ class PromptRegistrationDiagnostics:
         for path, value in leaves:
             try:
                 summary = _numeric_summary(value)
+                target = f"predictor.{encoder}.{str(module_path).removeprefix(f'predictor.{encoder}.')}"
+                if (target in HOST_CROSSCHECK_TARGETS
+                        and target not in self._host_crosschecks_seen):
+                    self._host_crosschecks_seen.add(target)
+                    try:
+                        summary["host_finite_crosscheck"] = _crosscheck_finite_counts(value, summary)
+                    except Exception as exc:
+                        summary["host_finite_crosscheck"] = {
+                            "state": "failed", "diagnostic_error": _bounded_error(exc)}
                 summaries.append({"tensor_path": path[:160], **summary})
             except Exception as exc:
                 summaries.append({"tensor_path": path[:160],
@@ -455,6 +522,17 @@ class PromptRegistrationDiagnostics:
             try:
                 is_gated_mask = stage == "object_score_gated" and path == "output[0]"
                 summary = _numeric_summary(value, sentinel=-1024.0 if is_gated_mask else None)
+                if (stage == "pos_map_encoder_output"
+                        and path == "output.backbone_fpn[0]"
+                        and "predictor.pos_map_encoder.backbone_fpn[0]"
+                        not in self._host_crosschecks_seen):
+                    identity = "predictor.pos_map_encoder.backbone_fpn[0]"
+                    self._host_crosschecks_seen.add(identity)
+                    try:
+                        summary["host_finite_crosscheck"] = _crosscheck_finite_counts(value, summary)
+                    except Exception as exc:
+                        summary["host_finite_crosscheck"] = {
+                            "state": "failed", "diagnostic_error": _bounded_error(exc)}
                 if is_gated_mask:
                     summary["no_object_sentinel_count"] = summary.pop("sentinel_value_count")
                     summary.pop("sentinel_value", None)

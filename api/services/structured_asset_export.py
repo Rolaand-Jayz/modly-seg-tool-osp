@@ -16,7 +16,7 @@ import struct
 import urllib.parse
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -50,13 +50,17 @@ class StageCompatibility(BaseModel):
     selected_backend: str | None = None
     compile_outcome: str | None = None
     fallback_outcome: str | None = None
-    runtime_versions: dict[str, str] = Field(default_factory=dict)
+    runtime_versions: dict[str, str] | None = None
     device: str | None = None
     peak_vram_bytes: int | None = Field(default=None, ge=0)
     latency_ms: float | None = Field(default=None, ge=0)
     low_memory_mode: bool | None = None
     cpu_fallback: bool | None = None
     cpu_fallback_reason: str | None = None
+    field_evidence: dict[str, Literal["host-measured", "extension-reported", "request-claimed", "unknown"]] = Field(default_factory=dict)
+    reported_claims: dict[str, Any] | None = None
+    identity_binding: Literal["matched-claims", "partial-claims", "unbound"] = "unbound"
+    process_run_id: str | None = None
 
     @model_validator(mode="after")
     def finite_latency(self) -> "StageCompatibility":
@@ -64,6 +68,9 @@ class StageCompatibility(BaseModel):
             raise ValueError("latency_ms must be finite")
         if self.cpu_fallback is False and self.cpu_fallback_reason is not None:
             raise ValueError("cpu_fallback_reason is only valid when CPU fallback occurred")
+        if self.cpu_fallback is True and not self.cpu_fallback_reason:
+            # Keep the run visible, but do not let it qualify as a complete report.
+            return self
         return self
 
 
@@ -83,12 +90,19 @@ class CompatibilityReport(BaseModel):
             raise ValueError("unsupported compatibility report schema version")
         if len({stage.stage_id for stage in self.stages}) != len(self.stages):
             raise ValueError("compatibility report stage ids must be unique")
+        required_fields = (
+            "adapter_id", "adapter_version", "selected_backend", "compile_outcome", "fallback_outcome",
+            "runtime_versions", "device", "peak_vram_bytes", "latency_ms", "low_memory_mode", "cpu_fallback",
+        )
         known = all(
             stage.adapter_id and stage.adapter_version and stage.selected_backend
             and stage.compile_outcome and stage.fallback_outcome
             and stage.device and stage.peak_vram_bytes is not None
             and stage.latency_ms is not None and stage.low_memory_mode is not None
-            and stage.cpu_fallback is not None
+            and stage.cpu_fallback is not None and bool(stage.runtime_versions)
+            and stage.identity_binding == "matched-claims"
+            and all(stage.field_evidence.get(field) == "host-measured" for field in required_fields)
+            and (stage.cpu_fallback is not True or bool(stage.cpu_fallback_reason))
             for stage in self.stages
         )
         expected = "complete" if known and bool(self.stages) else "incomplete"
@@ -260,7 +274,11 @@ def _required_stage_ids(asset: StructuredAsset) -> list[str]:
     return sorted(stages)
 
 
-def _compatibility_report(asset: StructuredAsset, provided: list[dict[str, Any]] | None) -> CompatibilityReport:
+def _compatibility_report(
+    asset: StructuredAsset,
+    provided: list[dict[str, Any]] | None,
+    persisted: list[dict[str, Any]] | None = None,
+) -> CompatibilityReport:
     by_id: dict[str, dict[str, Any]] = {}
     for row in provided or []:
         if not isinstance(row, dict) or not isinstance(row.get("stage_id"), str):
@@ -268,17 +286,49 @@ def _compatibility_report(asset: StructuredAsset, provided: list[dict[str, Any]]
         if row["stage_id"] in by_id:
             raise ExportError("INVALID_COMPATIBILITY_REPORT", "compatibility stage ids must be unique")
         by_id[row["stage_id"]] = row
+    persisted_by_id = {row["stage_id"]: row for row in (persisted or [])}
+    if len(persisted_by_id) != len(persisted or []):
+        raise ExportError("INVALID_COMPATIBILITY_REPORT", "persisted process telemetry stage ids must be unique")
+    if by_id.keys() & persisted_by_id.keys():
+        raise ExportError("INVALID_COMPATIBILITY_REPORT", "request claims cannot override persisted stage telemetry")
     stages: list[StageCompatibility] = []
     try:
         for stage_id in _required_stage_ids(asset):
-            stages.append(StageCompatibility.model_validate(by_id.pop(stage_id, {"stage_id": stage_id})))
+            claim = by_id.pop(stage_id, None)
+            persisted_row = persisted_by_id.pop(stage_id, None)
+            if persisted_row is not None:
+                row = {key: value for key, value in persisted_row.items() if not key.startswith("_")}
+                row["reported_claims"] = claim
+                row["field_evidence"] = persisted_row.get("_field_evidence", {})
+                row["identity_binding"] = persisted_row.get("_identity_binding", "unbound")
+                stages.append(StageCompatibility.model_validate(row))
+            elif claim is not None:
+                claim_values = {key: value for key, value in claim.items() if key != "stage_id"}
+                stages.append(StageCompatibility(
+                    stage_id=stage_id,
+                    field_evidence={key: "request-claimed" for key in claim_values},
+                    reported_claims=claim_values,
+                    identity_binding="unbound",
+                ))
+            else:
+                stages.append(StageCompatibility(stage_id=stage_id))
         if by_id:
             raise ExportError("INVALID_COMPATIBILITY_REPORT", "report contains stages not present in asset provenance")
+        if persisted_by_id:
+            raise ExportError("INVALID_COMPATIBILITY_REPORT", "persisted telemetry contains stages not present in asset provenance")
+        required_fields = (
+            "adapter_id", "adapter_version", "selected_backend", "compile_outcome", "fallback_outcome",
+            "runtime_versions", "device", "peak_vram_bytes", "latency_ms", "low_memory_mode", "cpu_fallback",
+        )
         known = bool(stages) and all(
             stage.adapter_id and stage.adapter_version and stage.selected_backend
             and stage.compile_outcome and stage.fallback_outcome and stage.device
             and stage.peak_vram_bytes is not None and stage.latency_ms is not None
             and stage.low_memory_mode is not None and stage.cpu_fallback is not None
+            and bool(stage.runtime_versions)
+            and stage.identity_binding == "matched-claims"
+            and all(stage.field_evidence.get(field) == "host-measured" for field in required_fields)
+            and (stage.cpu_fallback is not True or bool(stage.cpu_fallback_reason))
             for stage in stages
         )
         return CompatibilityReport(
@@ -289,6 +339,117 @@ def _compatibility_report(asset: StructuredAsset, provided: list[dict[str, Any]]
         )
     except ValidationError as exc:
         raise ExportError("INVALID_COMPATIBILITY_REPORT", "compatibility report stage data is invalid") from exc
+
+
+def _reported_value(record: dict[str, Any], section: str, field: str) -> Any:
+    section_value = record.get(section)
+    value = section_value.get(field) if isinstance(section_value, dict) else None
+    if isinstance(value, dict) and value.get("state") == "reported":
+        return value.get("value")
+    return None
+
+
+def _load_process_run_stages(
+    root: Path, process_run_ids: dict[str, str] | None, asset: StructuredAsset,
+) -> list[dict[str, Any]]:
+    """Read persisted process-run evidence; absent measurements stay absent."""
+    rows: list[dict[str, Any]] = []
+    for stage_id, run_id in (process_run_ids or {}).items():
+        if not isinstance(stage_id, str) or not stage_id or len(stage_id) > 200:
+            raise ExportError("INVALID_COMPATIBILITY_REPORT", "process telemetry stage id is invalid")
+        try:
+            canonical_run_id = str(uuid.UUID(run_id))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ExportError("INVALID_COMPATIBILITY_REPORT", "process telemetry run id must be a UUID") from exc
+        record_path = _within(
+            root, f"StructuredAssets/process-runs/{canonical_run_id}/execution-telemetry.json",
+            "process telemetry path",
+        )
+        try:
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ExportError("INVALID_COMPATIBILITY_REPORT", "persisted process telemetry is unavailable or malformed") from exc
+        if (not isinstance(record, dict)
+                or record.get("schema_id") != "org.modly.process-execution-telemetry"
+                or record.get("schema_version") != "1.0.0"
+                or record.get("run_id") != canonical_run_id
+                or record.get("process") != stage_id
+                or record.get("stage_id") != stage_id
+                or record.get("status") != "done"
+                or not isinstance(record.get("persistence"), dict)
+                or record["persistence"].get("state") != "persisted"):
+            raise ExportError("INVALID_COMPATIBILITY_REPORT", "persisted process telemetry must be a successful terminal run with valid identity and schema")
+        provenance = record.get("provenance") if isinstance(record.get("provenance"), dict) else {}
+        executor = record.get("executor") if isinstance(record.get("executor"), dict) else {}
+        if executor.get("latency_state") != "measured" or executor.get("finished_at") is None:
+            raise ExportError("INVALID_COMPATIBILITY_REPORT", "persisted process telemetry has no measured terminal execution")
+        subject = record.get("subject_identity") if isinstance(record.get("subject_identity"), dict) else {}
+        expected_identity = {
+            "asset_id": asset.asset_id,
+            "geometry_digest": asset.geometry.digest,
+            "topology_revision": asset.topology_revision,
+        }
+        if asset.provenance.run_id:
+            expected_identity["workflow_run_id"] = asset.provenance.run_id
+        stage_artifact = next((item.artifact for item in asset.stage_artifacts if item.stage_id == stage_id), None)
+        if stage_artifact is not None:
+            expected_identity["stage_artifact_digest"] = stage_artifact.digest
+        matched = 0
+        for key, expected in expected_identity.items():
+            supplied = subject.get(key)
+            if supplied is None:
+                continue
+            if supplied != expected:
+                raise ExportError("INVALID_COMPATIBILITY_REPORT", "persisted process telemetry belongs to a different asset, run, geometry, or stage artifact")
+            matched += 1
+        identity_binding = (
+            "matched-claims" if matched == len(expected_identity)
+            else "partial-claims" if matched
+            else "unbound"
+        )
+        cpu_fallback = _reported_value(record, "fallback", "cpu_fallback")
+        fallback_outcome = _reported_value(record, "inference", "fallback_outcome")
+        if fallback_outcome is None and isinstance(cpu_fallback, bool):
+            fallback_outcome = "cpu-fallback" if cpu_fallback else "none"
+        executor_latency = executor.get("latency_ms") if executor.get("latency_state") == "measured" else None
+        if (not isinstance(executor_latency, (int, float)) or isinstance(executor_latency, bool)
+                or not math.isfinite(executor_latency) or executor_latency < 0):
+            executor_latency = None
+        row = {
+            "stage_id": stage_id,
+            "process_run_id": canonical_run_id,
+            "adapter_id": record.get("process"),
+            "adapter_version": provenance.get("extension_digest"),
+            "selected_backend": _reported_value(record, "inference", "backend"),
+            "compile_outcome": _reported_value(record, "inference", "compile_outcome"),
+            "fallback_outcome": fallback_outcome,
+            "runtime_versions": _reported_value(record, "inference", "runtime_versions"),
+            "device": _reported_value(record, "inference", "device"),
+            "peak_vram_bytes": _reported_value(record, "resources", "accelerator_vram_peak_bytes"),
+            "latency_ms": executor_latency if executor_latency is not None
+                else _reported_value(record, "inference", "latency_ms"),
+            "low_memory_mode": _reported_value(record, "inference", "low_memory_mode"),
+            "cpu_fallback": cpu_fallback,
+            "cpu_fallback_reason": _reported_value(record, "fallback", "cpu_fallback_reason"),
+            "identity_binding": identity_binding,
+        }
+        row["_identity_binding"] = identity_binding
+        row["_field_evidence"] = {
+            "adapter_id": "host-measured",
+            "adapter_version": "host-measured",
+            "selected_backend": "extension-reported" if _reported_value(record, "inference", "backend") is not None else "unknown",
+            "compile_outcome": "extension-reported" if _reported_value(record, "inference", "compile_outcome") is not None else "unknown",
+            "fallback_outcome": "extension-reported" if fallback_outcome is not None else "unknown",
+            "runtime_versions": "extension-reported" if _reported_value(record, "inference", "runtime_versions") is not None else "unknown",
+            "device": "extension-reported" if _reported_value(record, "inference", "device") is not None else "unknown",
+            "peak_vram_bytes": "extension-reported" if _reported_value(record, "resources", "accelerator_vram_peak_bytes") is not None else "unknown",
+            "latency_ms": "host-measured" if executor_latency is not None else "extension-reported" if _reported_value(record, "inference", "latency_ms") is not None else "unknown",
+            "low_memory_mode": "extension-reported" if _reported_value(record, "inference", "low_memory_mode") is not None else "unknown",
+            "cpu_fallback": "extension-reported" if cpu_fallback is not None else "unknown",
+            "cpu_fallback_reason": "extension-reported" if _reported_value(record, "fallback", "cpu_fallback_reason") is not None else "unknown",
+        }
+        rows.append(row)
+    return rows
 
 
 def _publish_new(path: Path, content: bytes) -> None:
@@ -327,6 +488,25 @@ def validate_export(root: Path, sidecar_path: Path, geometry_path: Path, report_
         raise ExportError("BROKEN_GEOMETRY_REFERENCE", "sidecar does not point to the exported geometry")
     if envelope.compatibility_report.model_dump(mode="json") != report.model_dump(mode="json"):
         raise ExportError("COMPATIBILITY_REPORT_MISMATCH", "sidecar and standalone compatibility report differ")
+    if report.completeness == "complete":
+        process_runs = {stage.stage_id: stage.process_run_id for stage in report.stages}
+        if any(run_id is None for run_id in process_runs.values()):
+            raise ExportError("UNVERIFIED_COMPATIBILITY_REPORT", "complete compatibility requires persisted process-run records")
+        export_provenance = envelope.asset.provenance.parameters.get("structured_export", {})
+        source_geometry_digest = export_provenance.get("source_geometry_digest") if isinstance(export_provenance, dict) else None
+        if not isinstance(source_geometry_digest, str):
+            raise ExportError("UNVERIFIED_COMPATIBILITY_REPORT", "complete compatibility has no source geometry identity")
+        source_asset = envelope.asset.model_copy(update={
+            "geometry": envelope.asset.geometry.model_copy(update={
+                "digest": source_geometry_digest, "artifact_id": source_geometry_digest,
+            }),
+        })
+        source_rows = _load_process_run_stages(
+            root, {stage_id: run_id for stage_id, run_id in process_runs.items() if run_id is not None}, source_asset,
+        )
+        verified_report = _compatibility_report(source_asset, None, source_rows)
+        if verified_report.completeness != "complete" or verified_report.stages != report.stages:
+            raise ExportError("UNVERIFIED_COMPATIBILITY_REPORT", "complete compatibility fields do not match host-persisted stage evidence")
     try:
         conventional = sidecar_path.with_name(f"{envelope.asset.asset_id}.structured-asset.json")
         conventional_asset = StructuredAsset.model_validate_json(conventional.read_text(encoding="utf-8"))
@@ -385,6 +565,7 @@ def export_structured_asset(
     *,
     source_to_gltf: list[float] | None = None,
     compatibility_stages: list[dict[str, Any]] | None = None,
+    process_run_ids: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Export GLB/glTF, complete semantic sidecar, and independent report.
 
@@ -417,7 +598,8 @@ def export_structured_asset(
         raise ExportError("INVALID_CONVERSION", "glTF-native assets must use an identity source_to_gltf transform")
     if not is_gltf_frame and source_to_gltf is None:
         raise ExportError("CONVERSION_REQUIRED", "non-glTF source basis or units require an explicit source_to_gltf matrix")
-    report = _compatibility_report(source_asset, compatibility_stages)
+    recorded_stages = _load_process_run_stages(root, process_run_ids, source_asset)
+    report = _compatibility_report(source_asset, compatibility_stages, recorded_stages)
     try:
         document, binary = _read_gltf(source_geometry)
         _normalize_document(document, gltf_transform)
@@ -461,6 +643,7 @@ def export_structured_asset(
                         "source_basis": source_asset.coordinate_frame.basis,
                         "source_handedness": source_asset.coordinate_frame.handedness,
                         "source_units": source_asset.coordinate_frame.units,
+                        "source_geometry_digest": source_asset.geometry.digest,
                         "source_to_gltf_column_major": gltf_transform,
                         "topology_revision": topology_revision,
                         "stable_ids_preserved": True,

@@ -4,7 +4,14 @@ This Modly process node is a provisional CPU implementation of
 **estimate-pbr-properties**. It consumes the exact input mesh and Structured Asset,
 valid Ticket 06 material-region mappings, calibrated training RGB views, known
 lights and cameras, and a per-pixel face/barycentric correspondence bundle. It
-keeps the source geometry and topology unchanged.
+uses the project-owned v2 inverse-render estimator and keeps the source geometry
+and topology unchanged.
+
+`albedo_region_prior_strength` is bounded to `[0,10]` and defaults to `0` to
+preserve the unregularized behavior. Development experiments used `1.0`; this
+parameter, the v2 estimator digest, and its full parameter set are recorded in
+stage provenance and input identity. No default is promoted based on development
+scores alone.
 
 The candidate estimates only linear base color, roughness, and metallic.
 Unobserved texels remain unknown. Bump/height, tangent-space normal, opacity,
