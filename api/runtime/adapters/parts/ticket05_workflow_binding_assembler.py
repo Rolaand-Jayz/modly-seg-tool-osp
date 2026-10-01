@@ -47,6 +47,10 @@ OUTPUT_DIRECTORY = "ticket05-workflow-bound-candidate"
 MANIFEST_MEDIA_TYPE = "application/vnd.modly.part-scoped-image-manifest+json"
 SEMANTIC_VIEW_INDICES = (0, 3, 6, 9)
 SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
+WORKFLOW_BINDING_FIELDS = frozenset({
+    "structured_asset_path", "geometry_path", "part_scoped_manifest",
+    "topology_map", "render_manifest", "camera_metadata", "segment_mapping",
+})
 
 
 class WorkflowBindingAssemblyError(RuntimeError):
@@ -148,6 +152,34 @@ def _registered_artifacts(asset: Any) -> tuple[dict[str, Any], dict[str, Any]]:
         raise WorkflowBindingAssemblyError("asset lacks exactly one registered GeoSAM2 map, render manifest, camera record, and all 12 color views")
     return {"topology_map": maps[0], "render_manifest": renders[0],
             "camera_metadata": cameras[0]}, {ref.artifact_id: ref for ref in segmentation}
+
+
+def _make_workflow_binding(*, structured_asset_path: str, geometry_path: str,
+                           part_scoped_manifest: str, registered: dict[str, Any],
+                           segment_mapping: str) -> dict[str, str]:
+    """Join registered segmentation outputs with the two derived process records.
+
+    The live segmentation stage supplies the topology map, render manifest, and
+    camera metadata. The assembler adds the validated sidecar/geometry plus
+    separately derived part evidence and predicted-segment mapping.
+    """
+    if not isinstance(registered, dict) or not {
+        "topology_map", "render_manifest", "camera_metadata"
+    }.issubset(registered):
+        raise WorkflowBindingAssemblyError("registered segmentation stage lacks a required map, render, or camera artifact")
+    values = {
+        "structured_asset_path": structured_asset_path,
+        "geometry_path": geometry_path,
+        "part_scoped_manifest": part_scoped_manifest,
+        "topology_map": registered["topology_map"].workspace_path,
+        "render_manifest": registered["render_manifest"].workspace_path,
+        "camera_metadata": registered["camera_metadata"].workspace_path,
+        "segment_mapping": segment_mapping,
+    }
+    if (set(values) != WORKFLOW_BINDING_FIELDS
+            or any(not isinstance(value, str) or not value for value in values.values())):
+        raise WorkflowBindingAssemblyError("workflow binding does not contain the seven required artifact paths")
+    return values
 
 
 def _copy_registered_file(source_root: Path, output_root: Path, relative: str,
@@ -277,20 +309,19 @@ def _assemble_row(source_root: Path, output_root: Path, prepared: dict[str, Any]
         topology_revision=asset.topology_revision, face_count=asset.topology_counts["face_count"],
         element_ids=mask["element_ids"])
     case = dict(input_case)
+    workflow_binding = _make_workflow_binding(
+        structured_asset_path=output_sidecar_rel.as_posix(),
+        geometry_path=copied_geometry,
+        part_scoped_manifest=str(Path(evidence_record["workspace_path"])),
+        registered=refs,
+        segment_mapping=mapping_rel.as_posix(),
+    )
     case.update({"topology_revision": asset.topology_revision,
                  "canonical_face_count": asset.topology_counts["face_count"],
                  "source_authored_mask": source_mask,
                  "input_artifact_digests": input_digests,
                  "views": selected_images,
-                 "workflow_binding": {
-                     "structured_asset_path": output_sidecar_rel.as_posix(),
-                     "geometry_path": copied_geometry,
-                     "part_scoped_manifest": str(Path(evidence_record["workspace_path"])),
-                     "topology_map": refs["topology_map"].workspace_path,
-                     "render_manifest": refs["render_manifest"].workspace_path,
-                     "camera_metadata": refs["camera_metadata"].workspace_path,
-                     "segment_mapping": mapping_rel.as_posix(),
-                 }})
+                 "workflow_binding": workflow_binding})
     return case, [{"path": image["image_path"], "sha256": image["image_sha256"],
                    "bytes": (output_root / image["image_path"]).stat().st_size}
                   for image in selected_images]
@@ -365,10 +396,8 @@ def assemble_workflow_candidate(candidate_root: Path, preparation_manifest: Path
             file_index[item["path"]] = {"path": item["path"], "sha256": item["sha256"], "bytes": item["bytes"]}
     if len(cases) != 80 or len({(row["object_id"], row["part_id"]) for row in cases}) != 80:
         raise WorkflowBindingAssemblyError("assembled process candidate must contain exactly 80 unique rows")
-    required_bindings = {"structured_asset_path", "geometry_path", "part_scoped_manifest",
-                         "topology_map", "render_manifest", "camera_metadata", "segment_mapping"}
     if any(not isinstance(row.get("workflow_binding"), dict)
-           or set(row["workflow_binding"]) != required_bindings for row in cases):
+           or set(row["workflow_binding"]) != WORKFLOW_BINDING_FIELDS for row in cases):
         raise WorkflowBindingAssemblyError("every development row must have exactly the seven frozen workflow bindings")
     input_document = {
         "schema": evaluator.SCHEMA + ".inputs", "fixture_id": contract["fixture"]["fixture_id"],

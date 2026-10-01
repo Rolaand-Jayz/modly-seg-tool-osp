@@ -4,6 +4,35 @@ Updated: 2026-10-01
 
 ## Latest continuation (2026-10-01)
 
+The Ticket 04 opt-in prompt/layer trace now has a versioned v6 diagnostic that
+independently copies only three capped outputs to a temporary CPU snapshot:
+the anomalous image-convolution child, its parent, and the position-map
+encoder's first feature tensor. It records host and device finite counts plus
+shape/stride/dtype metadata, then discards the tensor copy. The diagnostic
+byte cap is 64 MiB per captured output, and each target is sampled once per
+run. The lock verification and diagnostic suites pass **36/36**; Python
+compilation passes. A separate CPU-only venv run of the current pending
+Ticket 05/08/11/12 changes passes **28/28** focused tests. The new host count
+path has not yet been exercised on a live ROCm activation, so no measurement
+contradiction or model cause is resolved; a same-input target run is still
+required. The test venv is outside the repository.
+
+Ticket 05's workflow-binding assembler now has a pure join helper for its
+seven required inputs, with regression coverage for the real registered
+segment-stage artifact shape (topology map, render manifest, camera metadata,
+12 color views, and sidecar-derived evidence/mapping). The focused CPU suite
+passes **5/5**. No Ticket 05 fixture images or truth were opened. This checks
+workflow binding only; semantic quality, frozen development score, and Ticket
+04 acceptance remain outstanding.
+
+Ticket 08's project-owned process node now exposes the v2 region-inverse PBR
+estimator and a bounded albedo-region-prior parameter (0–10, default 0). Its
+stage provenance and inputs include the estimator/config identities and full
+parameter set; unsupported normal and bump channels remain explicitly unknown.
+The focused process suite passes **4/4**. The lambda=1 sweep remains
+development-only; frozen fixture, held-out, rights, and RX 7900 GRE gates are
+still open.
+
 Ticket 09 implementation now includes explicit `ambiguous` fused claims and a
 confidence-state summary without comparing model scores across adapters. The
 project-owned material-identity node routes reruns through capability-scoped
@@ -54,6 +83,43 @@ viewer acceptance. The implementation snapshot is published on GitHub `main`;
 the bootstrap history and audit log remain present. Runtime outputs, caches,
 build products, and development-generated correspondence datasets were
 excluded from publication.
+
+Ticket 04's locked, opt-in prompt-seed-lift candidate was tried on the frozen
+1,536-face car input in isolated run `8c745798-3ac2-4d68-b25b-d3d5fd37c6d9`.
+It accepted 43 automatic proposals across the 12 views, including three at
+the prompt seed, but its raw face-label array is byte-identical to the prior
+run-4 output: one label covers 768 faces and 768 remain unassigned. The locked
+completion policy then produces one 1,536-face region. The output sidecar
+validates and the workflow exits 0, but this candidate did not improve raw
+segmentation, so it was not repeated or scored; the frozen truth was not
+opened. Ticket 04 remains open. Full run identities and hashes are in
+`api/runtime/adapters/parts/evidence/TICKET04_PROMPT_SEED_LIFT_AND_LAYER_TRACE_2026-10-01.md`.
+
+A separate selected-default-path trace on that same fixture,
+`a5673975-b5bb-4a1f-bdd1-d60c415235a8`, exited 0 and produced a valid
+Structured Asset with one region and the same 768/1,536 raw coverage. The
+v5 diagnostic captured all 429 named modules in both encoders. Its stage
+summary reports finite image-encoder output but a fully non-finite
+position-map `vision_features` output; preflight then reports non-finite
+object scores and only the `-1024` no-object mask sentinel. However, the
+child-module summaries contradict their parent outputs twice: one image
+convolution and one position-map MLP layer are reported partly non-finite,
+while the immediately enclosing/next module output of the same shape and
+dtype is reported fully finite. A separate synthetic BF16 count check on the
+RX 7900 GRE matched the known count on both GPU and CPU, but it cannot settle
+these live activation discrepancies. Treat the trace as a diagnostic
+consistency failure, not a confirmed root cause; precision or inference
+behavior has not been changed.
+
+During the selected-default diagnostic, sampled board-wide VRAM peaked at
+10.34 GiB used of 16 GiB (5.64 GiB free); the workflow's PyTorch peak was
+4.81 GiB allocated and 6.96 GiB reserved. Latency was about 11.74 minutes.
+This is one safe resource sample, not repeatability or quality acceptance.
+The real SUV prompt-seed-lift development output had 28 regions versus 25 in
+its earlier default run, but raw coverage fell from 82.6% to 68.9%; it has no
+ground truth and does not establish an improvement. Keep the candidate
+unselected and resolve the trace-count inconsistency before drawing a
+precision conclusion.
 
 ## Implementation continuation (2026-10-01)
 

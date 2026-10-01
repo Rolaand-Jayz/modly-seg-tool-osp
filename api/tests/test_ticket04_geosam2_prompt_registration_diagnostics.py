@@ -8,15 +8,76 @@ import numpy as np
 
 from api.runtime.adapters.parts.geosam2_prompt_registration_diagnostics import (
     MAX_ENCODER_MODULE_OUTPUTS_PER_RUN,
+    MAX_HOST_CROSSCHECK_SOURCE_BYTES,
     PromptDiagnosticError,
     PromptRegistrationDiagnostics,
     SCHEMA,
+    _host_finite_crosscheck,
     _validated_count,
     instrument_predictor_prompt_flow,
 )
 
 
 class GeoSAM2PromptRegistrationDiagnosticsTests(unittest.TestCase):
+    class FakeTorchTensor:
+        __module__ = "torch.fake"
+        dtype = "bfloat16"
+
+        def __init__(self, values, *, declared_numel=None):
+            self.values = np.asarray(values, dtype=np.float32)
+            self.shape = self.values.shape
+            self.declared_numel = declared_numel
+            self.to_arguments = None
+
+        def detach(self):
+            return self
+
+        def is_complex(self):
+            return False
+
+        def numel(self):
+            return self.declared_numel or self.values.size
+
+        def element_size(self):
+            return 2
+
+        def stride(self):
+            return tuple(reversed([1] * self.values.ndim))
+
+        def to(self, **kwargs):
+            self.to_arguments = kwargs
+            return self
+
+        def contiguous(self):
+            return self
+
+        def float(self):
+            return self
+
+        def numpy(self):
+            return self.values
+
+    def test_host_crosscheck_uses_bounded_cpu_copy_and_counts_nan_and_infinity(self):
+        tensor = self.FakeTorchTensor([1.0, np.nan, np.inf, -2.0])
+
+        result = _host_finite_crosscheck(tensor)
+
+        self.assertEqual(result["state"], "complete")
+        self.assertEqual(result["finite_value_count"], 2)
+        self.assertEqual(result["numel"], 4)
+        self.assertEqual(result["source_dtype"], "bfloat16")
+        self.assertEqual(tensor.to_arguments, {"device": "cpu", "copy": True})
+        self.assertEqual(set(result), {
+            "state", "shape", "omitted_dimension_count", "stride", "source_dtype",
+            "source_bytes", "finite_value_count", "numel", "snapshot",
+        })
+
+    def test_host_crosscheck_rejects_tensor_above_fixed_source_byte_cap(self):
+        tensor = self.FakeTorchTensor([1.0], declared_numel=MAX_HOST_CROSSCHECK_SOURCE_BYTES // 2 + 1)
+
+        with self.assertRaises(PromptDiagnosticError):
+            _host_finite_crosscheck(tensor)
+
     class UnsupportedNumpyTensor:
         """Stand-in for torch dtypes NumPy cannot directly expose."""
         dtype = "bfloat16"

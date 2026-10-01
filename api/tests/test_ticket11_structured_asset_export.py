@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import struct
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -22,6 +24,7 @@ from services.structured_asset_export import (
     _read_gltf,
 )
 from services.structured_assets import create_imported_asset, validate_sidecar
+from services.process_runs import ProcessRunManager
 from test_structured_assets import make_glb
 
 
@@ -352,8 +355,120 @@ class Ticket11StructuredExportTests(unittest.TestCase):
         }
         result = self._export(compatibility_stages=[measured])
         report = json.loads((self.root / result["compatibility_report_path"]).read_text())
-        self.assertEqual(report["completeness"], "complete")
-        self.assertEqual(report["stages"][0]["peak_vram_bytes"], 0)
+        self.assertEqual(report["completeness"], "incomplete")
+        self.assertIsNone(report["stages"][0]["peak_vram_bytes"])
+        self.assertEqual(report["stages"][0]["reported_claims"]["peak_vram_bytes"], 0)
+        self.assertEqual(report["stages"][0]["field_evidence"]["peak_vram_bytes"], "request-claimed")
+
+        fallback_claim = {**measured, "cpu_fallback": True, "cpu_fallback_reason": None}
+        second = self._export("exports/caller-claims-fallback", compatibility_stages=[fallback_claim])
+        fallback_report = json.loads((self.root / second["compatibility_report_path"]).read_text())
+        self.assertEqual(fallback_report["completeness"], "incomplete")
+        self.assertIsNone(fallback_report["stages"][0]["cpu_fallback"])
+        self.assertIsNone(fallback_report["stages"][0]["cpu_fallback_reason"])
+
+    def test_export_reads_measured_fields_from_persisted_process_run_store(self) -> None:
+        extensions = self.root / "extensions"
+        extension = extensions / "structured-asset-import"
+        extension.mkdir(parents=True)
+        (extension / "manifest.json").write_text(json.dumps({
+            "id": "structured-asset-import", "type": "process", "entry": "processor.py",
+        }), encoding="utf-8")
+        (extension / "processor.py").write_text(
+            "import json\nprint(json.dumps({'type':'done','result':{}}))\n", encoding="utf-8",
+        )
+        with patch.dict(os.environ, {"BUILTIN_EXTENSIONS_DIR": str(extensions), "EXTENSIONS_DIR": "",
+                                     "MODLY_PROCESS_EXTENSION_ROOTS": ""}), \
+                patch("services.process_runs.WORKSPACE_DIR", self.root), \
+                patch("services.process_runs.MODELS_DIR", self.root / "models"):
+            manager = ProcessRunManager(max_workers=1, timeout_seconds=5)
+            try:
+                stage_artifact = next((item.artifact for item in self.asset.stage_artifacts
+                                       if item.stage_id == "structured-asset-import"), None)
+                process_identity = {
+                    "asset_id": self.asset.asset_id,
+                    "geometry_digest": self.asset.geometry.digest,
+                    "topology_revision": self.asset.topology_revision,
+                }
+                if stage_artifact is not None:
+                    process_identity["stage_artifact_digest"] = stage_artifact.digest
+                started = manager.start("structured-asset-import", process_identity)
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    run = manager.get(started["run_id"])
+                    if run["status"] in {"done", "error", "cancelled"}:
+                        break
+                    time.sleep(0.01)
+                self.assertEqual(run["status"], "done")
+                persisted = self.root / run["telemetry"]["artifact_path"]
+                record = json.loads(persisted.read_text(encoding="utf-8"))
+                self.assertEqual(record["persistence"]["state"], "persisted")
+                self.assertEqual(record["executor"]["latency_state"], "measured")
+
+                result = self._export(process_run_ids={"structured-asset-import": started["run_id"]})
+                report = json.loads((self.root / result["compatibility_report_path"]).read_text(encoding="utf-8"))
+                stage = next(item for item in report["stages"] if item["stage_id"] == "structured-asset-import")
+                self.assertEqual(stage["adapter_id"], "structured-asset-import")
+                self.assertEqual(stage["adapter_version"], record["provenance"]["extension_digest"])
+                self.assertIsInstance(stage["latency_ms"], (int, float))
+                self.assertIsNone(stage["selected_backend"])
+                self.assertIsNone(stage["device"])
+                self.assertIsNone(stage["peak_vram_bytes"])
+                self.assertIsNone(stage["compile_outcome"])
+                self.assertIsNone(stage["fallback_outcome"])
+                self.assertIsNone(stage["cpu_fallback"])
+                self.assertIsNone(stage["cpu_fallback_reason"])
+                self.assertIsNone(stage["runtime_versions"])
+                self.assertIsNone(stage["low_memory_mode"])
+                self.assertEqual(report["completeness"], "incomplete")
+                self.assertEqual(stage["identity_binding"], "matched-claims")
+                self.assertEqual(stage["field_evidence"]["adapter_version"], "host-measured")
+                self.assertEqual(stage["field_evidence"]["latency_ms"], "host-measured")
+                self.assertEqual(stage["field_evidence"]["peak_vram_bytes"], "unknown")
+            finally:
+                manager.shutdown()
+
+    def test_export_rejects_mismatched_persisted_process_identity(self) -> None:
+        run_id = "11111111-1111-4111-8111-111111111111"
+        record_path = self.root / "StructuredAssets" / "process-runs" / run_id / "execution-telemetry.json"
+        record_path.parent.mkdir(parents=True)
+        record_path.write_text(json.dumps({
+            "schema_id": "org.modly.process-execution-telemetry", "schema_version": "1.0.0",
+            "run_id": run_id, "process": "other-stage", "stage_id": "other-stage",
+            "status": "done", "executor": {"latency_state": "measured", "latency_ms": 1, "finished_at": "now"},
+            "persistence": {"state": "persisted"},
+        }), encoding="utf-8")
+        with self.assertRaisesRegex(ExportError, "successful terminal run"):
+            self._export(process_run_ids={"structured-asset-import": run_id})
+
+    def test_export_rejects_persisted_run_bound_to_different_asset(self) -> None:
+        run_id = "22222222-2222-4222-8222-222222222222"
+        record_path = self.root / "StructuredAssets" / "process-runs" / run_id / "execution-telemetry.json"
+        record_path.parent.mkdir(parents=True)
+        record_path.write_text(json.dumps({
+            "schema_id": "org.modly.process-execution-telemetry", "schema_version": "1.0.0",
+            "run_id": run_id, "process": "structured-asset-import", "stage_id": "structured-asset-import",
+            "status": "done", "provenance": {"extension_digest": "sha256:" + "a" * 64},
+            "subject_identity": {"asset_id": "different-asset"},
+            "executor": {"latency_state": "measured", "latency_ms": 1, "finished_at": "now"},
+            "persistence": {"state": "persisted"},
+        }), encoding="utf-8")
+        with self.assertRaisesRegex(ExportError, "different asset"):
+            self._export(process_run_ids={"structured-asset-import": run_id})
+
+    def test_export_rejects_nonterminal_persisted_process_run(self) -> None:
+        run_id = "33333333-3333-4333-8333-333333333333"
+        record_path = self.root / "StructuredAssets" / "process-runs" / run_id / "execution-telemetry.json"
+        record_path.parent.mkdir(parents=True)
+        record_path.write_text(json.dumps({
+            "schema_id": "org.modly.process-execution-telemetry", "schema_version": "1.0.0",
+            "run_id": run_id, "process": "structured-asset-import", "stage_id": "structured-asset-import",
+            "status": "running", "provenance": {"extension_digest": "sha256:" + "a" * 64},
+            "executor": {"latency_state": "running", "latency_ms": 1},
+            "persistence": {"state": "persisted"},
+        }), encoding="utf-8")
+        with self.assertRaisesRegex(ExportError, "successful terminal run"):
+            self._export(process_run_ids={"structured-asset-import": run_id})
 
     def test_output_containment_and_no_overwrite(self) -> None:
         with self.assertRaises(ExportError):

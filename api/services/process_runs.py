@@ -43,6 +43,7 @@ class ProcessRun:
     run_id: str
     process_id: str
     extension_digest: str
+    subject_identity: dict[str, str] = field(default_factory=dict)
     trust: str = "local-unpinned"
     status: str = "pending"
     result: dict[str, Any] | None = None
@@ -69,6 +70,7 @@ class ProcessRun:
                     "extension_digest": self.extension_digest,
                     "trust": self.trust,
                 },
+                "subject_identity": dict(self.subject_identity),
                 "telemetry": {
                     "schema_id": "org.modly.process-execution-telemetry",
                     "schema_version": "1.0.0",
@@ -88,6 +90,14 @@ class ProcessRun:
                         "backend": _reported_value(self.result, ("backend", "selected_backend"), "unknown"),
                         "device": _reported_value(self.result, ("device", "device_identity"), "unknown"),
                         "latency_ms": _reported_number(self.result, ("latency_ms", "warm_inference_latency_ms")),
+                        "compile_outcome": _reported_value(self.result, ("compile_outcome",), "unknown"),
+                        "fallback_outcome": _reported_value(self.result, ("fallback_outcome",), "unknown"),
+                        "runtime_versions": _reported_object(self.result, ("runtime_versions",)),
+                        "low_memory_mode": _reported_boolean(self.result, ("low_memory_mode",)),
+                    },
+                    "fallback": {
+                        "cpu_fallback": _reported_boolean(self.result, ("cpu_fallback",)),
+                        "cpu_fallback_reason": _reported_value(self.result, ("cpu_fallback_reason",), "unknown"),
                     },
                     "resources": {
                         "host_memory_peak_bytes": _reported_number(self.result, ("host_memory_peak_bytes", "peak_host_memory_bytes")),
@@ -139,6 +149,48 @@ def _reported_number(result: dict[str, Any] | None, keys: tuple[str, ...]) -> di
             if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
                 return {"state": "reported", "value": value}
     return {"state": "unknown", "value": None}
+
+
+def _reported_boolean(result: dict[str, Any] | None, keys: tuple[str, ...]) -> dict[str, Any]:
+    for source in _reported_sources(result):
+        for key in keys:
+            value = source.get(key)
+            if isinstance(value, bool):
+                return {"state": "reported", "value": value}
+    return {"state": "unknown", "value": None}
+
+
+def _reported_object(result: dict[str, Any] | None, keys: tuple[str, ...]) -> dict[str, Any]:
+    for source in _reported_sources(result):
+        for key in keys:
+            value = source.get(key)
+            if isinstance(value, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in value.items()):
+                return {"state": "reported", "value": value}
+    return {"state": "unknown", "value": None}
+
+
+def _subject_identity(payload: dict[str, Any]) -> dict[str, str]:
+    """Retain supplied correlation identifiers without treating them as verified facts."""
+    nested = payload.get("structured_asset", payload.get("asset"))
+    sources = ([nested, payload] if isinstance(nested, dict) else [payload])
+    aliases = {
+        "asset_id": ("asset_id", "assetId"),
+        "workflow_run_id": ("workflow_run_id", "workflowRunId", "run_id"),
+        "geometry_digest": ("geometry_digest", "geometryDigest"),
+        "topology_revision": ("topology_revision", "topologyRevision"),
+        "stage_artifact_digest": ("stage_artifact_digest", "stageArtifactDigest"),
+    }
+    identity: dict[str, str] = {}
+    for target, names in aliases.items():
+        value = next((source[name] for source in sources for name in names
+                      if isinstance(source.get(name), str) and source[name]), None)
+        if value is None and target == "geometry_digest" and isinstance(nested, dict):
+            geometry = nested.get("geometry")
+            if isinstance(geometry, dict) and isinstance(geometry.get("digest"), str):
+                value = geometry["digest"]
+        if value is not None:
+            identity[target] = value
+    return identity
 
 
 def _configured_roots() -> list[Path]:
@@ -243,7 +295,8 @@ class ProcessRunManager:
         if len(encoded) > _MAX_INPUT_BYTES:
             raise ProcessRunError("PROCESS_INPUT_LIMIT", "input exceeds the 1 MiB process request limit", http_status=413)
         extension_dir, entry, extension_digest = resolve_process_extension(process_id)
-        run = ProcessRun(run_id=str(uuid.uuid4()), process_id=process_id, extension_digest=extension_digest)
+        run = ProcessRun(run_id=str(uuid.uuid4()), process_id=process_id, extension_digest=extension_digest,
+                         subject_identity=_subject_identity(payload))
         run.telemetry_artifact = self._telemetry_path(run.run_id).relative_to(WORKSPACE_DIR.resolve()).as_posix()
         with self._lock:
             if self._closed:
@@ -366,6 +419,7 @@ class ProcessRunManager:
             "run_id": run.run_id,
             "process": run.process_id,
             "provenance": snapshot["provenance"],
+            "subject_identity": snapshot["subject_identity"],
             **snapshot["telemetry"],
         }
         document["persistence"] = {"state": "persisted"}
