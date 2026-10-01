@@ -75,6 +75,22 @@ Official Ai2 sources do not establish that the released Molmo2-4B checkpoint is 
 
 ## Frozen rendered evaluation result (CPU quality evidence only)
 
+### Project-owned four-view RBF development candidate (2026-10-01)
+
+The preregistered mean-plus-population-standard-deviation four-view RBF
+candidate was evaluated only on the existing 140-row development split. It
+searched a fixed 48-setting grid across four gamma values, three ridge values,
+and four unknown-head scales using five object-disjoint folds. The best
+candidate measured macro-F1 `0.87727`, minimum supported-class recall `0.60`
+(clear plastic), supported coverage `0.96`, unknown abstention recall `0.80`,
+and ambiguous abstention recall `1.00`; zero settings met every unchanged
+gate. Clear plastic/glass confusion and one unknown-to-painted-surface error
+remain. No weights were promoted; heldout rows/truth were not opened and no
+GPU run was made. Details and fixed identities are in
+[`PROJECT_OWNED_MULTIVIEW_RBF_PREREGISTRATION_2026-10-01.md`](../../../api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_MULTIVIEW_RBF_PREREGISTRATION_2026-10-01.md)
+and [`PROJECT_OWNED_MULTIVIEW_RBF_DEV_2026-10-01.md`](../../../api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_MULTIVIEW_RBF_DEV_2026-10-01.md).
+Ticket 07 acceptance remains blocked.
+
 The evaluator is implemented at `api/runtime/adapters/material-identity/evaluator.py` and is separate from the process classifier. It loads the classifier's prompt/model literals from source, verifies the staged SigLIP2 assets, checks all 1,887 fixture-manifest file sizes and SHA-256 values, reconstructs topology-derived region crops with the classifier's neutral-gray masked pixels, and scores all 580 crops in one CPU process with one processor/model load. Raw truth-free logits are persisted before `truth.json` is opened. Thresholds are selected from development rows only; a policy bound to the fixture, truth/input/manifest digests, model/weight lock, prompt digest, and evaluator source digest is persisted before held-out metrics are computed. Calibration enumerated 19,881 threshold pairs and found zero pairs meeting every frozen development gate.
 
 The frozen run used the local `localhost/modly-amd-migraphx:ticket02` image with `--network=none`, `--cpus=2`, `--memory=8g`, no device mounts, offline Hugging Face flags, and read-only source/fixture/model/package mounts; only the result mount was writable. Exact command:

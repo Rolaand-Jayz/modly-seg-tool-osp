@@ -2202,3 +2202,15 @@ had no processes and board memory returned to the measured 3.65 GB-use
 baseline. There is no completed segmentation asset, manifest, or score. This
 does not qualify the path or Ticket 04. Full run details and the monitor hash
 are in `api/runtime/adapters/parts/evidence/TICKET04_SUV_VRAM_RESERVE_STOP_AND_CONTAINER_CLEANUP_2026-10-01.md`.
+
+### Ticket 07 project-owned four-view RBF development screen (2026-10-01)
+
+A preregistered CPU-only classifier candidate combined mean and variation
+across four topology-masked views, trained one region per object, and evaluated
+48 fixed RBF/unknown-head settings with five object-disjoint folds. The best
+candidate reached macro-F1 0.8773 and 0.96 supported coverage, but minimum
+class recall was 0.60 for clear plastic and unknown abstention recall was
+0.80. No configuration met all unchanged development gates; no weights were
+promoted, no heldout truth was opened, and no GPU run occurred. Detailed
+identities, hashes, tests, and failure analysis are in
+`api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_MULTIVIEW_RBF_DEV_2026-10-01.md`.
