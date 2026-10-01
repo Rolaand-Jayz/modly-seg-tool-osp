@@ -73,6 +73,36 @@ class MonitoredGeoSAM2WorkflowTests(unittest.TestCase):
         self.assertIn('WORKFLOW_CONTAINER_NAME="modly-geosam2-$RUN_ID"', text)
         self.assertIn('--cidfile "$WORKFLOW_CONTAINER_CIDFILE"', text)
 
+    def test_reads_memory_pressure_only_from_validated_container_cgroup(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            cgroup = Path(temporary)
+            (cgroup / "memory.current").write_text("4096\n")
+            (cgroup / "memory.peak").write_text("8192\n")
+            (cgroup / "memory.max").write_text("16384\n")
+            (cgroup / "memory.events").write_text("low 0\nhigh 1\nmax 2\noom 0\noom_kill 0\n")
+            snapshot = monitor._container_memory_snapshot(cgroup)
+        self.assertEqual(snapshot["container_memory"], "cgroup_v2")
+        self.assertEqual(snapshot["memory_peak_bytes"], 8192)
+        self.assertEqual(snapshot["memory_max_bytes"], 16384)
+        self.assertEqual(snapshot["memory_events"]["oom_kill"], 0)
+        self.assertEqual(monitor._container_memory_snapshot(None), {"container_memory": "unavailable"})
+
+    def test_memory_telemetry_resolves_the_validated_run_container_id(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cidfile = root / "run.cid"
+            container_id = "b" * 64
+            cidfile.write_text(container_id)
+            inspected = subprocess.CompletedProcess([], 0, "321\n", "")
+            cgroup = root / "validated-cgroup"
+            with patch.object(monitor.subprocess, "run", return_value=inspected) as run, \
+                 patch.object(monitor, "_container_cgroup_path", return_value=cgroup) as resolve:
+                result = monitor._discover_container_cgroup(root, cidfile)
+        self.assertEqual(result, cgroup)
+        resolve.assert_called_once_with(container_id, 321)
+        command = run.call_args.args[0]
+        self.assertEqual(command[-1], container_id)
+
 
 if __name__ == "__main__":
     unittest.main()

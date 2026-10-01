@@ -115,3 +115,16 @@ reported no KFD processes and board use had returned to baseline. The partial
 run remains unqualified; the cause of exit 137 and a successful end-to-end
 supervisor run remain unresolved. Monitor and partial output files remain
 ignored and excluded from Git publication.
+
+## Exit-cause telemetry follow-up (2026-10-01)
+
+Retry-15's saved workspace contains no container ID file and therefore no
+surviving container cgroup counters. A read-only kernel journal query over the
+recorded run window returned no matching OOM-kill entry; this does not prove
+that an OOM kill did not occur. Exit cause remains undetermined. The reusable
+supervisor now records cgroup-v2 `memory.current`, `memory.peak`, `memory.max`,
+and `memory.events` for the exact validated container ID at each VRAM sample.
+The feature reads no other container's cgroup. Its synthetic supervisor suite
+passes 7/7. A target run is still required to establish these counters are
+available and to diagnose any future exit; this change is not Ticket 04
+acceptance evidence.
