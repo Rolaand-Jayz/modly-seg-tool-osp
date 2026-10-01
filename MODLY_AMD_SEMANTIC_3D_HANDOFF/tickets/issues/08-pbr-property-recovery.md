@@ -555,3 +555,22 @@ heldout data were read, and no GPU was used. The 32x32 estimate, score, and
 provenance are stored in
 `api/runtime/adapters/pbr/evidence/ticket08-development-fixture-v2/`.
 This remains development-only synthetic evidence; Ticket 08 is not accepted.
+
+### Normal-detail development domain review (2026-10-01)
+
+The region-inverse v2 lambda sweep's development fixture uses a planar scene
+with constant +Z normals. It therefore does not exercise the height-derived
+surface detail present in the frozen PBR scene. The frozen v2 training report
+records large fit errors in two of three regions, and the terminal score fails
+base-color MAE/SSIM, roughness, metallic, and conductor/dielectric bias. The
+previous latent-normal candidate also fails the material-map gates and has no
+spatial or height-integrability model. Further base-color prior tuning is not a
+justified next step.
+
+The next development candidate needs a distinct seeded fixture with
+spatially-varying training normals derived from a documented height field,
+separate hash-bound input and target files, and a coherent normal/detail
+nuisance model. The scorer and all frozen limits remain unchanged. The terminal
+v2 scorer was not rerun and frozen target pixels were not inspected in this
+review. Full diagnosis and evidence boundary:
+`api/runtime/adapters/pbr/evidence/ticket08-normal-detail-domain-gap-2026-10-01.md`.
