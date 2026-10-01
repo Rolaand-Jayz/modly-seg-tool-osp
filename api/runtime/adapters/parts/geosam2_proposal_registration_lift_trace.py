@@ -19,7 +19,7 @@ from typing import Any, Callable, Mapping
 import numpy as np
 
 
-SCHEMA = "modly.ticket04.proposal-registration-lift-trace/2"
+SCHEMA = "modly.ticket04.proposal-registration-lift-trace/3"
 MAX_ROWS = 256
 MAX_MASK_LEAVES_PER_EVENT = 32
 MAX_TREE_ITEMS = 64
@@ -27,12 +27,13 @@ MAX_ARTIFACT_BYTES = 48 * 1024
 _MAX_ROWS_BYTES = MAX_ARTIFACT_BYTES - 8192
 MAX_LABEL_SCAN_ELEMENTS = 1_000_000
 MAX_LABEL_SAMPLE = 8192
+MAX_DIAGNOSTIC_HASH_BYTES = 65536
 MAX_JOIN_IDS_PER_LIFT = 128
 MAX_REGISTERED_ALIASES_PER_VIEW = 256
 _SENTINELS = (-1, 999)
 _LOCK_CONTRACT = {
     "schema": SCHEMA,
-    "lock_identity": "ticket04-proposal-registration-lift-trace-v2",
+    "lock_identity": "ticket04-proposal-registration-lift-trace-v3",
     "helper_path": "api/runtime/adapters/parts/geosam2_proposal_registration_lift_trace.py",
     "limits": {
         "expected_views": 12, "rows": MAX_ROWS,
@@ -41,6 +42,7 @@ _LOCK_CONTRACT = {
         "tree_items": MAX_TREE_ITEMS,
         "label_scan_elements": MAX_LABEL_SCAN_ELEMENTS,
         "label_sample": MAX_LABEL_SAMPLE,
+        "diagnostic_hash_bytes": MAX_DIAGNOSTIC_HASH_BYTES,
         "join_ids_per_lift": MAX_JOIN_IDS_PER_LIFT,
         "registered_aliases_per_view": MAX_REGISTERED_ALIASES_PER_VIEW,
     },
@@ -49,6 +51,8 @@ _LOCK_CONTRACT = {
         "coordinates_retained": False, "masks_retained": False,
         "face_ids_retained": False, "raw_labels_retained": False,
         "raw_object_ids_retained": False,
+        "rng_state_retained": False,
+        "rng_state_digest_retained": True,
     },
     "coverage": {
         "proposal_registration_required_for_complete": True,
@@ -63,6 +67,20 @@ def _hmac_id(key: bytes, kind: str, view: int | None, ordinal: int) -> str:
         raise ValueError("per-run HMAC key must be at least 16 bytes")
     body = f"{SCHEMA}\0{kind}\0{view}\0{ordinal}".encode("ascii")
     return hmac.new(key, body, hashlib.sha256).hexdigest()
+
+
+def _bounded_rng_digest(callback: Callable[[], str] | None) -> tuple[str, str] | tuple[None, None]:
+    if callback is None:
+        return None, None
+    try:
+        value = callback()
+        if not isinstance(value, str) or len(value) != 64:
+            raise ValueError("RNG digest callback returned an invalid digest")
+        int(value, 16)
+        return "complete", value
+    except Exception as exc:
+        status = "unavailable:" + type(exc).__name__
+        return status, hashlib.sha256(status.encode("ascii")).hexdigest()
 
 
 def _hmac_object_alias(key: bytes, view: int, object_id: Any) -> str | None:
@@ -263,6 +281,20 @@ def _summarize_tensor(value: Any) -> dict[str, Any]:
         analyzed = tensor
         row["summary_state"] = "complete"
         row["sample_count"] = n
+    itemsize = int(tensor.element_size())
+    hash_count = min(n, MAX_LABEL_SAMPLE, MAX_DIAGNOSTIC_HASH_BYTES // max(1, itemsize))
+    if hash_count:
+        hash_positions = np.linspace(0, n - 1, hash_count, dtype=np.int64)
+        hash_index = torch.as_tensor(hash_positions, dtype=torch.long, device=tensor.device)
+        hash_sample = tensor.reshape(-1)[hash_index].to(device="cpu").contiguous().numpy()
+    else:
+        hash_sample = np.empty((0,), dtype=np.uint8)
+    hash_bytes = np.ascontiguousarray(hash_sample).tobytes()
+    if len(hash_bytes) > MAX_DIAGNOSTIC_HASH_BYTES:
+        raise ValueError("diagnostic hash sample exceeds configured byte cap")
+    hash_header = json.dumps({"shape": list(shape), "dtype": str(dtype), "count": n,
+                              "sample_count": hash_count}, separators=(",", ":")).encode("ascii")
+    row["sample_sha256"] = hashlib.sha256(hash_header + b"\0" + hash_bytes).hexdigest()
     scalar = lambda expression: int(expression.to(dtype=torch.int64).sum().item())
     if is_bool:
         true_count = scalar(analyzed)
@@ -316,6 +348,17 @@ def _summarize_array(array: np.ndarray) -> dict[str, Any]:
         "summary_state": "sampled" if sampled else "complete",
         "sample_count": int(analyzed.size),
     }
+    hash_count = min(n, MAX_LABEL_SAMPLE,
+                     MAX_DIAGNOSTIC_HASH_BYTES // max(1, int(array.dtype.itemsize)))
+    hash_sample = (array.flat[np.linspace(0, n - 1, hash_count, dtype=np.int64)]
+                   if n else np.empty((0,), dtype=array.dtype))
+    hash_bytes = np.ascontiguousarray(hash_sample).tobytes()
+    if len(hash_bytes) > MAX_DIAGNOSTIC_HASH_BYTES:
+        raise ValueError("diagnostic hash sample exceeds configured byte cap")
+    hash_header = json.dumps({"shape": [int(d) for d in array.shape],
+                              "dtype": array.dtype.str, "count": n,
+                              "sample_count": hash_count}, separators=(",", ":")).encode("ascii")
+    row["sample_sha256"] = hashlib.sha256(hash_header + b"\0" + hash_bytes).hexdigest()
     if array.dtype.kind == "b":
         true_count = int(np.count_nonzero(analyzed))
         prefix = "sampled_" if sampled else ""
@@ -437,7 +480,7 @@ _PER_MASK_COUNT_FIELDS = (
 
 def _compact_proposal_summaries(proposals: list[dict[str, Any]]) -> dict[str, Any]:
     """Keep original proposal ordinals, including masks without summaries."""
-    shared_fields = ("shape", "dtype_kind", "summary_state", "sample_count")
+    shared_fields = ("shape", "dtype_kind", "summary_state", "sample_count", "sample_sha256")
     summaries = [summary for proposal in proposals for summary in proposal["masks"]]
     common: dict[str, Any] = {}
     for field in shared_fields:
@@ -517,7 +560,8 @@ class TraceHandle:
 def install_trace(inference: Any, predictor: Any, *, expected_views: tuple[int, ...],
                   expected_lift_passes: Mapping[int, int] | None = None,
                   on_event: Callable[[dict[str, Any]], Any] | None,
-                  key: bytes) -> TraceHandle:
+                  key: bytes,
+                  rng_digest: Callable[[], str] | None = None) -> TraceHandle:
     """Wrap proposal filtering, point registration, and both 3D lift calls.
 
     `inference.show_anns` invocations are associated with `expected_views` in
@@ -655,6 +699,7 @@ def install_trace(inference: Any, predictor: Any, *, expected_views: tuple[int, 
         view = latest_view
         lift_calls[view] += 1
         pass_index = int(lift_calls[view])
+        rng_status_before, rng_before = _bounded_rng_digest(rng_digest)
         masks = kwargs.get("video_segments")
         if masks is None and len(args) > lift_mask_index:
             masks = args[lift_mask_index]
@@ -683,8 +728,13 @@ def install_trace(inference: Any, predictor: Any, *, expected_views: tuple[int, 
             result = originals["lift_2dmask_3d"](*args, **kwargs)
         except BaseException as exc:
             failed_lift_calls[view] += 1
+            rng_status_after, rng_after = _bounded_rng_digest(rng_digest)
             record({"stage": "lift", "view_index": view, "pass_index": pass_index,
                     "state": "failed", "input_summary": _compact_lift_summaries(summaries),
+                    "rng_state_status_before": rng_status_before,
+                    "rng_sha256_before": rng_before,
+                    "rng_state_status_after": rng_status_after,
+                    "rng_sha256_after": rng_after,
                     "registration_lift_join": join,
                     "omitted_input_leaf_count": omitted_leaves,
                     "error_type": type(exc).__name__[:48]})
@@ -695,8 +745,13 @@ def install_trace(inference: Any, predictor: Any, *, expected_views: tuple[int, 
             output_summaries, omitted_output = [], 1
             omitted["summary_errors"] += 1
         omitted["lift_output_leaves"] += omitted_output
+        rng_status_after, rng_after = _bounded_rng_digest(rng_digest)
         record({"stage": "lift", "view_index": view, "pass_index": pass_index,
                 "state": "complete", "input_summary": _compact_lift_summaries(summaries),
+                "rng_state_status_before": rng_status_before,
+                "rng_sha256_before": rng_before,
+                "rng_state_status_after": rng_status_after,
+                "rng_sha256_after": rng_after,
                 "output_summaries": output_summaries,
                 "output_summary_scope": "aggregate_lift_result_only",
                 "registration_lift_join": join,

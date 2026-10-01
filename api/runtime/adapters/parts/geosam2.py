@@ -41,8 +41,13 @@ from .geosam2_unassigned_completion_policy import (
 )
 from .geosam2_diagnostic_telemetry import (
     MAX_CANDIDATE_COUNTS_PER_VIEW,
+    MAX_DIAGNOSTIC_SAMPLE_BYTES,
+    MAX_MASK_SAMPLE_VALUES,
+    MAX_MASK_SUMMARIES_PER_VIEW,
+    MAX_RNG_STATE_BYTES,
     MAX_RETAINED_VIEWS,
     SCHEMA as DIAGNOSTIC_TELEMETRY_SCHEMA,
+    capture_rng_state_digest,
     instrument_generator,
     summarize_face_labels,
 )
@@ -104,16 +109,16 @@ MASK_STAGE_DIAGNOSTICS_LOCK_SHA256 = "5c359c8074d2efb4c311e37114eea59705e66f404d
 PROMPT_REGISTRATION_DIAGNOSTICS_LOCK_NAME = "GEOSAM2_PROMPT_REGISTRATION_DIAGNOSTICS_LOCK.v7.json"
 PROMPT_REGISTRATION_DIAGNOSTICS_MODULE_SHA256 = "b1914181785e8215a5c5144037529c0a185d2909c558dfe906ec69c7c80936bb"
 PROMPT_REGISTRATION_DIAGNOSTICS_LOCK_SHA256 = "8ac69e0953bce08f5d1bb239720954c2b15d522d0f4d62a359234eb47f6af3d9"
-DIAGNOSTIC_TELEMETRY_LOCK_NAME = "GEOSAM2_DIAGNOSTIC_TELEMETRY_LOCK.v1.json"
-DIAGNOSTIC_TELEMETRY_MODULE_SHA256 = "642f13c8b0a45506b9908c360aeb0b408220894580ff7dd2e5fe1dd6fa4093a2"
-DIAGNOSTIC_TELEMETRY_LOCK_SHA256 = "c369c9bcb0ba13f67306df1e3b6fee19418217405bc44403dfd6201fa34079f8"
+DIAGNOSTIC_TELEMETRY_LOCK_NAME = "GEOSAM2_DIAGNOSTIC_TELEMETRY_LOCK.v2.json"
+DIAGNOSTIC_TELEMETRY_MODULE_SHA256 = "1cfb940d98dc82526b5da20c93361bdda95dcf1477752e9dc981c1e94e11f7ed"
+DIAGNOSTIC_TELEMETRY_LOCK_SHA256 = "631fd876dd73d0abdc36f9a311549647a62628f0f8b5b90c4a98b46ae930abce"
 PROPOSAL_FILTER_DIAGNOSTICS_LOCK_NAME = "GEOSAM2_PROPOSAL_FILTER_DIAGNOSTICS_LOCK.v1.json"
 PROPOSAL_FILTER_DIAGNOSTICS_MODULE_SHA256 = "0394724d87162db9adb151c8b5201853264304770ddccfeeb02360f9717c48b2"
 PROPOSAL_FILTER_DIAGNOSTICS_LOCK_SHA256 = "08e090bb9474bc4ade7e91a05df056acf4034dae67a5410a22bad1a4c3e8a95e"
 VIDEO_INDEX_POLICY_LOCK_NAME = "GEOSAM2_VIDEO_INDEX_POLICY_LOCK.v1.json"
 VIDEO_INDEX_POLICY_LOCK_SHA256 = "805752960029076cf9dc74fa731d0a46b5601bbbbc0b87abd29525441329a2cf"
 VIDEO_INDEX_POLICY_MODULE_SHA256 = "b97b9fb4ca769444de6164691821a4b4b4a73489f43b11d713c44f147dc41174"
-PROPOSAL_LIFT_TRACE_LOCK_NAME = "GEOSAM2_PROPOSAL_REGISTRATION_LIFT_TRACE.v2.lock.json"
+PROPOSAL_LIFT_TRACE_LOCK_NAME = "GEOSAM2_PROPOSAL_REGISTRATION_LIFT_TRACE.v3.lock.json"
 PROPOSAL_LIFT_TRACE_ENV = "MODLY_GEOSAM2_PROPOSAL_LIFT_TRACE"
 BOX_REDUCTION_POLICY_LOCK_NAME = "GEOSAM2_BOX_REDUCTION_POLICY_LOCK.v1.json"
 BOX_REDUCTION_POLICY_LOCK_SHA256 = "6739254a2d0a74a317ba6efaad49c9607eb0cc57e33332545a38a6809f380775"
@@ -473,10 +478,24 @@ def _verify_diagnostic_telemetry(lock_path: Path) -> dict[str, str]:
     if (hashlib.sha256(raw).hexdigest() != DIAGNOSTIC_TELEMETRY_LOCK_SHA256
             or module_digest != DIAGNOSTIC_TELEMETRY_MODULE_SHA256
             or not isinstance(record, dict)
-            or record.get("schema_name") != "modly.ticket04.geosam2-diagnostic-telemetry-lock.v1"
+            or record.get("schema_name") != "modly.ticket04.geosam2-diagnostic-telemetry-lock.v2"
             or record.get("schema") != DIAGNOSTIC_TELEMETRY_SCHEMA
             or record.get("module") != module_path.name
-            or record.get("module_sha256") != DIAGNOSTIC_TELEMETRY_MODULE_SHA256):
+            or record.get("module_sha256") != DIAGNOSTIC_TELEMETRY_MODULE_SHA256
+            or record.get("limits") != {
+                "views": MAX_RETAINED_VIEWS,
+                "batch_and_crop_candidate_counts_per_view": MAX_CANDIDATE_COUNTS_PER_VIEW,
+                "proposal_mask_summaries_per_view": MAX_MASK_SUMMARIES_PER_VIEW,
+                "sample_values_per_mask": MAX_MASK_SAMPLE_VALUES,
+                "sample_bytes_per_mask": MAX_DIAGNOSTIC_SAMPLE_BYTES,
+                "rng_state_bytes_per_source": MAX_RNG_STATE_BYTES,
+            }
+            or record.get("privacy") != {
+                "mask_payloads_retained": False,
+                "coordinate_payloads_retained": False,
+                "rng_state_retained": False,
+                "rng_state_digest_retained": True,
+            }):
         raise PartSegmentationError("GEOSAM2_DIAGNOSTIC_TELEMETRY_LOCK_INTEGRITY_FAILED", "GeoSAM2 diagnostic telemetry differs from its immutable pin")
     return {"lock_sha256": DIAGNOSTIC_TELEMETRY_LOCK_SHA256,
             "module_sha256": DIAGNOSTIC_TELEMETRY_MODULE_SHA256,
@@ -571,7 +590,11 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
                 "payloads_persisted": False,
                 "identity": diagnostic_telemetry_identity or {"state": "unavailable"},
                 "limits": {"views": MAX_RETAINED_VIEWS,
-                           "batch_and_crop_candidate_counts_per_view": MAX_CANDIDATE_COUNTS_PER_VIEW},
+                           "batch_and_crop_candidate_counts_per_view": MAX_CANDIDATE_COUNTS_PER_VIEW,
+                           "proposal_mask_summaries_per_view": MAX_MASK_SUMMARIES_PER_VIEW,
+                           "sample_values_per_mask": MAX_MASK_SAMPLE_VALUES,
+                           "sample_bytes_per_mask": MAX_DIAGNOSTIC_SAMPLE_BYTES,
+                           "rng_state_bytes_per_source": MAX_RNG_STATE_BYTES},
                 "omitted_view_count": max(0, len(seed_views) - MAX_RETAINED_VIEWS),
                 "views": [],
             }
@@ -713,7 +736,8 @@ def _run_with_empty_proposal_policy(inference: Any, predictor: Any,
                     inference, predictor, expected_views=seed_views,
                     expected_lift_passes={view: (0 if view == 0 else 2)
                                           for view in seed_views},
-                    on_event=None, key=os.urandom(32))
+                    on_event=None, key=os.urandom(32),
+                    rng_digest=capture_rng_state_digest)
             except Exception as exc:
                 audit_state["proposal_lift_trace"] = {
                     "state": "instrumentation_unavailable",

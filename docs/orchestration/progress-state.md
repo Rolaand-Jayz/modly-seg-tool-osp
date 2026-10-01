@@ -2077,3 +2077,32 @@ one optional real-model integration skip, and Python compilation passed.
 The reported game impact remains unexplained. No GPU work or game-file access
 occurred, and Ticket 07's quality/abstention/coverage/hardware gates remain
 open. The audited handoff files were left unchanged.
+
+### Ticket 04 diagnostics and Ticket 07/08 protocol hardening (2026-10-01)
+
+Ticket 04's opt-in diagnostic telemetry now records bounded generated-mask
+summaries and RNG-state fingerprints with explicit capture status, so an
+unavailable digest cannot appear to be a valid match. The versioned telemetry
+and proposal/lift trace locks were updated. On the repeat v7 run, geometry
+renders and input payloads matched, views 1–10 produced identical label
+arrays, and view 11 differed on 768 of 1,536 faces; completion filled the
+repeat's remaining sentinel labels and collapsed the final result to one
+region. The live v7 records do not contain per-view RNG fingerprints, so
+repeatable RNG state is not established. Ticket 04 remains open: its
+repeatability precondition and frozen quality gate have not passed. Focused
+Ticket 04/07 tests passed 46/46 on the published-source clone with ROCm
+PyTorch available; the project Python 3.12 test environment lacks PyTorch.
+
+Ticket 07's project-owned classifier now rejects conflicting cross-view
+labels for one object/region, supported-versus-abstention conflicts, and
+duplicate sample IDs. Its classifier and development evaluator tests passed
+14/14, and node integration tests passed 12/12. These data-integrity checks
+do not pass Ticket 07's model quality or AMD acceptance gates.
+
+Ticket 08 now has a frozen candidate runner limited to training members and a
+separate one-shot scorer that verifies candidate identities before opening
+target arrays. Protocol tests passed 3/3. The frozen fixture has no validated
+topology-bound per-face material-region map; no map was derived from target
+labels, and no frozen target arrays were accessed. Therefore the real Ticket
+08 candidate run and score remain blocked. The three-ticket changes were
+checked in the publish clone with `git diff --check`; no GPU work was used.

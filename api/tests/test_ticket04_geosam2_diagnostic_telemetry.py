@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+import tempfile
 
 import numpy as np
 
@@ -22,7 +23,8 @@ class _MaskData:
 class _Generator:
     def generate(self, image, pos_map, norm_map, img_mask=None):
         self._process_crop(image, pos_map, norm_map, [0, 0, 1, 1], 0, image.shape[:2], img_mask)
-        return [{"segmentation": "secret-mask"}, {"segmentation": "secret-mask-2"}]
+        return [{"segmentation": np.asarray([[True, False], [False, True]])},
+                {"segmentation": np.asarray([[False, True], [True, False]])}]
 
     def _process_crop(self, image, pos_map, norm_map, crop_box, crop_layer_idx, orig_size, img_mask):
         self._process_batch(np.asarray([[3.0, 4.0], [5.0, 6.0]]), orig_size, crop_box, orig_size)
@@ -38,9 +40,20 @@ class GeoSAM2DiagnosticTelemetryTests(unittest.TestCase):
 
         identity = geosam2._verify_diagnostic_telemetry(
             Path(geosam2.__file__).with_name(geosam2.DIAGNOSTIC_TELEMETRY_LOCK_NAME))
-        self.assertEqual(identity["schema"], "modly.geosam2-diagnostic-telemetry/1")
+        self.assertEqual(identity["schema"], "modly.geosam2-diagnostic-telemetry/2")
         self.assertEqual(identity["module_sha256"], geosam2.DIAGNOSTIC_TELEMETRY_MODULE_SHA256)
         self.assertEqual(identity["lock_sha256"], geosam2.DIAGNOSTIC_TELEMETRY_LOCK_SHA256)
+
+    def test_diagnostic_lock_rejects_loosened_summary_bounds(self):
+        from api.runtime.adapters.parts import geosam2
+        lock_path = Path(geosam2.__file__).with_name(geosam2.DIAGNOSTIC_TELEMETRY_LOCK_NAME)
+        record = __import__("json").loads(lock_path.read_text())
+        record["limits"]["sample_values_per_mask"] += 1
+        with tempfile.TemporaryDirectory() as temp:
+            candidate = Path(temp) / lock_path.name
+            candidate.write_text(__import__("json").dumps(record))
+            with self.assertRaisesRegex(Exception, "differs from its immutable pin"):
+                geosam2._verify_diagnostic_telemetry(candidate)
 
     def test_face_label_summary_reports_only_counts(self):
         summary = summarize_face_labels(np.asarray([4, 4, 8, 999, -1]))
@@ -70,12 +83,19 @@ class GeoSAM2DiagnosticTelemetryTests(unittest.TestCase):
         self.assertEqual(rows[0]["batch_candidate_counts"], [2])
         self.assertEqual(rows[0]["crop_nms_candidate_counts"], [1])
         self.assertEqual(rows[0]["accepted_proposal_count"], 2)
+        self.assertEqual(rows[0]["proposal_masks"][0]["shape"], [2, 2])
+        self.assertEqual(len(rows[0]["proposal_masks"][0]["sample_sha256"]), 64)
+        self.assertEqual(len(rows[0]["rng_sha256_before_generate"]), 64)
+        self.assertEqual(len(rows[0]["rng_sha256_after_generate"]), 64)
+        self.assertEqual(rows[0]["rng_state_status_before_generate"], "complete")
+        self.assertEqual(rows[0]["rng_state_status_after_generate"], "complete")
         self.assertEqual(len(rows[0]["accelerate_mask_sha256"]), 64)
         self.assertEqual(len(rows[0]["sampled_coordinate_digest"]), 64)
         self.assertEqual(records[-1], rows)
         serialized = repr(rows)
-        self.assertNotIn("secret-mask", serialized)
+        self.assertNotIn("True", serialized)
         self.assertNotIn("3.0", serialized)
+        self.assertNotIn("segmentation", serialized)
         self.assertEqual(generator.generate, original_generate)
         self.assertEqual(generator._process_crop, original_crop)
         self.assertEqual(generator._process_batch, original_batch)
@@ -112,6 +132,28 @@ class GeoSAM2DiagnosticTelemetryTests(unittest.TestCase):
         self.assertEqual(row["batch_candidate_counts_omitted"], 6)
         self.assertEqual(row["batch_candidate_count_total"], 140)
         self.assertEqual(row["sampled_coordinate_digest_scope"], "bounded_sample")
+
+    def test_mask_summary_is_bounded_and_rng_callback_failure_is_nonfatal(self):
+        class HugeResult(_Generator):
+            def generate(self, image, pos_map, norm_map, img_mask=None):
+                return [{"segmentation": np.ones((128, 128), dtype=bool)} for _ in range(70)]
+
+        generator = HugeResult()
+        restore, rows = instrument_generator(generator, (3,), lambda _rows: None,
+                                             rng_digest=lambda: (_ for _ in ()).throw(RuntimeError()))
+        result = generator.generate(np.zeros((2, 2, 3), dtype=np.uint8), None, None,
+                                    np.ones((2, 2), dtype=bool))
+        restore()
+        row = rows[0]
+        self.assertEqual(len(result), 70)
+        self.assertEqual(len(row["proposal_masks"]), 64)
+        self.assertEqual(row["proposal_masks_omitted"], 6)
+        self.assertTrue(all(entry["sample_count"] <= 8192 for entry in row["proposal_masks"]))
+        self.assertEqual(row["rng_state_status_before_generate"], "unavailable:RuntimeError")
+        self.assertEqual(row["rng_state_status_after_generate"], "unavailable:RuntimeError")
+        self.assertTrue(row["rng_sha256_before_generate"])
+        self.assertTrue(row["rng_sha256_after_generate"])
+        self.assertNotIn("segmentation", repr(row))
 
 
 if __name__ == "__main__":

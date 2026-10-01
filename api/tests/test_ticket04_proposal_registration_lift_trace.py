@@ -11,7 +11,7 @@ from api.runtime.adapters.parts import geosam2_proposal_registration_lift_trace 
 
 
 KEY = b"per-run-only-test-key-7d4ce829"
-LOCK = Path(__file__).parents[1] / "runtime/adapters/parts/GEOSAM2_PROPOSAL_REGISTRATION_LIFT_TRACE.v2.lock.json"
+LOCK = Path(__file__).parents[1] / "runtime/adapters/parts/GEOSAM2_PROPOSAL_REGISTRATION_LIFT_TRACE.v3.lock.json"
 
 
 class Predictor:
@@ -55,7 +55,8 @@ class ProposalRegistrationLiftTraceTests(unittest.TestCase):
                      inference.lift_2dmask_3d)
         handle = trace.install_trace(inference, predictor, expected_views=(4,),
                                      expected_lift_passes={4: 2},
-                                     on_event=events.append, key=KEY)
+                                     on_event=events.append, key=KEY,
+                                     rng_digest=lambda: hashlib.sha256(b"state").hexdigest())
         masks = [_annotation(np.asarray([[1, 0], [0, 1]], dtype=np.uint8)) for _ in range(2)]
         returned = inference.show_anns(masks)
         self.assertIs(returned, masks)
@@ -80,6 +81,11 @@ class ProposalRegistrationLiftTraceTests(unittest.TestCase):
         self.assertNotEqual(registrations[0]["proposal_id"], registrations[1]["proposal_id"])
         lifts = [row for row in doc["rows"] if row["stage"] == "lift"]
         self.assertEqual([row["pass_index"] for row in lifts], [1, 2])
+        self.assertTrue(all(len(row["rng_sha256_before"]) == 64 for row in lifts))
+        self.assertTrue(all(len(row["rng_sha256_after"]) == 64 for row in lifts))
+        self.assertTrue(all(row["rng_state_status_before"] == "complete" for row in lifts))
+        self.assertTrue(all(row["rng_state_status_after"] == "complete" for row in lifts))
+        self.assertEqual(len(lifts[0]["output_summaries"][0]["sample_sha256"]), 64)
         join = lifts[0]["registration_lift_join"]
         self.assertEqual(join["state"], "joined")
         self.assertEqual(join["matched_object_count"], 2)
