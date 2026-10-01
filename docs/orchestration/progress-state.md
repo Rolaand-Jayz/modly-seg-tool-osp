@@ -2317,5 +2317,5 @@ container memory-event snapshot, and the available kernel journal query had no
 matching OOM-kill record; the cause remains unknown. The exact-container
 supervisor now samples cgroup-v2 current/peak/limit and `memory.events` counters
 for the container named by that run's validated ID, alongside the existing
-board-VRAM monitor. Focused supervisor tests pass 7/7. This is observability
+board-VRAM monitor. Focused supervisor tests pass 8/8. This is observability
 only; no GPU retry was run and Ticket 04 remains unaccepted.
