@@ -2226,3 +2226,18 @@ ordered cues increased clear-plastic/glass confusion and did not solve unknown
 rejection. No heldout data or GPU was used and no model was promoted. Full
 report hashes and implementation checks are in
 `api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_ORDERED_MULTIVIEW_RBF_DEV_2026-10-01.md`.
+
+### Ticket 08 normal-detail development gap (2026-10-01)
+
+The positive region-prior sweep used a planar development scene with constant
++Z normals, so it did not exercise the height-derived surface detail in the
+frozen scene. The frozen region-inverse v2 run has high fit error for two of
+three regions and fails the base-color, roughness, and metallic gates. The
+earlier latent-normal candidate also fails those map gates and has no spatial
+or height-integrability model. This rules out more tuning of the base-color
+prior as the next development step. The next estimator work needs an
+independent, hash-bound development fixture with a spatially varying normal
+field, followed by development of a coherent normal/detail nuisance model.
+Only allowlisted training inputs were examined; the terminal one-shot scorer
+was not rerun, and no thresholds or frozen artifacts changed. Full diagnosis:
+`api/runtime/adapters/pbr/evidence/ticket08-normal-detail-domain-gap-2026-10-01.md`.
