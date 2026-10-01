@@ -2238,6 +2238,24 @@ or height-integrability model. This rules out more tuning of the base-color
 prior as the next development step. The next estimator work needs an
 independent, hash-bound development fixture with a spatially varying normal
 field, followed by development of a coherent normal/detail nuisance model.
-Only allowlisted training inputs were examined; the terminal one-shot scorer
-was not rerun, and no thresholds or frozen artifacts changed. Full diagnosis:
+The terminal one-shot scorer was not rerun and no thresholds or frozen
+artifacts changed. An archive inventory command accidentally decompressed
+target/held-out NPZ members while printing names and shapes; it surfaced no
+pixel values and used none for tuning, but this is still recorded as target
+array access and a strict isolation breach. Full diagnosis:
 `api/runtime/adapters/pbr/evidence/ticket08-normal-detail-domain-gap-2026-10-01.md`.
+
+### Ticket 08 height-detail development fixture and latent-normal screen (2026-10-01)
+
+Added an independent six-view fixture whose training colors include spatially
+varying height-derived normals hidden from the estimator; its input and target
+archives have separate hashes and a strict loader allowlist. The fixture and
+one-way scorer checks pass 6/6. The existing per-texel latent-normal model was
+then run CPU-only at 32x32. Training RGB fit MAE was 0.02543, but the map errors
+were base-color MAE 0.15986/SSIM 0.26809, roughness MAE 0.38785, and metallic
+MAE 0.20852; novel-light MAE was 0.01143. This rejects that model for material
+recovery on this scene and supports a region-aware, spatially coherent model
+as the next step. It remains a diagnostic because it does not output
+material-region-bound maps. No frozen scorer or acceptance data were used in
+this run. Evidence:
+`api/runtime/adapters/pbr/evidence/ticket08-height-detail-development-v3-latent-normal-rejection-2026-10-01.md`.
