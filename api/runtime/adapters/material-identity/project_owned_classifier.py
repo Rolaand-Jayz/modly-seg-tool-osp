@@ -164,6 +164,8 @@ def _validate_samples(samples: Iterable[dict[str, Any]]) -> list[dict[str, Any]]
     if not result:
         raise CandidateError("at least one labeled region view is required")
     keys: set[tuple[str, str, str]] = set()
+    sample_ids: set[str] = set()
+    region_labels: dict[tuple[str, str], str] = {}
     per_label_objects: dict[str, set[str]] = {label: set() for label in SUPPORTED_LABELS}
     for row in result:
         if not isinstance(row, dict):
@@ -173,12 +175,19 @@ def _validate_samples(samples: Iterable[dict[str, Any]]) -> list[dict[str, Any]]
         if any(not isinstance(v, str) or not v.strip() for v in
                (sample_id, object_id, region_id, view_id)):
             raise CandidateError("sample, object, region, and view ids must be non-empty strings")
+        if sample_id in sample_ids:
+            raise CandidateError(f"duplicate training sample id: {sample_id}")
+        sample_ids.add(sample_id)
         if label not in SUPPORTED_LABELS:
             raise CandidateError(f"unsupported training label: {label!r}")
         key = (object_id, region_id, view_id)
         if key in keys:
             raise CandidateError(f"duplicate object/region/view training observation: {key}")
         keys.add(key)
+        region_key = (object_id, region_id)
+        prior_label = region_labels.setdefault(region_key, label)
+        if prior_label != label:
+            raise CandidateError("all views of one material region must have the same training label")
         image, mask = row.get("image"), row.get("mask")
         if not isinstance(image, np.ndarray) or not isinstance(mask, np.ndarray):
             raise CandidateError("training observations must provide image and topology mask arrays")
@@ -205,23 +214,34 @@ def fit(samples: Iterable[dict[str, Any]], *, seed: int = 0, variants_per_view: 
     rows = _validate_samples(samples)
     reject_rows = sorted(list(abstention_samples),
         key=lambda r: (r.get("object_id", ""), r.get("region_id", ""), r.get("view_id", ""), r.get("sample_id", "")))
+    sample_ids = {row["sample_id"] for row in rows}
+    region_labels = {(row["object_id"], row["region_id"]): row["label"] for row in rows}
     reject_keys: set[tuple[str, str, str]] = set()
     for row in reject_rows:
         if not isinstance(row, dict) or row.get("label") not in {"__unknown__", "__ambiguous__"}:
             raise CandidateError("abstention observations must be explicitly labeled unknown or ambiguous")
         identity = tuple(row.get(k) for k in ("object_id", "region_id", "view_id"))
-        if any(not isinstance(v, str) or not v.strip() for v in (row.get("sample_id"), *identity)):
+        sample_id = row.get("sample_id")
+        if any(not isinstance(v, str) or not v.strip() for v in (sample_id, *identity)):
             raise CandidateError("abstention observations require stable sample, object, region, and view ids")
+        if sample_id in sample_ids:
+            raise CandidateError(f"duplicate training sample id: {sample_id}")
+        sample_ids.add(sample_id)
         if identity in reject_keys:
             raise CandidateError(f"duplicate abstention observation: {identity}")
         reject_keys.add(identity)
+        region_key = (identity[0], identity[1])
+        prior_label = region_labels.setdefault(region_key, row["label"])
+        if prior_label != row["label"]:
+            raise CandidateError("all views of one material region must have the same training label")
         image, mask = row.get("image"), row.get("mask")
         if not isinstance(image, np.ndarray) or not isinstance(mask, np.ndarray):
             raise CandidateError("abstention observations must provide image and topology mask arrays")
         _features(image, mask)
-    supported_keys = {(r["object_id"], r["region_id"], r["view_id"]) for r in rows}
-    if supported_keys.intersection(reject_keys):
-        raise CandidateError("a topology-bound observation cannot have both supported and abstention labels")
+    supported_keys = {(r["object_id"], r["region_id"]) for r in rows}
+    rejected_regions = {(r["object_id"], r["region_id"]) for r in reject_rows}
+    if supported_keys.intersection(rejected_regions):
+        raise CandidateError("a material region cannot have both supported and abstention labels")
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise CandidateError("seed must be a non-negative integer")
     if isinstance(variants_per_view, bool) or not isinstance(variants_per_view, int) or not 0 <= variants_per_view <= 64:

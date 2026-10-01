@@ -1,0 +1,20 @@
+{
+  "schema_name": "modly.ticket04.geosam2-diagnostic-telemetry-lock.v2",
+  "schema": "modly.geosam2-diagnostic-telemetry/2",
+  "module": "geosam2_diagnostic_telemetry.py",
+  "module_sha256": "1cfb940d98dc82526b5da20c93361bdda95dcf1477752e9dc981c1e94e11f7ed",
+  "limits": {
+    "views": 12,
+    "batch_and_crop_candidate_counts_per_view": 64,
+    "proposal_mask_summaries_per_view": 64,
+    "sample_values_per_mask": 8192,
+    "sample_bytes_per_mask": 65536,
+    "rng_state_bytes_per_source": 65536
+  },
+  "privacy": {
+    "mask_payloads_retained": false,
+    "coordinate_payloads_retained": false,
+    "rng_state_retained": false,
+    "rng_state_digest_retained": true
+  }
+}

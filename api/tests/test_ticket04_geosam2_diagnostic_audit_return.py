@@ -155,7 +155,7 @@ class GeoSAM2DiagnosticAuditReturnTests(unittest.TestCase):
 
         self.assertIn("diagnostic_telemetry", audit)
         telemetry = audit["diagnostic_telemetry"]
-        self.assertEqual(telemetry["schema"], "modly.geosam2-diagnostic-telemetry/1")
+        self.assertEqual(telemetry["schema"], "modly.geosam2-diagnostic-telemetry/2")
         self.assertFalse(telemetry["payloads_persisted"])
         self.assertEqual(len(telemetry["views"]), 1)
         self.assertEqual(telemetry["views"][0]["view_index"], 0)

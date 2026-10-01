@@ -82,6 +82,31 @@ class Ticket07ProjectOwnedClassifier(unittest.TestCase):
         with self.assertRaises(CandidateError):
             fit([r for r in samples() if r["label"] != SUPPORTED_LABELS[-1]], variants_per_view=0)
 
+    def test_training_rejects_conflicting_labels_for_one_region_across_views(self):
+        rows = samples()
+        conflicting = dict(rows[1])
+        conflicting["sample_id"] = "conflicting-sample"
+        conflicting["view_id"] = "view-2"
+        conflicting["label"] = SUPPORTED_LABELS[1]
+        with self.assertRaisesRegex(CandidateError, "same training label"):
+            fit([*rows, conflicting], variants_per_view=0)
+
+    def test_training_rejects_supported_and_abstention_labels_for_one_region(self):
+        base = samples()
+        conflicting = dict(base[0])
+        conflicting.update(sample_id="reject-other-view", view_id="view-2", label="__unknown__")
+        with self.assertRaisesRegex(CandidateError, "same training label"):
+            fit(base, variants_per_view=0, abstention_samples=[conflicting])
+
+    def test_training_rejects_duplicate_sample_ids_across_regions(self):
+        rows = samples()
+        duplicated = dict(rows[1])
+        duplicated["sample_id"] = rows[0]["sample_id"]
+        duplicated["object_id"] = "another-object"
+        duplicated["region_id"] = "another-region"
+        with self.assertRaisesRegex(CandidateError, "duplicate training sample id"):
+            fit([*rows, duplicated], variants_per_view=0)
+
     def test_training_only_unknown_and_ambiguous_examples_are_pinned(self):
         base = samples()
         rejection = []
