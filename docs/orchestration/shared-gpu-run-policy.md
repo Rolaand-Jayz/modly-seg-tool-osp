@@ -11,10 +11,14 @@ active GPU, the adapter refuses to start.
 
 The limit applies only to PyTorch's caching allocator. It does not reserve
 physical GPU memory or limit non-PyTorch allocations and does not prevent GPU
-compute contention. A run operator must check live VRAM during a controlled
-diagnostic and stop that run if total free VRAM falls below the 4 GiB reserve.
-The run must write only to a new, project-owned output path. Model/cache/runtime
-files are read-only inputs unless a specific stage contract names an output.
+compute contention. GeoSAM2 runs must use
+`scripts/monitored_geosam2_workflow.py`, which samples host VRAM every two
+seconds and, at the reserve, targets that run's container ID and delegated
+cgroup. A launcher process signal or Podman stopped-state response alone is
+not proof that the inference process has exited; confirm the cgroup is empty
+and KFD has no run process. The run must write only to a new, project-owned
+output path. Model/cache/runtime files are read-only inputs unless a specific
+stage contract names an output.
 
 This policy is resource containment, not proof that concurrent desktop
 rendering is unaffected. Ticket 12 still requires measured per-stage VRAM,
