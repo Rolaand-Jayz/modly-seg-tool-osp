@@ -1,5 +1,37 @@
 # Ticket 04 target probe runbook
 
+## First-convolution digest trace (locked, GPU-held)
+
+`GEOSAM2_FIRST_CONV_LOCK.v1.json` and the opt-in `encoder-first-conv` mode add a
+versioned, digest-only capture at the pinned Hiera patch embedding. It records
+the image tensor entering `image_encoder.trunk.patch_embed`, the exact tensor
+entering `image_encoder.trunk.patch_embed.proj` (`Conv2d`), that convolution's
+output, and per-call weight/bias digests. It also records read-only autocast,
+deterministic-algorithm, and TF32 flags at the convolution input boundary.
+Transient tensor copies are capped at 64 MiB each; tensor payloads are not
+written. This trace does not alter precision or determinism settings and is
+diagnostic evidence only.
+
+The project's GPU pause is active, so this command is currently expected to
+exit with status 78 before creating a container. Do not remove or bypass the
+pause marker to run it. Once the hold has been cleared through the project's
+normal process, run the host wrapper from the project root with a new output
+directory:
+
+```sh
+scripts/modly-amd-runtime.sh trace-geosam2-lifecycle "$PWD" \
+  .modly-amd-runtime/results/ticket04-first-conv-next encoder-first-conv
+```
+
+The host wrapper checks the pause marker first, then verifies the added lock
+and runner identity. The probe also revalidates the existing source, model,
+dependency, lifecycle, image-boundary, and Hiera-stage locks before loading the
+pinned Flamingo view-zero input. Read the resulting
+`lifecycle-diagnostic.json` field `image_encoder_first_conv` alongside the
+existing lifecycle and encoder-stage reports. Compare per-role hashes and
+flags; a difference localizes a changed boundary but does not by itself prove
+the source of the variation or pass Ticket 04.
+
 The probe records measured acceptance; source inspection and unit tests do not
 substitute for it. Run it only after the shared RX 7900 GRE slot is released.
 It performs no downloads. It requires a project-managed ROCm/MIGraphX image and

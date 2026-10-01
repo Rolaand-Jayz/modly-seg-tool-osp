@@ -2,6 +2,9 @@ import { Worker }      from 'worker_threads'
 import { spawn }       from 'child_process'
 import { existsSync }  from 'fs'
 import { join }        from 'path'
+import { performance } from 'node:perf_hooks'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 
 // ─── Worker code for JS process extensions ────────────────────────────────────
 
@@ -60,6 +63,95 @@ export interface ProcessResult {
   text?:     string
   structuredAssetPath?: string
   stageOutputArtifact?: Record<string, unknown>
+  qualitySummary?: Record<string, unknown>
+}
+
+export interface ProcessExecutionTelemetry {
+  stage_id: string
+  execution_backend: 'python_subprocess' | 'js_worker_thread'
+  status: 'failed' | 'cancelled'
+  host_wall_time_ms: number
+  latency_ms: number
+  latency_kind: 'host_wall_time'
+  inference_backend: { state: 'unknown'; value: null }
+  device: { state: 'unknown'; value: null }
+  resources: { accelerator_vram_peak_bytes: { state: 'unknown'; value: null } }
+  error_kind: 'process_error' | 'process_exit' | 'cancelled'
+}
+
+export class ProcessExecutionError extends Error {
+  readonly telemetry: ProcessExecutionTelemetry
+  constructor(message: string, telemetry: ProcessExecutionTelemetry) {
+    super(message)
+    this.name = 'ProcessExecutionError'
+    this.telemetry = telemetry
+  }
+}
+
+export function createProcessFailureTelemetry(
+  extensionId: string,
+  hostWallTimeMs: number,
+  status: 'failed' | 'cancelled',
+  errorKind: ProcessExecutionTelemetry['error_kind'],
+  executorBackend: ProcessExecutionTelemetry['execution_backend'] = 'python_subprocess',
+): ProcessExecutionTelemetry {
+  return {
+    stage_id: `${extensionId}:host-execution`, execution_backend: executorBackend, status,
+    host_wall_time_ms: Math.max(0, hostWallTimeMs), latency_ms: Math.max(0, hostWallTimeMs),
+    latency_kind: 'host_wall_time', inference_backend: { state: 'unknown', value: null },
+    device: { state: 'unknown', value: null },
+    resources: { accelerator_vram_peak_bytes: { state: 'unknown', value: null } },
+    error_kind: errorKind,
+  }
+}
+
+/** Store host-only failure evidence in the workspace so it remains inspectable after a failed workflow. */
+export async function persistProcessFailureTelemetry(
+  workspaceDir: string,
+  telemetry: ProcessExecutionTelemetry,
+): Promise<string> {
+  const runId = randomUUID()
+  const dir = join(workspaceDir, 'StructuredAssets', 'process-runs', runId)
+  await mkdir(dir, { recursive: true })
+  const reportPath = join(dir, 'execution-telemetry.json')
+  await writeFile(reportPath, `${JSON.stringify({ schema_version: 1, run_id: runId, runtime_reports: [telemetry] }, null, 2)}\n`, { flag: 'wx' })
+  return reportPath
+}
+
+/** Add host-observed run facts while leaving model/backend and GPU fields unknown unless reported. */
+export function attachHostExecutionTelemetry(
+  extensionId: string,
+  executorBackend: 'python_subprocess' | 'js_worker_thread',
+  hostWallTimeMs: number,
+  result: ProcessResult,
+): ProcessResult {
+  const summary = result.qualitySummary ?? {}
+  const existingReports = Array.isArray(summary.runtime_reports)
+    ? summary.runtime_reports.filter((item): item is Record<string, unknown> =>
+      !!item && typeof item === 'object' && !Array.isArray(item))
+    : Object.keys(summary).some((key) => key !== 'runtime_reports') ? [summary] : []
+  const processorLatency = typeof summary.latency_ms === 'number' && Number.isFinite(summary.latency_ms)
+    ? summary.latency_ms : undefined
+  const executionReport: Record<string, unknown> = {
+    stage_id: `${extensionId}:host-execution`,
+    execution_backend: executorBackend,
+    status: 'done',
+    host_wall_time_ms: Math.max(0, hostWallTimeMs),
+    latency_ms: processorLatency ?? Math.max(0, hostWallTimeMs),
+    latency_kind: processorLatency === undefined ? 'host_wall_time' : 'processor_reported',
+    inference_backend: typeof summary.backend === 'string'
+      ? { state: 'reported', value: summary.backend }
+      : { state: 'unknown', value: null },
+    resources: {
+      accelerator_vram_peak_bytes: typeof summary.accelerator_vram_bytes === 'number'
+        ? { state: 'reported', value: summary.accelerator_vram_bytes }
+        : { state: 'unknown', value: null },
+    },
+  }
+  return {
+    ...result,
+    qualitySummary: { ...summary, runtime_reports: [...existingReports, executionReport] },
+  }
 }
 
 export interface IProcessRunner {
@@ -93,14 +185,17 @@ export function mayForwardOpenAIKey(
 // ─── JS ProcessRunner (Worker thread) ────────────────────────────────────────
 
 export class ProcessRunner implements IProcessRunner {
+  private extensionId: string
   private worker:   Worker | null = null
   private ready:    boolean       = false
   private extDir:   string
   private entry:    string
   private workspaceDir: string
   private tempDir:  string
+  private activeRun: { reject: (error: Error) => void; startedAt: number } | null = null
 
-  constructor(extDir: string, entry: string, workspaceDir: string, tempDir: string) {
+  constructor(extensionId: string, extDir: string, entry: string, workspaceDir: string, tempDir: string) {
+    this.extensionId  = extensionId
     this.extDir       = extDir
     this.entry        = entry
     this.workspaceDir = workspaceDir
@@ -145,10 +240,27 @@ export class ProcessRunner implements IProcessRunner {
     onProgress?: (percent: number, label: string) => void,
     onLog?:      (message: string) => void,
   ): Promise<ProcessResult> {
-    await this.ensureReady()
+    const runStartedAt = performance.now()
+    try {
+      await this.ensureReady()
+    } catch (error) {
+      throw new ProcessExecutionError(String(error), createProcessFailureTelemetry(
+        this.extensionId, performance.now() - runStartedAt, 'failed', 'process_error', 'js_worker_thread',
+      ))
+    }
     const worker = this.worker!
 
     return new Promise((resolve, reject) => {
+      const startedAt = runStartedAt
+      this.activeRun = { reject, startedAt }
+      const fail = (message: string, status: 'failed' | 'cancelled' = 'failed') => {
+        if (this.activeRun?.startedAt !== startedAt) return
+        this.activeRun = null
+        reject(new ProcessExecutionError(message, createProcessFailureTelemetry(
+          this.extensionId, performance.now() - startedAt, status,
+          status === 'cancelled' ? 'cancelled' : 'process_error', 'js_worker_thread',
+        )))
+      }
       const handler = (msg: { type: string; result?: ProcessResult; message?: string; percent?: number; label?: string }) => {
         if (msg.type === 'progress') {
           onProgress?.(msg.percent ?? 0, msg.label ?? '')
@@ -156,10 +268,11 @@ export class ProcessRunner implements IProcessRunner {
           onLog?.(msg.message ?? '')
         } else if (msg.type === 'done') {
           worker.off('message', handler)
+          this.activeRun = null
           resolve(msg.result ?? {})
         } else if (msg.type === 'error') {
           worker.off('message', handler)
-          reject(new Error(msg.message))
+          fail(msg.message ?? 'Process worker failed')
         }
       }
 
@@ -169,6 +282,13 @@ export class ProcessRunner implements IProcessRunner {
   }
 
   terminate(): void {
+    if (this.activeRun) {
+      const active = this.activeRun
+      this.activeRun = null
+      active.reject(new ProcessExecutionError('Process extension cancelled', createProcessFailureTelemetry(
+        this.extensionId, performance.now() - active.startedAt, 'cancelled', 'cancelled', 'js_worker_thread',
+      )))
+    }
     this.worker?.terminate()
     this.worker = null
     this.ready  = false
@@ -188,6 +308,8 @@ export class PythonProcessRunner implements IProcessRunner {
   private tempDir:      string
   private modlyApiDir:  string
   private allowOpenAIKey: boolean
+  private activeProcess: ReturnType<typeof spawn> | null = null
+  private cancellationRequested = false
 
   constructor(extensionId: string, pythonExe: string, extDir: string, entry: string, workspaceDir: string, tempDir: string, modlyApiDir = '', allowOpenAIKey = false) {
     this.extensionId  = extensionId
@@ -209,6 +331,8 @@ export class PythonProcessRunner implements IProcessRunner {
     onProgress?: (percent: number, label: string) => void,
     onLog?:      (message: string) => void,
   ): Promise<ProcessResult> {
+    const startedAt = performance.now()
+    this.cancellationRequested = false
     return new Promise((resolve, reject) => {
       // The API key is forwarded only to this built-in semantic extension after
       // explicit provider selection and ephemeral per-run image-transfer consent.
@@ -225,6 +349,7 @@ export class PythonProcessRunner implements IProcessRunner {
           ...(this.modlyApiDir ? { MODLY_API_DIR: this.modlyApiDir } : {}),
         },
       })
+      this.activeProcess = proc
 
       // Send input as a single JSON line on stdin
       proc.stdin.write(JSON.stringify({
@@ -255,10 +380,18 @@ export class PythonProcessRunner implements IProcessRunner {
               onLog?.(msg.message ?? '')
             } else if (msg.type === 'done') {
               resolved = true
-              resolve(msg.result ?? {})
+              resolve(attachHostExecutionTelemetry(
+                this.extensionId,
+                'python_subprocess',
+                performance.now() - startedAt,
+                msg.result ?? {},
+              ))
             } else if (msg.type === 'error') {
               resolved = true
-              reject(new Error(msg.message ?? 'Unknown error'))
+              reject(new ProcessExecutionError(
+                msg.message ?? 'Unknown error',
+                createProcessFailureTelemetry(this.extensionId, performance.now() - startedAt, 'failed', 'process_error'),
+              ))
             }
           } catch {
             // Non-JSON stdout line — treat as a log message
@@ -273,11 +406,17 @@ export class PythonProcessRunner implements IProcessRunner {
       })
 
       proc.on('close', (code) => {
+        if (this.activeProcess === proc) this.activeProcess = null
         if (!resolved) {
           if (code === 0) {
             resolve({})
           } else {
-            reject(new Error(stderrBuf.trim() || `Python process exited with code ${code}`))
+            const cancelled = this.cancellationRequested
+            reject(new ProcessExecutionError(
+              cancelled ? 'Process extension cancelled' : (stderrBuf.trim() || `Python process exited with code ${code}`),
+              createProcessFailureTelemetry(this.extensionId, performance.now() - startedAt,
+                cancelled ? 'cancelled' : 'failed', cancelled ? 'cancelled' : 'process_exit'),
+            ))
           }
         }
       })
@@ -285,14 +424,19 @@ export class PythonProcessRunner implements IProcessRunner {
       proc.on('error', (err) => {
         if (!resolved) {
           resolved = true
-          reject(err)
+          reject(new ProcessExecutionError(String(err), createProcessFailureTelemetry(
+            this.extensionId, performance.now() - startedAt, 'failed', 'process_error',
+          )))
         }
       })
     })
   }
 
-  // Python processes are spawned per run — nothing persistent to terminate
-  terminate(): void {}
+  terminate(): void {
+    if (!this.activeProcess) return
+    this.cancellationRequested = true
+    this.activeProcess.kill('SIGTERM')
+  }
 }
 
 // ─── Helper: find Python executable for an extension ─────────────────────────
@@ -320,7 +464,7 @@ export function getProcessRunner(
   tempDir:      string,
 ): ProcessRunner {
   if (!registry.has(extensionId)) {
-    registry.set(extensionId, new ProcessRunner(extDir, entry, workspaceDir, tempDir))
+    registry.set(extensionId, new ProcessRunner(extensionId, extDir, entry, workspaceDir, tempDir))
   }
   return registry.get(extensionId)! as ProcessRunner
 }

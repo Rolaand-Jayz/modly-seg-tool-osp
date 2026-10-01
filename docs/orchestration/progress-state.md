@@ -1,6 +1,220 @@
 # Modly AMD Semantic 3D implementation state
 
-Updated: 2026-09-28
+Updated: 2026-10-01
+
+## Implementation continuation (2026-10-01)
+
+The Python launcher now discovers the flat `api/tests` directory with the
+correct import root. The full Python suite (`npm run test:py`) used an isolated Python 3.14
+environment installed from `api/requirements.txt`, with GPU visibility disabled
+and the uninstalled P3-SAM source explicitly marked absent. It reached **813 tests in
+178.7 seconds**: **1 failure, 4 errors, and 5 skips**. The failure is the
+preregistered Ticket 07 gate-file SHA mismatch; the baseline bytes are not
+available and the frozen pin remains unchanged. The errors are stale Ticket
+05 source identities plus a Ticket 07 batch run blocked by the same immutable
+gate pin. The canonical image integration is skipped under the GPU hold, not
+counted as a pass. Python tests are still not all passing.
+
+After the Ticket 13 75k-face drag optimization, current frontend checks pass:
+`npm run test:node` **114/114**, `npm run lint`, and `npm run build`. Build
+warnings remain for the optional `sharp` install script and stale Browserslist
+data. These checks do not qualify manual interaction or GPU inference.
+
+Ticket 13 now indexes face centers once into bounded spatial bins, examines
+only the latest drag segment (up to 128 samples), caps stored pointer history
+at 256 points, and limits preview publication to 100 ms. Selection/removal
+validation uses sets. Two CPU helper tests and the focused build/lint passed.
+A very long pointer jump can miss faces between capped samples; normal pointer
+events are processed as successive segments. The edit is an on-surface
+face-transfer correction, not geometric vertex/seam displacement; no manual
+SUV interaction was run.
+
+Ticket 07's additional dev-only ridge comparison did not pass its unchanged
+gates: ridge 0.5 reached macro-F1 0.7049, minimum recall 0.35, coverage 0.75,
+unknown abstention 0.35, ambiguous abstention 0.60; ridge 20 reached 0.6797,
+0.35, 0.70, 0.40, and 0.45 respectively. No candidate had a feasible gate
+pair. The report is `.modly-amd-runtime/ticket07-project-owned-dev-20260930-ridge/report.json`
+(SHA-256 `31a5a8fe1abc8350464a978b3aede59f8ed77bdc9a407f228a54a6fae3853d61`).
+Heldout truth and GPU were not used. The dev evaluator now persists the
+truth-free feature artifact before joining development labels.
+The later supervised-abstention candidate improves macro-F1 to 0.7138 and
+ambiguous abstention to 0.90, but minimum recall is 0.50, coverage 0.78, and
+unknown abstention 0.30; it still has no feasible threshold pair.
+
+Ticket 08 now has a truth-free provisional pipeline: RGB appearance clusters
+from allowlisted training observations pass through the Modly Ticket 06
+processor, map to validated unchanged topology, and feed the project-owned
+inverse renderer. Raw maps were durably saved before evaluation. The audited
+fixture has no separate development target split or one-way development
+scorer, so those maps remain unscored; held-out scoring was not run.
+
+Ticket 04 CPU audit found that the first differing recorded stage is the
+patch-embedding output, but the trace does not capture the transformed tensor
+entering the first Conv2d. It therefore cannot separate preprocessing drift
+from convolution numeric/backend variation. The unpaired autocast context in
+the pinned initializer may leak settings, but is not established as the
+cause. Further diagnosis requires a new digest-only input/weight/output trace
+and one-factor hardware probes; all such GPU work remains paused by
+`.modly-amd-runtime/GPU_RUNS_PAUSED`.
+
+The API suite's failures and errors remain open; the canonical blocked
+workflow is not counted as a success. No RX 7900 GRE end-to-end vertical
+slice, manual correction session, or target VRAM telemetry has been completed.
+No ticket acceptance gate was changed.
+
+SUV importer verification (2026-10-01): the user-provided realistic SUV GLB at
+`.modly-amd-runtime/suv-structured-import-run11/source.glb` was imported through
+`POST /workflow-runs/from-mesh` (run `972a7cf6-2303-4735-92ef-ef12c8b6e92d`).
+The saved sidecar was then passed through the real `POST /structured-assets/validate`
+handler with its workspace correctly pointed at this run; it returned
+`validation_state=valid`, topology revision
+`sha256:f65ea5a3000e4b366a8628a7360c7164f8b6fa4524b4186d5ba1ce1e0ae0a057`,
+and source geometry digest
+`sha256:39eae91adc8dc42f5ab896579d666aa00c806b80ce1d9a4f0fdadcaea5dbed68`.
+This verifies only CPU import and sidecar validation. The sidecar has no segmentation;
+SUV semantic/material processing, manual correction, export/reopen, GPU metrics, and
+the complete vertical slice remain outstanding. The GPU pause marker remains active.
+
+Additional 2026-10-01 implementation notes:
+
+- Ticket 09 now groups active corrections by target and property. Conflicting
+  correction values remain unresolved with their IDs and model evidence
+  preserved; agreeing corrections resolve deterministically and retain every
+  contributing correction ID. Its focused fusion suite passes **12/12**.
+  Ticket acceptance remains open.
+- Ticket 07's separate supervised-abstention ridge candidate uses only
+  object-disjoint training folds. Supported labels use one-hot targets,
+  unknown uses all-zero supported scores, and ambiguous uses uniform scores.
+  Its one bounded dev run scored macro-F1 0.7138, minimum recall 0.50,
+  supported coverage 0.78, unknown abstention 0.30, and ambiguous abstention
+  0.90; no feasible threshold pair passed. Evidence:
+  `api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_SUPERVISED_ABSTENTION_DEV_2026-10-01.md`.
+  Heldout truth and GPU were not used; gates remain unchanged. Its direct
+  focused classifier/evaluator suite also passed 10/10 under system Python
+  3.14 with Pillow; the project API venv cannot import the evaluator because
+  that venv lacks Pillow.
+- Ticket 08 now has a CPU-only training correspondence builder using explicit
+  mesh/UV/view/visibility inputs. Its focused correspondence and projection
+  checks pass 10/10. A truth-free provisional path has also projected three
+  appearance-cluster regions through Ticket 06 and durably saved raw PBR
+  output before scoring at
+  `.modly-amd-runtime/ticket08-provisional-training-only-run10/ticket08-raw-provisional-output.npz`
+  (SHA-256 `fe8f129e744afbffb6262506bafc12bc1f8a453775df0ed0e8f8b9220d244358`).
+  Its candidate manifest SHA-256 is `c18da2c26a29ff6fd320c166b89a3e90f00b3094a195c98bf66b2bc16f48613f`.
+  An initial candidate measurement used the v1 dev fixture; its maps had MAE
+  0.1288/0.2763/0.2914 (base/roughness/metallic) and novel-light MAE 0.0034.
+  The fixture repeated identical training frames, so v2 now provides varied views.
+  During the attempted preparation, a metadata JSON in the nominal train-only directory
+  was opened and found to contain heldout/scoring metadata; that read is
+  excluded from candidate inputs, no values were used, and the agent stopped
+  using that file. A deterministic RGB clustering producer now creates
+  unqualified provisional masks, but it does not pass Ticket 06 acceptance
+  and is not a substitute for a separate dev target split/scorer. The separate
+  preregistered training scene input has been
+  live-verified at SHA-256 `a460ee742fefb0cd1f29c55bf8f4290de0bbe08556fca61daabb200c28e52dc2`
+  with only four camera matrices and a three-light training rig; candidate
+  preparation is restricted to that source and the five named training-only
+  NPZ members in its existing allowlist.
+- Ticket 08 now also has a separate seeded development fixture and one-way
+  scorer at `api/runtime/adapters/pbr/development_fixture_v1.py` and
+  `score_development_v1.py`. Candidate inputs and dev targets are separate
+  hash-bound NPZ files; the scorer accepts only output maps and visibility and
+  runs no estimator. Its v1 isolation/scorer suite passes 4/4, including
+  unknown texels. The v2 view-diverse fixture/scorer suite passes 5/5. A
+  candidate was measured on v2 as recorded below; neither result is acceptance
+  or generalization evidence.
+- Ticket 07 tested one affine view-plane plus photometric training augmentation
+  on object-disjoint folds. It did not improve enough to pass any frozen gate:
+  macro-F1 0.6276, minimum recall 0.30, coverage 0.69, unknown abstention
+  0.40, ambiguous abstention 1.00 (all 20 ambiguous examples were instead
+  called unknown). The unaugmented comparison was macro-F1 0.6261, minimum
+  recall 0.40, coverage 0.69, unknown abstention 0.45, ambiguous abstention
+  0.45. No heldout data, GPU, weights, or gate edits. Evidence:
+  `.modly-amd-runtime/ticket07-project-owned-view-affine-20261001-v1/report.json`.
+- Ticket 04 now has a CPU-authored, source-bound first-convolution capture
+  helper that records digests for the actual patch input, Conv2d input/output,
+  per-call weights/bias, and read-only precision flags. Its focused CPU tests
+  pass 2/2; Python compile, shell syntax, and source-lock checks pass. The
+  host runner exits 78 before container setup while the GPU pause is active.
+  No GPU run occurred; the hardware cause and reproducibility fix remain open.
+- Ticket 07's latest affine-view/framing and photometric augmentation run
+  failed unchanged gates (macro-F1 0.6276, minimum recall 0.30, coverage 0.69,
+  unknown abstention 0.40; all ambiguous examples were classified unknown).
+  Exact ambiguous status recall was 0.00. Focused tests passed 8/8 under system
+  Python 3.14 because the project API test venv lacks Pillow. Evidence:
+  `api/runtime/adapters/material-identity/evidence/PROJECT_OWNED_AFFINE_AUGMENTATION_DEV_2026-10-01.md`.
+- Ticket 08 v1's initial estimator measurement exposed identical training
+  frames. A new v2 scene now uses three view-diverse camera poses, independent
+  hash-bound target/input files, and strict input allowlisting. The current
+  deterministic three-start bounded GGX candidate fit at 32x32 and was
+  expanded using the existing nearest-map rule to score 2,408/2,408 visible
+  texels. Development errors: base color MAE 0.0333, SSIM 0.5821; roughness
+  MAE 0.0259; metallic MAE 0.0327; novel-light MAE 0.0032. SSIM remains below
+  the unchanged 0.85 threshold; no frozen gate was applied. Candidate output,
+  score, and provenance are preserved under
+  `api/runtime/adapters/pbr/evidence/ticket08-development-fixture-v2/`.
+  The complete Ticket 08 test selection passes **61/61** in the dependency-
+  complete Python 3.14 environment.
+- Ticket 10 adds API process-run telemetry with host executor identity,
+  monotonic duration, timestamps/status, and explicit unknown backend/device/
+  VRAM when processors do not report them; records are atomically persisted.
+  The Electron Python-runner success path contributes host timing, and its
+  failure/cancellation paths now persist explicit failed/cancelled telemetry.
+  Workflow cancellation terminates the active extension process; JS worker
+  failures also report host telemetry. CPU checks passed: API process runs
+  13/13, Electron runner/workflow-store focused checks 14/14, and Python
+  compilation. Backend/device/VRAM stay unknown unless a processor reports
+  them; no hardware telemetry is implied.
+- GPU-hold-aware unit corrections were made after the 751-test run:
+  quarantine metadata now reports before the model-load guard, collection
+  sanitizer tests isolate their fake registry, and the canonical generation
+  integration check skips explicitly when the real pause marker prevents
+  inference. Their focused suite passes **52 tests with 1 explicit skip**.
+  The latest dependency-complete 813-test run has 1 failure, 4 errors, and 5 skips;
+  frozen source/gate and optional-runtime issues remain visible and unchanged.
+
+## Implementation and validation refresh (2026-09-30)
+
+The project-owned material-identity and inverse-rendering candidates are now
+registered Modly workflow process nodes. Ticket 07's current development-only
+candidate still fails unchanged gates (macro-F1 0.6913, minimum class recall
+0.35, supported coverage 0.70, unknown abstention 0.45, ambiguous abstention
+0.55); held-out truth was not read and no GPU was used. Ticket 08's process
+node preserves caller topology, checks topology-bound view correspondence and
+material-region inputs, records outputs/provenance, and leaves unsupported
+channels unknown. Its CPU process tests pass, but its candidate has not passed
+the frozen map or novel-light quality gates and has no RX 7900 GRE evidence.
+
+Ticket 13's review panel now previews which configured workflow stages a saved
+correction would rerun, which outputs would be replaced or preserved, and
+which capabilities/blockers are missing. Running the listed stages requires
+an explicit user action. Seam edits, seam undo/redo, and property corrections
+all request a preview. `npm run build` and `npm run lint` pass using temporary
+Node 26.10.0; the build reports the existing optional `sharp` install-script
+warning and stale Browserslist data. The web TypeScript check still reports
+pre-existing Asset Library test/source errors; it reports no current errors
+in the Structured Asset review panel or workflow store.
+
+GPU work remains paused. A shared GPU execution guard now checks the project
+and workspace pause markers at the model registry, generation, and workflow
+boundaries; its focused guard tests pass. The guard does not resolve the
+shared-desktop impact or authorize a new inference run.
+
+Validation limits: the final focused Structured Asset, correction, cache,
+export, Ticket 08, and pause-guard run passed 78/78 CPU-only tests. The Ticket
+07 classifier and its complete Ticket 06-to-07 process-node tests passed
+16/16 under system Python 3.14 with Pillow available. The Python test launcher
+now accepts an explicit interpreter through `MODLY_API_TEST_PYTHON` and
+preloads installed `typing_extensions` before exposing the API's compatibility
+module. The first full API run used system Python 3.14 and failed from
+environment/import-path issues. The project-environment full discovery then
+ran 530 tests and reported 45 errors, one failure, and 7 skips. Its
+remaining failures include Ticket 07's preregistered gate-file digest mismatch
+(current `SELECTION_AND_GATES.md` digest `bbdb9e...`; pinned digest
+`6998d8...`) and optional/incompatible runtime imports. Do not repin or
+reconstruct the gate file: the baseline bytes are not recoverable in this
+checkout. Node tests pass 103/103. Overall acceptance remains open, including
+Tickets 04, 05, 07, 08, 09–13 and the full RX 7900 GRE headless vertical slice.
 
 ## First-use image-encoder diagnostic (2026-09-28)
 
@@ -172,9 +386,13 @@ Ticket 04's opt-in A-B-A diagnostic is now integrated in the project-only propos
 | 04 | Revalidation required; GeoSAM2 selected; explicit PyTorch ROCm route retained after MIGraphX parity failure | Prior frozen-fixture runs passed at macro-IoU 1.0, full coverage, zero overlap, and 14.41792 GB reserved; however, that sentinel failure led to a separately locked Modly-side completion policy. Two current-code runs on the 1,536-face fixture both completed, with 46/1,536 face memberships different after matching regions by their face sets (97.0% agreement; region IDs alone differed on 768 labels). On the larger Flamingo mesh, two matched same-code runs completed but differ on 875/46,180 final face assignments (98.1052% matched agreement); two further attempts on that mesh failed before labels. Two attempts on a distinct 83,732-face chair both failed before final labels, with different proposal outcomes. These are descriptive repeat and completion outcomes, not quality scores or a typical cross-shape estimate. Repeatability, quality, completion-branch target coverage, and current resource gates remain open; no truth was scored. Earlier runs remain historical evidence only. See the Ticket 04 issue and the 2026-09-27 repeatability panel.
 | 06 | Acceptance passed | MaterialSeg3D was screened against its published CUDA/native requirements and is not AMD/resource-qualified; the CPU projection/back-projection adapter passed its 1.0 IoU/coverage/boundary fixture with independent material regions, full mask/projection provenance, unknown-face handling, and topology invalidation. An additional process fixture proves each of two parts contains both materials and both material regions span both parts. Focused Ticket06 tests pass 7/7. It consumes masks from a replaceable upstream segmenter; raw-image mask inference remains an explicit end-to-end dependency. |
 | 07 | In progress, acceptance blocked | Ticket07 retains the frozen quality/coverage gates and independently routed DMS46/SigLIP2 candidates. Parent reported the corrected pinned-image suite at 10/10 in 18.687 seconds: actual SigLIP2 process-extension inference over only one generated 4×2 solid-color observation and two topology-masked crops, with `--network=none`, `--cpus=2`, no device mounts, read-only source/model/wheel-overlay mounts, and offline Hugging Face flags. The pinned processor returned `pixel_values [1,3,224,224]` and `input_ids [5,64]`; tests assert the five frozen primary class prompts plus two auxiliary metal subtype prompts, raw logits, ambiguous/uncalibrated output, topology-bound crop/prompt/projection/mask digests, CPU-only telemetry, and PBR preservation. `/preflight` must precede the API test venv in `PYTHONPATH` for hash-locked Transformers 4.50.0/huggingface-hub 0.28.1 to override the image's incompatible hub 2.0.0. Separately, project-owned NumPy/stdlib CPU renderer `fixtures/render_fixture.py` generated a 145-object, 580-region synthetic holdout bundle under ignored `.modly-amd-runtime/material-identity-fixture-v1/`: 440 heldout (80/class ×5, 20 unknown, 20 ambiguous) and 140 development (20/class ×5, 20 unknown, 20 ambiguous), with five-object-per-cohort development/heldout splits for unknown/ambiguous, 4 views/object, and no class/recipe/split leakage into `inputs.json`. All-region selective-coverage denominator is 440, including unknown/ambiguous; >=80% requires at least 352 accepted single-label outputs. Fixture checks pass 6/6 in 50.469 seconds, including two fully regenerated bundles with identical hashes, object-disjoint splits, pixel-exact mask/face-map agreement, calibration cohort counts, truth isolation, and file/digest/manifest checks. Parent independently verified all 1,887 indexed data-file sizes/digests and manifest sidecar. Manifest SHA-256: `c7c5d9c2ab31d3d956411c019e2ac19a72f991da5829ed18ceacf36e47094466`; inputs: `453ac070aadd84eaf45eb381fb2910e906026b47cc929a5e6fdc4d6dd5f29694`; truth: `8ca5699c1f3f7d96c2d28b024df6a67db0d9a6d725fbbf2e2f6f604bede6e6e8`. The new disjoint evaluator `api/runtime/adapters/material-identity/evaluator.py` loaded pinned SigLIP2 once in a networkless CPU container, verified all 1,887 fixture-indexed file hashes/sizes, reconstructed 580 topology-bound crops, saved truth-free raw logits before opening truth, calibrated on 140 development crops only, froze policy SHA-256 `1f98fb9d46a440b01ab3479ca3c4bda92827fc624858cf6059829ba247b0cd0c`, then scored all 440 heldout crops. Development searched 19,881 threshold pairs and found none meeting every frozen gate. Heldout macro-F1 is 0.224914 (>=0.85 required), minimum recall 0.0 (>=0.80), all-region coverage 314/440=0.713636 (>=352/440 required), unknown abstention 0.10 (>=0.90), ambiguous abstention 0.45 (>=0.90); the coverage/OOD conjunction fails. Clear plastic, metal, and rubber/latex have zero true positives. CPU telemetry: PyTorch `2.11.0+rocm7.14.0`, HIP `7.14.60850` visible in the build but CPU device selected, CUDA false, no device mounts, processor/model loaded once, inference 350,695 ms, peak host RSS 2,037,297,152 B. This is a synthetic CPU quality failure, not AMD acceptance or real-world quality. Raw predictions SHA-256 `54776b8efc0498f44c3e2145de6d120773a5248d796989286ef9b0007a1df85e`; heldout report SHA-256 `f86e20a6c6512e024d7ecefc80e200a9116576e05e7324866587fd7238744474`; files under `api/runtime/adapters/material-identity/evidence/siglip2-rendered-cpu-v1/`. Evaluator deterministic tests pass 5/5. A follow-up CPU-only development prompt study tested frozen v2 plus three exact close-up variants and mean/max aggregations over only the 140 development crops/35 objects. All six candidates searched 19,881 threshold pairs each and had zero feasible pairs; minimum class recall was 0 for all. Best macro-F1 was 0.3084 with 0.75 all-region coverage, 0.15 unknown abstention, and 0.45 ambiguous abstention; a high-coverage surface prompt had only 0.3020 macro-F1, 0.0 unknown abstention, and 0.05 ambiguous abstention. Per the frozen rule the candidate is rejected before heldout; no heldout logits were opened/scored or truth labels consulted for selection, and the earlier heldout report was not touched. A new FMMC CVPR 2026 lead was screened, but its public page metrics do not match frozen gates and its referenced checkpoint lacks an immutable identity/hash and clear terms; no weights were fetched or loaded. Study evidence including the exact prompt text/aggregation definitions is in `api/runtime/adapters/material-identity/evidence/siglip2-development-prompt-study-v1/`. Study tests plus evaluator tests pass 7/7. The frozen gates and all-region 440 denominator are documented in `SELECTION_AND_GATES.md`; no threshold or gate changed. Official Meta standard DINOv2 ViT-B/14 (Apache-2.0, pinned source/checkpoint) was evaluated CPU-only after project-context preflight: all 580 truth-free embeddings were durably saved and 140 development crops were scored with five-fold object-disjoint OOF prototypes. Development gates failed (macro-F1 0.6652343 <0.85, minimum recall 0.25 <0.80, coverage 0.8357143 passes, unknown abstention 0.0 <0.90, ambiguous abstention 0.5 <0.90; feasible pairs 0/19,881); evaluator stopped before opening truth, and no heldout results or policy were created. Embedding/OOF/report SHA-256: `97039cbb28301ffb3d5c9582d4fc380c98572be35e70c56d00732781c5f7a086` / `f89e268ab1ff71778dddfad54eff0a84d9d8d9de0199e274db695c78c38e9d1c` / `744fd6bb479d471011043deb18b900fb21ee19b99898b27deecf1e73c87bb3b0`; details and exact command are in `api/runtime/adapters/material-identity/evidence/DINOV2_LICENSE_PROVENANCE_REVIEW_2026-09-25.md`. No acceptance gate changed. One separately predeclared fixed DINOv2 dual-ridge head (`lambda=1.0`, object-mean train rows, five object-disjoint folds, no parameter sweep) was evaluated using only the durable embeddings and development recipe labels. Gates also failed: macro-F1 0.6668177, minimum recall 0.20, all-region coverage 0.7214286, unknown abstention 0.20, ambiguous abstention 0.80, feasible pairs 0/19,881. It stopped without opening heldout truth. Ridge OOF/report SHA-256: `afef82d434d39a1759aefbbdda14af08ae16b20ec194a615188056762a78ac57` / `290bbe720e947120e8926912a3a27ce3e393a161cbc25ce01f6658fda64baac5`; details in `api/runtime/adapters/material-identity/evidence/DINOV2_RIDGE_DEV_SCREEN_2026-09-25.md`. DMS46 remains unexecuted: its pinned license requires an ACKNOWLEDGEMENTS file that returns 404 at both the pinned and checked current Apple source paths; the staged checkpoint archive contains no notice files. Evidence: `api/runtime/adapters/material-identity/evidence/DMS46_LICENSE_REVIEW_2026-09-25.md`. No RX 7900 GRE MIGraphX/ROCm parity, latency, VRAM, or target-resource evidence exists. Details: fixture/evaluator evidence and Ticket07 issue. DINOv2 direct embeddings and the fixed ridge head both failed frozen development gates and stopped before heldout truth. Source-only MINC screening found no weight license or immutable archive identity; RMSNet screening found MIT code and CC BY 4.0 dataset terms but no weight terms or checkpoint hashes, plus a 20-class road-scene domain mismatch. Neither is cleared as a deployment candidate. Evidence: `api/runtime/adapters/material-identity/evidence/MINC_MODEL_SCREEN_2026-09-25.md` and `api/runtime/adapters/material-identity/evidence/RMSNET_MODEL_SCREEN_2026-09-25.md`. No acceptance gates changed. Separate frozen-encoder candidate: pinned SigLIP2 `get_image_features` emitted normalized 768-D vectors for all 580 truth-free fixture views, durably saved before dev label derivation. A single fixed dual-ridge head (`lambda=1.0`) was OOF-scored on 140 development crops with five object-disjoint folds; gates failed (macro-F1 0.6797408, min recall 0.45, coverage 0.7285714, unknown abstention 0.40, ambiguous abstention 0.40, 0/19,881 feasible pairs; 102/140 accepted). It stopped before opening heldout truth; no policy/results for heldout. Embeddings/OOF/report SHA-256: `c0e40370aeb0c2b57cb67c561a9fae8e83297597be0789a63551b3d5ce9861bf` / `0817c6b959858413a86dc62a9632ade557cfccebe904f2212d080f0b6bdbf39b` / `e58f652c3fee55408c04da8294ad3a9718cd75c76352f5097a36fe0a7acb7b2f`; CPU telemetry and exact Podman command: `api/runtime/adapters/material-identity/evidence/SIGLIP2_IMAGE_EMBEDDING_RIDGE_DEV_SCREEN_2026-09-25.md`. Focused regression tests pass 2/2. No AMD target acceptance. Source-only current open VLM screen: Qwen3-VL-2B-Instruct is a research lead, not cleared. HF marks Apache-2.0 and model.safetensors is 4.26 GB (SHA-256 `7de1838c87a5349b016c26a1c3f7d2bc400a3d485f95ef39a7059ffd734977a0`), but inspected Hub page exposes only abbreviated commit `78448d7` and no complete snapshot manifest. Model requires Transformers >=4.57; AMD documents Radeon Qwen3-VL-8B on a different Radeon platform, with no RX 7900 GRE proof for 2B. It is generative with no native calibrated class/OOD scores; a fixed grammar and token-score adapter would first require validation. No downloads, execution, fixture truth, or heldout access. ROCm Linux lists RX 7900 GRE support, establishing a generic backend route but not model-specific parity, memory, latency, or quality acceptance. Details: `api/runtime/adapters/material-identity/evidence/QWEN3_VL_SMALL_OPEN_MODEL_SCREEN_2026-09-25.md` and `TICKET07_IMMUTABLE_MODEL_AND_RX7900GRE_ROUTE_SCREEN_2026-09-25.md`. No candidate cleared; gates unchanged. A new fixed image-appearance descriptor plus dual-ridge candidate also failed dev gates (macro-F1 0.5897, min recall 0.30, all-region coverage 0.5143, unknown abstention 0.60, ambiguous abstention 0.90; 0/19,881 feasible pairs). All 580 features were durably saved before dev-label use; heldout truth stayed unopened. Its focused tests ran under system Python 3.14.7 because Pillow is absent from the project API test venv, so this remains candidate research evidence. Detailed evidence: `PHYSICS_APPEARANCE_RIDGE_DEV_SCREEN_2026-09-25.md`. Current project-owned Python 3.12 Ticket07 suite passes 37 tests with 6 skips (one model-assets skip plus five optional-Pillow research-candidate skips); no model acceptance is implied. A mask-aware v2 descriptor excluded neutral padding but still failed dev gates: macro-F1 0.6261, min recall 0.40, all-region coverage 0.6214, unknown and ambiguous abstention 0.45 each, 0/19,881 feasible pairs. All 580 features were durably stored before dev labels; heldout truth remained unopened. Two candidate tests passed in system Python; optional Pillow skips in the project venv. Evidence: `PHYSICS_REGION_RIDGE_DEV_SCREEN_2026-09-25.md`. |
-| 08 | In progress, acceptance blocked | Candidate-independent fixture/scorer, truth-isolated contract, PBR map metrics, GGX renderer, novel-light comparison, and fixed thresholds are implemented. Existing model screens remain non-qualifying: Material Anything's PyTorch3D ROCm port now builds in the exact target image, and one 16x16 synthetic triangle raster/interpolation operation on the RX 7900 GRE matched the independent CPU reference (exact face mask; maximum barycentric/attribute errors 1.0523e-7/1.0448e-7; peak allocated/reserved 15,872 B/2 MiB, both recovered to zero baseline after cleanup). This does not establish Material Anything's Kaolin bridge, UV-atlas path, weights/terms, model quality, or candidate acceptance; see `api/runtime/adapters/pbr/evidence/material-anything-pytorch3d-rocm-build-preflight-2026-09-28.md` and `api/runtime/adapters/pbr/evidence/material-anything-pytorch3d-rocm-synthetic-op-preflight-2026-09-28.md`. SuperMat's same-view spatial maps can be paired with per-view face/barycentric raster maps and topology revisions, but its model/base identity, license terms/intended-use, Diffusers runtime, albedo color space, target resources, quality, and latency remain unresolved; MaterialMVP, MeshGen, TRELLIS.2, Hunyuan3D-Paint, IntrinsiX, PBR_Boost_3DGen, TexGaussian, Seed3D 2.0, ExMesh++, and PBR3DGen/SF3D fail documented AMD/resource/interface/license/revision gates. The fixture now has a deterministic, versioned topology-bound face-ID+barycentric sidecar for all four training views; RGB observations project through `project_and_fuse_views`, with visibility, provenance, and unknown texels checked. Existing frozen fixture GLB/NPZ bytes remain unchanged. Complete Ticket08 suite passes 25/25 with isolated SciPy 1.16.1; without it, 22 pass with 3 optional-research skips. This closes fixture-side correspondence integration, not model inference or candidate qualification. Calibrated inverse-rendering and fixed geometric-normal candidates remain rejected at frozen map gates; all prior exact metrics and evidence are recorded above. No candidate has passed PBR acceptance; thresholds unchanged. |
+| 08 | Implementation advanced; acceptance blocked | Project-owned fixed-geometry inverse rendering is registered with the Modly process contract. A CPU-only provisional run used allowlisted RGB-cluster masks through Ticket06, verified source GLB positions/UVs and face ordering against arrays, bound correspondence to current topology, and saved raw PBR maps before scoring. Raw output SHA-256: `fe8f129e744afbffb6262506bafc12bc1f8a453775df0ed0e8f8b9220d244358`. No development target split/scorer exists in the audited fixture; no held-out scorer was run. Provisional clustering is not Ticket06 acceptance, and Ticket08 quality/AMD gates remain open.
 | 05 | In progress; Florence development candidate rejected; Decider synthetic adapter integration passed | Frozen role contract, candidate-independent semantic attachment, truth-separated scorer, and rendered fixture are verified. Florence failed the frozen development gates. The user-supplied Decider GGUF now has a pinned llama.cpp/HIP batch harness and a successful network-disabled synthetic call through its registered local adapter on RX 7900 GRE; ten raw choice scores and four evidence refs passed the existing semantic response parser, with temporary inputs removed. The 16 M-RoPE recurrent-position warnings remain unresolved, upstream PyTorch/GGUF parity is unproven, and no Ticket 05 fixture scoring or heldout access occurred. Semantic quality and full workflow acceptance remain open. Evidence: `api/runtime/adapters/parts/evidence/TICKET05_DECIDER_ADAPTER_LIVE_SYNTHETIC_2026-09-26.md`. |
-| 09–13 | Blocked/not started | Tickets 09–11 await their declared 05/07/08 dependencies; Ticket 12 awaits Tickets 03–11; Ticket 13 awaits Ticket 12. |
+| 09 | Implementation advanced; acceptance blocked | Fusion preserves stale topology claims separately, correction writes use digest compare-and-swap, conflicting active corrections produce explicit unresolved conflict, and agreeing corrections resolve deterministically with all IDs retained. Focused fusion suite passes 12/12 CPU tests. Final acceptance still depends on upstream capabilities and full workflow integration.
+| 10 | Partial implementation; final acceptance blocked | Import cache and geometry-bound targeted reruns are implemented. API process snapshots now persist host execution state and duration; the Electron success path adds host timing while preserving processor measurements and leaving absent backend/VRAM unknown. Focused checks pass: API process runs 13/13, Electron runner 5/5, workflow store 4/4. Restart/reuse proof for every major stage and error/cancel telemetry in the interactive workflow remain open.
+| 11 | Implementation present; final acceptance blocked | GLB/glTF export, structured sidecars, compatibility reporting, and validation are implemented. A CPU round-trip test exports and reopens a corrected populated Structured Asset; exporter suite passes 9/9. Full workflow integration with accepted upstream candidates remains open.
+| 12 | Acceptance blocked | RX 7900 GRE full headless POC gate remains pending; shared-GPU pause is active. |
+| 13 | Interactive editor implemented; runtime acceptance open | Viewer supports selecting regions/faces, boundary-handle drag with swept-face preview, confirm/cancel, correction history, property edits, and targeted-rerun preview. The 75k-face path uses spatial bins, bounded sampling/history, and throttled previews; helper tests pass 2/2. This edits face ownership along a surface rather than moving mesh vertices. SUV interaction, accessibility/usability review, and full vertical-slice verification remain open.
 
 ### 2026-09-26 continuation evidence
 
@@ -190,6 +408,15 @@ Ticket 04's opt-in A-B-A diagnostic is now integrated in the project-only propos
 - Repeated the focused Ticket03 suite without installing packages, adding the existing project-local Pillow cache to `PYTHONPATH`: `TMPDIR="$PWD/.modly-amd-runtime/tmp" PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD/.modly-amd-runtime/package-cache/north-micro-vision-v1/site-packages:api" .modly-amd-runtime/api-test-venv/bin/python -m unittest api.tests.test_ticket03_geometry -q` — **10/10 passed**.
 
 ## Issues and next actions
+
+## Product implementation continuation (2026-09-30)
+
+- Ticket 09 provisional evidence fusion and correction persistence are now implemented in `api/services/structured_asset_fusion.py` and `api/routers/structured_assets.py`. Conflict/unknown/resolved claims retain their evidence without cross-model confidence ranking; exact topology-valid user corrections take precedence while preserving displaced model assertions; topology or segmentation changes orphan or mark corrections pending-remap rather than transferring them by guess. Focused CPU suite: **8/8 passed** in `api/tests/test_ticket09_fusion.py`. The route provides fusion inspection and compare-and-swap correction writes. Acceptance remains open and requires workflow-stage integration plus its upstream tickets.
+- Ticket 10 provisional content-addressed caching is integrated into `/workflow-runs/from-mesh` in `api/routers/structured_workflow_runs.py`, backed by `api/services/structured_stage_cache.py`. Cache identities include input/topology, pinned adapter, schema, runtime, and parameters; reads verify digests and current-domain identity; writes are locked, atomic, and durable; requested import reruns invalidate the imported stage and its bundled no-op dependent. The route refuses unsupported child-only reruns. Focused CPU suite: **13/13 passed**. Later semantic-stage cache/rerun integration remains required.
+- Ticket 11 provisional GLB/glTF exporter and validation are implemented in `api/services/structured_asset_export.py` and registered in `api/main.py` through `api/routers/structured_asset_export.py`. Source topology/accessor ordering is preserved, conversion requires an explicit matrix when needed, unsupported PBR channels are not invented, compatibility reporting retains unknown telemetry, and writes reject path escapes/overwrites. Focused CPU suite: **8/8 passed**. A shared validator defect for historical glTF StageArtifact references with external buffers was fixed: references now use full glTF geometry identity, including local dependencies. Its regression plus all Ticket 09–11 focused suites pass **30/30** together. OpenAPI confirms `/structured-assets/fuse`, `/structured-assets/corrections`, `/structured-assets/export`, and `/workflow-runs/from-mesh` are registered.
+- Ticket 13 has a first integrated review surface in Modly's existing viewer. Workflow finalization now carries the resulting Structured Asset sidecar path onto the current mesh job; the panel reads and displays asset/topology state, region mappings, evidence kind, confidence, and provenance, and posts a user correction against the selected valid topology-bound region using sidecar digest compare-and-swap. Corrections are explicitly described as per-asset edits, not model training. `npm run build` and `npm run lint` both pass with a temporary official Node 26.10.0 binary. The system `/usr/bin/node` still fails to launch because its package requires missing `libsimdjson.so.33`; no global packages were changed. Seam/face picking, visible region highlighting, before/after seam preview, undo/redo, invalidation preview, targeted semantic-stage reruns, and runtime telemetry UI remain open.
+- The reported shared-GPU issue remains unresolved and `.modly-amd-runtime/GPU_RUNS_PAUSED` remains in force. No GPU or model execution was started in this continuation. Ticket 04 reproducibility/quality and RX 7900 GRE resource gates remain open. The API test run was CPU-only; three older importer integration checks previously failed with `REFERENCE_ADAPTER_PIN_MISMATCH`, while the focused Ticket 09–11 suite passes.
+- Current next work: continue Ticket 04 code-level diagnosis without target execution; finish Tickets 07 and 08 through project-owned candidates; extend Ticket 13 to the required surface seam interaction; integrate later semantic stages into Ticket 10 dispatch/cache, and validate exporter artifacts through the shared importer. Do not change acceptance gates or mark Tickets 09–13 accepted from implementation tests.
 
 - Ticket 01 acceptance criteria are all passed. Workspace-safe mesh staging covers standalone glTF dependencies; the pinned importer executes from a verified private snapshot; and legacy image-to-mesh generation passes as an ASGI request with a real temporary Modly extension in Python 3.12. The full-spec saved multi-node graph requirement is tracked for the later end-to-end semantic workflow gate, not added to Ticket 01's audited acceptance list. Share the existing editor graph planner/execution semantics behind host interfaces when that stage is dependency-ready.
 - Tickets 01, 02, 03, and 06 meet their audited acceptance criteria. Tickets 07 and 08 are dependency-ready and are being advanced in parallel; Ticket 05 still waits for 04. Preserve the documented upstream 2D-mask dependency and close it in the full headless acceptance workflow.

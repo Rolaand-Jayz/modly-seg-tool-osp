@@ -79,6 +79,18 @@ class ProcessRunTests(unittest.TestCase):
         self.assertEqual(done["result"]["models"], str(self.models.resolve()))
         self.assertEqual(Path(done["result"]["extension"]).name, "extension")
         self.assertEqual(Path(done["result"]["extension"]).parent.name.startswith("modly-process-extension-"), True)
+        telemetry = done["telemetry"]
+        self.assertEqual(telemetry["status"], "done")
+        self.assertEqual(telemetry["executor"]["backend"], "python_subprocess")
+        self.assertEqual(telemetry["executor"]["latency_state"], "measured")
+        self.assertGreaterEqual(telemetry["executor"]["latency_ms"], 0)
+        self.assertEqual(telemetry["inference"]["backend"], {"state": "unknown", "value": None})
+        self.assertEqual(telemetry["resources"]["accelerator_vram_peak_bytes"], {"state": "unknown", "value": None})
+        telemetry_path = self.workspace / telemetry["artifact_path"]
+        persisted = json.loads(telemetry_path.read_text(encoding="utf-8"))
+        self.assertEqual(persisted["status"], "done")
+        self.assertEqual(persisted["executor"]["latency_ms"], telemetry["executor"]["latency_ms"])
+        self.assertEqual(persisted["resources"]["accelerator_vram_peak_bytes"]["state"], "unknown")
 
     def test_failure_exposes_bounded_stage_error(self) -> None:
         self.add_extension(
@@ -92,6 +104,11 @@ class ProcessRunTests(unittest.TestCase):
         self.assertEqual(failed["error"]["code"], "BAD_INPUT")
         self.assertEqual(failed["error"]["stage_id"], "failing-stage")
         self.assertLessEqual(len(failed["error"]["message"]), 1600)
+        self.assertEqual(failed["telemetry"]["status"], "error")
+        self.assertEqual(failed["telemetry"]["executor"]["latency_state"], "measured")
+        persisted = json.loads((self.workspace / failed["telemetry"]["artifact_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(persisted["status"], "error")
+        self.assertGreaterEqual(persisted["executor"]["latency_ms"], 0)
 
     def test_cancel_terminates_and_reaps_running_worker_before_success(self) -> None:
         self.add_extension(
@@ -182,6 +199,20 @@ class ProcessRunTests(unittest.TestCase):
         from services.headless_process import measure_extension_tree_digest
         self.assertEqual(run["provenance"]["extension_digest"], measure_extension_tree_digest(extension))
         self.assertEqual(run["provenance"]["trust"], "local-unpinned")
+
+    def test_processor_reported_backend_and_resource_are_separate_from_host_timing(self) -> None:
+        self.add_extension(
+            "reported-stage",
+            "import json\n"
+            "print(json.dumps({'type':'done','result':{'qualitySummary':{'backend':'cpu','latency_ms':12.5,'accelerator_vram_bytes':0}}}))\n",
+        )
+        started = self.manager.start("reported-stage", {})
+        done = self.wait_for_status(started["run_id"], "done")
+        telemetry = done["telemetry"]
+        self.assertEqual(telemetry["inference"]["backend"], {"state": "reported", "value": "cpu"})
+        self.assertEqual(telemetry["inference"]["latency_ms"], {"state": "reported", "value": 12.5})
+        self.assertEqual(telemetry["resources"]["accelerator_vram_peak_bytes"], {"state": "reported", "value": 0})
+        self.assertNotEqual(telemetry["executor"]["latency_ms"], 12.5)
 
     def test_queued_run_can_be_cancelled_without_waiting_for_a_worker(self) -> None:
         self.add_extension(

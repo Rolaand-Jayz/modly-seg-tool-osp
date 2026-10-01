@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 import routers.workflow_runs as workflow_runs
 from routers.generation import sanitize_collection
+from services.gpu_execution_guard import GPUProcessingPaused
 
 
 class _FakeUpload:
@@ -70,8 +71,13 @@ class CreateRunCollectionTests(unittest.TestCase):
     def setUp(self) -> None:
         self._previous = workflow_runs.generator_registry
         workflow_runs.generator_registry = _FakeRegistry()
+        # These tests exercise collection sanitization/forwarding with a fake
+        # registry. The real model load remains guarded in production.
+        self._gpu_guard = patch.object(workflow_runs, "assert_gpu_runs_allowed")
+        self._gpu_guard.start()
 
     def tearDown(self) -> None:
+        self._gpu_guard.stop()
         workflow_runs.generator_registry = self._previous
 
     def _collection_forwarded(self, collection: str) -> str:
@@ -152,6 +158,19 @@ class CreateRunRemeshValidationTests(unittest.TestCase):
                     params='{"remesh": "garbage"}',
                 )
             )
+        self.assertFalse(registry.switched)
+
+    def test_paused_gpu_fails_before_model_switch(self) -> None:
+        registry = _SwitchTrackingRegistry()
+        workflow_runs.generator_registry = registry
+        background = BackgroundTasks()
+        with patch("routers.workflow_runs.assert_gpu_runs_allowed",
+                   side_effect=GPUProcessingPaused("paused for test")):
+            with self.assertRaises(HTTPException) as caught:
+                asyncio.run(workflow_runs.create_run_from_image(
+                    background, image=_FakeUpload(), model_id="sf3d", collection="Default", params="{}",
+                ))
+        self.assertEqual(caught.exception.status_code, 503)
         self.assertFalse(registry.switched)
 
 
@@ -262,6 +281,14 @@ class CanonicalImageRunIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     data={"model_id": "ticket01-image-fixture/generate", "collection": "Ticket01"},
                     files={"image": ("source.png", b"\x89PNG\r\n\x1a\nfixture image", "image/png")},
                 )
+                if (
+                    response.status_code == 503
+                    and response.json().get("detail", {}).get("code") == "AMD_GPU_RUNS_PAUSED"
+                ):
+                    self.skipTest(
+                        "GPU hold correctly blocks model execution; canonical generation acceptance "
+                        "requires a separately authorized unpaused target run"
+                    )
                 self.assertEqual(response.status_code, 200, response.text)
                 created = response.json()
                 self.assertEqual(created["status"], "pending")

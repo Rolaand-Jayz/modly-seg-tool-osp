@@ -1,0 +1,42 @@
+{
+  "candidate_executed_by_scorer": false,
+  "estimate_resolution": [
+    32,
+    32
+  ],
+  "estimate_sha256": "e49842191280731185fd24cb14a1dab68b727853564bae8854c3ae6f1d9422b5",
+  "fixture_id": "ticket08-independent-development-v2-view-diverse",
+  "frozen_acceptance_gates_applied": false,
+  "heldout_accessed": false,
+  "metrics": {
+    "base_color_linear": {
+      "mae": 0.033314025583598354,
+      "samples": 2408,
+      "ssim": 0.5820738382624042
+    },
+    "development_novel_light": {
+      "mae": 0.0031584395711630616,
+      "samples": 2408,
+      "ssim": null
+    },
+    "metallic": {
+      "mae": 0.032738607865346006,
+      "samples": 2408,
+      "ssim": null
+    },
+    "roughness": {
+      "mae": 0.02587276686591961,
+      "samples": 2408,
+      "ssim": null
+    }
+  },
+  "schema": "modly.ticket08.development-score.v1",
+  "score_resolution": [
+    96,
+    96
+  ],
+  "scored_texels": 2408,
+  "status": "development_measurement_only_not_acceptance_or_generalization",
+  "target_sha256": "50eb21d48e5b08daeba1b55bba583a63fbdae7771295b075c2ffc0c0af0dd73c",
+  "visible_texel_coverage": 1.0
+}

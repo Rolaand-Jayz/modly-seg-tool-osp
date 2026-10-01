@@ -51,7 +51,7 @@ class StructuredAssetRouteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.structured_asset.provenance.adapter_trust, "pinned-reference")
         self.assertEqual(
             result.structured_asset.provenance.adapter_revision,
-            "sha256:f9974a500e80fbaad23a269b3ba2156a03340d9373232c87bdfac00f2119e680",
+            "sha256:ce68b3aa66cf0d470a4044262afd316ac5101a0f141c102588759d8eba621cb4",
         )
         self.assertEqual(result.structured_asset.provenance.weights_id, None)
         self.assertEqual(result.structured_asset.provenance.weights_digest, None)
@@ -67,10 +67,19 @@ class StructuredAssetRouteTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_reference_importer_snapshot_mutation_rejects_before_launch(self) -> None:
-        copytree = shutil.copytree
-
         def corrupt_snapshot(source, destination, **kwargs):
-            snapshot = copytree(source, destination, **kwargs)
+            source_path = Path(source)
+            snapshot = Path(destination)
+            snapshot.mkdir(parents=True)
+            for child in source_path.rglob("*"):
+                relative = child.relative_to(source_path)
+                target = snapshot / relative
+                if child.is_dir():
+                    target.mkdir(exist_ok=True)
+                elif child.is_symlink():
+                    target.symlink_to(child.readlink())
+                else:
+                    shutil.copy2(child, target)
             processor = Path(snapshot) / "processor.py"
             processor.write_bytes(processor.read_bytes() + b"\n# changed after host identity check\n")
             return snapshot

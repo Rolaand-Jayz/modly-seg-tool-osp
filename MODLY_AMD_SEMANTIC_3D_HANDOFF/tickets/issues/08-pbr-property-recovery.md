@@ -511,3 +511,47 @@ Existing fixed-geometry inverse-render candidates fail frozen channel gates.
 Freshly reviewed MatLat, Hunyuan3D-2.1 extension, and MyMeshy routes fail the
 frozen AMD/topology/quality or estimator-contract requirements. No candidate
 advances to weights or inference, and no acceptance status or threshold changed.
+
+### Independent development fixture and one-way scorer (2026-10-01)
+
+Added `api/runtime/adapters/pbr/development_fixture_v1.py` and the concrete
+sidecars under `api/runtime/adapters/pbr/evidence/ticket08-development-fixture-v1/`.
+This separately seeded 96x96 three-region scene is generated without importing
+the frozen acceptance fixture builder. Candidate inputs and scoring targets
+are separate NPZ files with SHA-256 identities bound by the v1 JSON manifest;
+the candidate input loader enforces its field allowlist and manifest hash.
+PBR truth, region truth, and the development novel-light render remain in the
+target file. The one-way scorer accepts only three estimated maps and an
+observed mask, runs no estimator, checks the target manifest/hash, and reports
+map and development novel-light errors. Its output explicitly says it is not
+acceptance or generalization evidence and applies no frozen gate. The focused
+isolation/scorer suite passes 3/3. Frozen thresholds and held-out scoring paths
+are unchanged; no GPU was used and no prior raw output was overwritten.
+
+### View-diverse development v2 and bounded multi-start candidate (2026-10-01)
+
+The v1 development run returned weak channel maps and inspection showed its
+three training observations were the same combined-light render repeated.
+That made it a poor development probe for multi-view recovery. It remains
+preserved as v1 evidence; no frozen acceptance data were used.
+
+Added `development_fixture_v2.py` with a new seed, three distinct calibrated
+camera poses, matching mesh/UV correspondences and per-view visibility masks.
+Candidate inputs and scoring targets are separate hash-bound NPZ files with an
+explicit field allowlist. The one-way development scorer now accepts either
+versioned dev manifest, expands smaller candidate maps using the same nearest
+map rule as the registered fixed-geometry scorer, preserves `observed=false`
+as unknown, and never invokes an estimator. Focused tests pass 5/5, including
+versioned target isolation and different per-view observations.
+
+The region inverse renderer now uses three fixed deterministic initial points
+for bounded GGX least-squares fitting and selects the lowest robust objective.
+On v2, fitting at 32x32 and expanding to 96x96 yielded 100% visible-map
+coverage on 2,408 pixels: base-color MAE 0.03331 and SSIM 0.58207, roughness
+MAE 0.02587, metallic MAE 0.03274, and novel-light MAE 0.00316. Base-color
+SSIM remains below the unchanged 0.85 quality limit. A 48x48 run reached
+61.96% coverage and did not improve SSIM. No frozen gate was applied, no
+heldout data were read, and no GPU was used. The 32x32 estimate, score, and
+provenance are stored in
+`api/runtime/adapters/pbr/evidence/ticket08-development-fixture-v2/`.
+This remains development-only synthetic evidence; Ticket 08 is not accepted.

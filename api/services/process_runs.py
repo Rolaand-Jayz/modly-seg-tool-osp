@@ -10,6 +10,7 @@ import tempfile
 import threading
 import time
 import uuid
+from datetime import datetime, timezone
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -48,8 +49,15 @@ class ProcessRun:
     error: dict[str, Any] | None = None
     cancel_event: threading.Event = field(default_factory=threading.Event)
     future: Future[None] | None = None
-    lock: threading.Lock = field(default_factory=threading.Lock)
+    lock: threading.RLock = field(default_factory=threading.RLock)
     created_at: float = field(default_factory=time.monotonic)
+    started_at: str | None = None
+    finished_at: str | None = None
+    started_monotonic: float | None = None
+    elapsed_ms: float | None = None
+    telemetry_artifact: str | None = None
+    telemetry_persistence_state: str = "pending"
+    telemetry_persistence_error: str | None = None
 
     def snapshot(self) -> dict[str, Any]:
         with self.lock:
@@ -61,12 +69,76 @@ class ProcessRun:
                     "extension_digest": self.extension_digest,
                     "trust": self.trust,
                 },
+                "telemetry": {
+                    "schema_id": "org.modly.process-execution-telemetry",
+                    "schema_version": "1.0.0",
+                    "stage_id": self.process_id,
+                    "status": self.status,
+                    "executor": {
+                        "backend": "python_subprocess",
+                        "started_at": self.started_at,
+                        "finished_at": self.finished_at,
+                        "latency_ms": max(0.0, (time.monotonic() - self.started_monotonic) * 1000.0)
+                        if self.started_monotonic is not None and self.finished_at is None else self.elapsed_ms,
+                        "latency_state": "running" if self.started_monotonic is not None and self.finished_at is None
+                        else "measured" if self.started_monotonic is not None and self.finished_at is not None
+                        else "not_started",
+                    },
+                    "inference": {
+                        "backend": _reported_value(self.result, ("backend", "selected_backend"), "unknown"),
+                        "device": _reported_value(self.result, ("device", "device_identity"), "unknown"),
+                        "latency_ms": _reported_number(self.result, ("latency_ms", "warm_inference_latency_ms")),
+                    },
+                    "resources": {
+                        "host_memory_peak_bytes": _reported_number(self.result, ("host_memory_peak_bytes", "peak_host_memory_bytes")),
+                        "accelerator_vram_peak_bytes": _reported_number(
+                            self.result, ("accelerator_vram_bytes", "peak_vram_bytes", "peak_vram_allocated_bytes")
+                        ),
+                    },
+                    "artifact_path": self.telemetry_artifact,
+                    "persistence": {
+                        "state": self.telemetry_persistence_state,
+                        **({"error": self.telemetry_persistence_error} if self.telemetry_persistence_error else {}),
+                    },
+                },
             }
             if self.result is not None:
                 value["result"] = self.result
             if self.error is not None:
                 value["error"] = self.error
             return value
+
+
+def _reported_sources(result: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(result, dict):
+        return []
+    sources: list[dict[str, Any]] = [result]
+    for key in ("telemetry", "qualitySummary", "stageOutputArtifact", "classification"):
+        item = result.get(key)
+        if isinstance(item, dict):
+            sources.append(item)
+            reports = item.get("runtime_reports")
+            if isinstance(reports, list):
+                sources.extend(row for row in reports if isinstance(row, dict))
+    return sources
+
+
+def _reported_value(result: dict[str, Any] | None, keys: tuple[str, ...], default_state: str) -> dict[str, Any]:
+    for source in _reported_sources(result):
+        for key in keys:
+            value = source.get(key)
+            if isinstance(value, str) and value.strip():
+                return {"state": "reported", "value": value.strip()}
+    return {"state": default_state, "value": None}
+
+
+def _reported_number(result: dict[str, Any] | None, keys: tuple[str, ...]) -> dict[str, Any]:
+    for source in _reported_sources(result):
+        for key in keys:
+            value = source.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
+                return {"state": "reported", "value": value}
+    return {"state": "unknown", "value": None}
 
 
 def _configured_roots() -> list[Path]:
@@ -172,6 +244,7 @@ class ProcessRunManager:
             raise ProcessRunError("PROCESS_INPUT_LIMIT", "input exceeds the 1 MiB process request limit", http_status=413)
         extension_dir, entry, extension_digest = resolve_process_extension(process_id)
         run = ProcessRun(run_id=str(uuid.uuid4()), process_id=process_id, extension_digest=extension_digest)
+        run.telemetry_artifact = self._telemetry_path(run.run_id).relative_to(WORKSPACE_DIR.resolve()).as_posix()
         with self._lock:
             if self._closed:
                 raise ProcessRunError("PROCESS_RUNNER_SHUTTING_DOWN", "process runner is shutting down", http_status=503)
@@ -193,6 +266,7 @@ class ProcessRunManager:
                     http_status=503,
                 )
             self._runs[run.run_id] = run
+            self._persist_telemetry(run)
             try:
                 run.future = self._executor.submit(self._execute, run, extension_dir, entry, payload)
             except RuntimeError as exc:
@@ -212,8 +286,12 @@ class ProcessRunManager:
         with run.lock:
             if run.cancel_event.is_set():
                 run.status = "cancelled"
+                self._finish_telemetry(run)
                 return
             run.status = "running"
+            run.started_monotonic = time.monotonic()
+            run.started_at = datetime.now(timezone.utc).isoformat()
+            self._persist_telemetry(run)
         try:
             if measure_extension_tree_digest(extension_dir) != run.extension_digest:
                 raise HeadlessProcessError(
@@ -252,6 +330,7 @@ class ProcessRunManager:
             with run.lock:
                 run.result = result
                 run.status = "done"
+                self._finish_telemetry(run)
         except HeadlessProcessError as exc:
             with run.lock:
                 if exc.code == "PROCESS_CANCELLED" and run.cancel_event.is_set():
@@ -259,10 +338,56 @@ class ProcessRunManager:
                 else:
                     run.status = "error"
                     run.error = dict(exc.diagnostic)
+                self._finish_telemetry(run)
         except Exception as exc:  # Keep unexpected failures inspectable but bounded.
             with run.lock:
                 run.status = "error"
                 run.error = {"code": "PROCESS_RUN_FAILED", "stage_id": run.process_id, "message": str(exc)[:1600]}
+                self._finish_telemetry(run)
+
+    @staticmethod
+    def _telemetry_path(run_id: str) -> Path:
+        return WORKSPACE_DIR.resolve() / "StructuredAssets" / "process-runs" / run_id / "execution-telemetry.json"
+
+    def _finish_telemetry(self, run: ProcessRun) -> None:
+        if run.finished_at is None:
+            run.finished_at = datetime.now(timezone.utc).isoformat()
+            if run.started_monotonic is not None:
+                run.elapsed_ms = max(0.0, (time.monotonic() - run.started_monotonic) * 1000.0)
+        self._persist_telemetry(run)
+
+    def _persist_telemetry(self, run: ProcessRun) -> None:
+        """Atomically persist host execution facts without guessing model/device metrics."""
+        path = self._telemetry_path(run.run_id)
+        snapshot = run.snapshot()
+        document = {
+            "schema_id": "org.modly.process-execution-telemetry",
+            "schema_version": "1.0.0",
+            "run_id": run.run_id,
+            "process": run.process_id,
+            "provenance": snapshot["provenance"],
+            **snapshot["telemetry"],
+        }
+        document["persistence"] = {"state": "persisted"}
+        encoded = (json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        temporary = path.with_suffix(f".json.{uuid.uuid4().hex}.tmp")
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with temporary.open("xb") as stream:
+                stream.write(encoded)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+            run.telemetry_persistence_state = "persisted"
+            run.telemetry_persistence_error = None
+        except OSError as exc:
+            run.telemetry_persistence_state = "failed"
+            run.telemetry_persistence_error = str(exc)[:300]
+        finally:
+            try:
+                temporary.unlink()
+            except FileNotFoundError:
+                pass
 
     def get(self, run_id: str) -> dict[str, Any]:
         with self._lock:
@@ -282,6 +407,7 @@ class ProcessRunManager:
             if future.cancel():
                 with run.lock:
                     run.status = "cancelled"
+                    self._finish_telemetry(run)
                 return run.snapshot()
             try:
                 future.result(timeout=_CANCEL_WAIT_SECONDS)
@@ -308,6 +434,7 @@ class ProcessRunManager:
                 if run.future is not None and run.future.cancel():
                     with run.lock:
                         run.status = "cancelled"
+                        self._finish_telemetry(run)
         for run in runs:
             future = run.future
             if future is not None:

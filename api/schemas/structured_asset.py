@@ -363,6 +363,9 @@ class Assertion(BaseModel):
     subject_id: str = Field(min_length=1)
     property: str = Field(min_length=1)
     value: object
+    # Assertions authored before this field existed remain parseable. New
+    # inference output should bind its assertion to the topology it describes.
+    topology_revision: str | None = Field(default=None, min_length=1)
     evidence_kind: EvidenceKind
     confidence: Confidence
     provenance: Provenance

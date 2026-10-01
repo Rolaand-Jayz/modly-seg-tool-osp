@@ -1,0 +1,95 @@
+{
+  "candidate_inputs": {
+    "fields": [
+      "barycentric",
+      "camera_to_world",
+      "face_ids",
+      "face_uvs",
+      "material_region_by_face",
+      "mesh_faces",
+      "mesh_positions",
+      "mesh_uvs",
+      "topology_revision",
+      "training_observations_linear",
+      "visible_mask"
+    ],
+    "file": "ticket08-development-inputs-v1.npz",
+    "sha256": "46ad6659b51c23d00cfd62a6007ae23591964c5c5a65e41e0fd64b7a28c886cd",
+    "training_lights": [
+      {
+        "direction": [
+          -0.42,
+          0.19,
+          1.0
+        ],
+        "radiance": [
+          0.78,
+          0.71,
+          0.65
+        ]
+      },
+      {
+        "direction": [
+          0.35,
+          0.31,
+          1.0
+        ],
+        "radiance": [
+          0.45,
+          0.52,
+          0.61
+        ]
+      },
+      {
+        "direction": [
+          0.08,
+          -0.46,
+          1.0
+        ],
+        "radiance": [
+          0.28,
+          0.24,
+          0.2
+        ]
+      }
+    ]
+  },
+  "fixture_id": "ticket08-independent-development-v1",
+  "generator": "runtime.adapters.pbr.development_fixture_v1",
+  "generator_sha256": "55ae056c8c5110f2ce227937265300bacd8858e4e894d11586afefddc34e9afc",
+  "isolation": "separate files; candidate API exposes only candidate_inputs; no heldout arrays or frozen fixture builder are imported",
+  "purpose": "development-only synthetic parameter recovery; not acceptance or generalization evidence",
+  "renderer_sha256": "be498cedc2e6c9c2b10a682ff6f04f3cedae2171dd672314755021994ae43117",
+  "resolution": [
+    96,
+    96
+  ],
+  "schema": "modly.ticket08.development-fixture.v1",
+  "scoring_targets": {
+    "development_novel_light": [
+      {
+        "direction": [
+          -0.26,
+          -0.38,
+          1.0
+        ],
+        "radiance": [
+          0.66,
+          0.59,
+          0.52
+        ]
+      }
+    ],
+    "fields": [
+      "base_color_linear",
+      "development_novel_light_reference",
+      "metallic",
+      "region_index",
+      "roughness",
+      "visible_mask"
+    ],
+    "file": "ticket08-development-targets-v1.npz",
+    "sha256": "bee461f36f2c1ccedaab57272606f8d02f29ad01988a93f2fb21892a9acab011"
+  },
+  "seed": 20261001
+}

@@ -1,0 +1,37 @@
+{
+  "id": "project-owned-material-identity",
+  "name": "Classify Material Identity (Project Candidate)",
+  "type": "process",
+  "entry": "processor.py",
+  "version": "1.0.0",
+  "author": "Modly",
+  "description": "Opt-in local Modly classifier candidate. Requires an explicitly supplied calibrated candidate JSON; this provisional path does not train from corrections or claim Ticket 07 acceptance.",
+  "capabilities": [
+    {
+      "capability_id": "classify-material-identity",
+      "contract_version": "1.0.0",
+      "inputs": ["structured-asset", "observation"],
+      "outputs": ["structured-asset", "assertions", "stage-artifacts"],
+      "adapter_id": "modly.project-owned-material-identity",
+      "adapter_revision": "builtin:1.0.0",
+      "adapter_trust": "builtin"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "project-owned-material-identity",
+      "name": "Classify Material Identity (Project Candidate)",
+      "input": "mesh",
+      "output": "mesh",
+      "params_schema": [
+        {
+          "id": "candidate_weights_path",
+          "label": "Calibrated candidate JSON path",
+          "type": "string",
+          "default": "",
+          "tooltip": "Workspace-relative path to an explicitly trained and development-calibrated candidate JSON. Empty or uncalibrated candidates fail closed."
+        }
+      ]
+    }
+  ]
+}

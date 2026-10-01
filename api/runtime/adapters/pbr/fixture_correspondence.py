@@ -15,9 +15,6 @@ import zipfile
 
 import numpy as np
 
-from runtime.adapters.pbr.fixture import SIZE, TRAINING_VIEW_DIRECTIONS, build_fixture
-
-
 SCHEMA = "modly.ticket08.fixture-correspondence.v1"
 
 
@@ -39,17 +36,65 @@ def topology_revision(positions: np.ndarray, uvs: np.ndarray, faces: np.ndarray)
 
 def build_fixture_correspondence() -> dict[str, np.ndarray | str]:
     """Rasterize all training cameras into face IDs and face-order barycentrics."""
+    # Import the full fixture generator only in this explicitly fixture-bound
+    # helper. Production/training-only callers use build_training_correspondence
+    # and never load scoring or held-out construction code.
+    from runtime.adapters.pbr.fixture import TRAINING_VIEW_DIRECTIONS, build_fixture
+
     fixture = build_fixture()
     positions = np.asarray(fixture["mesh_positions"], dtype=np.float64)
     faces = np.asarray(fixture["mesh_faces"], dtype=np.int64)
     uvs = np.asarray(fixture["mesh_uvs"], dtype=np.float64)
-    revision = topology_revision(positions, uvs, faces)
-    face_uvs = uvs[faces].astype(np.float32)
-    all_faces = np.full((len(TRAINING_VIEW_DIRECTIONS), SIZE, SIZE), -1, dtype=np.int32)
-    all_bary = np.full((len(TRAINING_VIEW_DIRECTIONS), SIZE, SIZE, 3), np.nan, dtype=np.float32)
-    all_visible = np.asarray(fixture["training_view_masks"], dtype=bool)
+    return build_training_correspondence(
+        positions, uvs, faces, TRAINING_VIEW_DIRECTIONS,
+        np.asarray(fixture["training_view_masks"], dtype=bool),
+    )
 
-    for view_index, view_direction in enumerate(TRAINING_VIEW_DIRECTIONS):
+
+def build_training_correspondence(
+    positions: np.ndarray,
+    uvs: np.ndarray,
+    faces: np.ndarray,
+    view_directions: tuple[tuple[float, float, float], ...] | np.ndarray,
+    visible_masks: np.ndarray | None = None,
+    *,
+    topology_revision_id: str | None = None,
+) -> dict[str, np.ndarray | str]:
+    """Build correspondence from explicitly supplied training-only inputs.
+
+    This entry point never constructs or reads a fixture. Callers can pass the
+    frozen mesh and visibility masks loaded from candidate allowlisted arrays.
+    """
+    positions = np.asarray(positions, dtype=np.float64)
+    faces = np.asarray(faces, dtype=np.int64)
+    uvs = np.asarray(uvs, dtype=np.float64)
+    directions = np.asarray(view_directions, dtype=np.float64)
+    all_visible = None if visible_masks is None else np.asarray(visible_masks, dtype=bool)
+    if (positions.ndim != 2 or positions.shape[1] != 3 or uvs.shape != (len(positions), 2)
+            or faces.ndim != 2 or faces.shape[1] != 3 or not len(faces)
+            or np.any(faces < 0) or np.any(faces >= len(positions))):
+        raise ValueError("valid indexed triangular mesh positions, UVs, and faces are required")
+    if (directions.ndim != 2 or directions.shape[1] != 3 or len(directions) == 0
+            or not np.isfinite(positions).all() or not np.isfinite(uvs).all()
+            or not np.isfinite(directions).all() or np.any(np.linalg.norm(directions, axis=1) < 1e-12)):
+        raise ValueError("finite training view directions must be supplied")
+    if all_visible is not None:
+        if all_visible.ndim != 3 or all_visible.shape[0] != len(directions):
+            raise ValueError("training view masks must match the number of view directions")
+        height, width = all_visible.shape[1:]
+    else:
+        raise ValueError("view masks are required to define the training raster dimensions")
+    if height < 2 or width < 2:
+        raise ValueError("training view masks must have at least two pixels per dimension")
+    revision = topology_revision(positions, uvs, faces) if topology_revision_id is None else topology_revision_id
+    if not isinstance(revision, str) or not revision.strip():
+        raise ValueError("a non-empty topology revision identity is required")
+    face_uvs = uvs[faces].astype(np.float32)
+    height, width = all_visible.shape[1:]
+    all_faces = np.full((len(directions), height, width), -1, dtype=np.int32)
+    all_bary = np.full((len(directions), height, width, 3), np.nan, dtype=np.float32)
+
+    for view_index, view_direction in enumerate(directions):
         direction = np.asarray(view_direction, dtype=np.float64)
         direction /= np.linalg.norm(direction)
         world_up = np.array((0.0, 1.0, 0.0), dtype=np.float64)
@@ -58,18 +103,18 @@ def build_fixture_correspondence() -> dict[str, np.ndarray | str]:
         up = np.cross(direction, right)
         screen = np.column_stack((positions @ right, positions @ up))
         low, high = screen.min(axis=0), screen.max(axis=0)
-        scale = SIZE * 0.90 / float(max(high - low))
-        projected = (screen - (low + high) * 0.5) * scale + (SIZE - 1) * 0.5
-        projected[:, 1] = (SIZE - 1) - projected[:, 1]
-        depth = np.full((SIZE, SIZE), -np.inf, dtype=np.float64)
+        scale = min(width, height) * 0.90 / float(max(high - low))
+        projected = (screen - (low + high) * 0.5) * scale + np.array(((width - 1) * 0.5, (height - 1) * 0.5))
+        projected[:, 1] = (height - 1) - projected[:, 1]
+        depth = np.full((height, width), -np.inf, dtype=np.float64)
         vertex_depth = positions @ direction
-        rows, columns = np.mgrid[0:SIZE, 0:SIZE]
+        rows, columns = np.mgrid[0:height, 0:width]
         for face_id, indices in enumerate(faces):
             triangle = projected[indices]
             min_x = max(0, int(np.floor(triangle[:, 0].min())))
-            max_x = min(SIZE - 1, int(np.ceil(triangle[:, 0].max())))
+            max_x = min(width - 1, int(np.ceil(triangle[:, 0].max())))
             min_y = max(0, int(np.floor(triangle[:, 1].min())))
-            max_y = min(SIZE - 1, int(np.ceil(triangle[:, 1].max())))
+            max_y = min(height - 1, int(np.ceil(triangle[:, 1].max())))
             x0, y0 = triangle[0]
             x1, y1 = triangle[1]
             x2, y2 = triangle[2]
@@ -96,8 +141,12 @@ def build_fixture_correspondence() -> dict[str, np.ndarray | str]:
             bary_patch[inside] = local_bary[inside].astype(np.float32)
             depth_patch[inside] = local_depth[inside]
 
-    if not np.array_equal(all_faces >= 0, all_visible):
-        raise RuntimeError("fixture correspondence visibility diverged from frozen view masks")
+    if np.any(all_visible & (all_faces < 0)):
+        raise RuntimeError("a supplied visible training pixel has no mesh correspondence")
+    # Pixels outside the caller's declared training visibility are never
+    # exposed as correspondences, even if they lie inside a projected face.
+    all_faces[~all_visible] = -1
+    all_bary[~all_visible] = np.nan
     return {
         "schema": SCHEMA,
         "topology_revision": revision,
@@ -108,16 +157,38 @@ def build_fixture_correspondence() -> dict[str, np.ndarray | str]:
     }
 
 
+def write_training_correspondence(
+    path: Path,
+    positions: np.ndarray,
+    uvs: np.ndarray,
+    faces: np.ndarray,
+    view_directions: tuple[tuple[float, float, float], ...] | np.ndarray,
+    visible_masks: np.ndarray,
+    *,
+    topology_revision_id: str | None = None,
+) -> dict[str, str | int]:
+    """Write a deterministic sidecar from supplied training-only inputs."""
+    sidecar = build_training_correspondence(
+        positions, uvs, faces, view_directions, visible_masks,
+        topology_revision_id=topology_revision_id,
+    )
+    return _write_correspondence(path, sidecar)
+
+
 def write_fixture_correspondence(path: Path) -> dict[str, str | int]:
-    """Write a deterministic compressed NPZ-style sidecar and return identity."""
-    sidecar = build_fixture_correspondence()
+    """Write the fixture test sidecar; this helper constructs the full fixture."""
+    return _write_correspondence(path, build_fixture_correspondence())
+
+
+def _write_correspondence(path: Path, sidecar: dict[str, np.ndarray | str]) -> dict[str, str | int]:
+    """Write a deterministic compressed sidecar and return its identity."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         metadata = {
             "schema": SCHEMA,
             "topology_revision": sidecar["topology_revision"],
-            "raster_size": [SIZE, SIZE],
-            "view_count": len(TRAINING_VIEW_DIRECTIONS),
+            "raster_size": list(np.asarray(sidecar["visible_masks"]).shape[1:]),
+            "view_count": int(np.asarray(sidecar["visible_masks"]).shape[0]),
             "face_id_sentinel": -1,
             "barycentric_order": "indexed face vertex order",
         }

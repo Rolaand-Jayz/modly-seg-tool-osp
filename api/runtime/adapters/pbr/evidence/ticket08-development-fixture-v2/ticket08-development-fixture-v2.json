@@ -1,0 +1,95 @@
+{
+  "candidate_inputs": {
+    "fields": [
+      "barycentric",
+      "camera_to_world",
+      "face_ids",
+      "face_uvs",
+      "material_region_by_face",
+      "mesh_faces",
+      "mesh_positions",
+      "mesh_uvs",
+      "topology_revision",
+      "training_observations_linear",
+      "visible_mask"
+    ],
+    "file": "ticket08-development-inputs-v2.npz",
+    "sha256": "34e1e4d1630a7fdb20c5e86b25d337c14b8b1fae887efe6808a9500d1e6b095a",
+    "training_lights": [
+      {
+        "direction": [
+          -0.42,
+          0.19,
+          1.0
+        ],
+        "radiance": [
+          0.78,
+          0.71,
+          0.65
+        ]
+      },
+      {
+        "direction": [
+          0.35,
+          0.31,
+          1.0
+        ],
+        "radiance": [
+          0.45,
+          0.52,
+          0.61
+        ]
+      },
+      {
+        "direction": [
+          0.08,
+          -0.46,
+          1.0
+        ],
+        "radiance": [
+          0.28,
+          0.24,
+          0.2
+        ]
+      }
+    ]
+  },
+  "fixture_id": "ticket08-independent-development-v2-view-diverse",
+  "generator": "runtime.adapters.pbr.development_fixture_v2",
+  "generator_sha256": "ff7853216a550a30d1677393d7152c364ec69c1e7d1fd683f3bb24f599ad2eff",
+  "isolation": "separate input and target files; strict input allowlist; no acceptance fixture or scorer imports",
+  "purpose": "development-only synthetic parameter recovery; not acceptance or generalization evidence",
+  "renderer_sha256": "be498cedc2e6c9c2b10a682ff6f04f3cedae2171dd672314755021994ae43117",
+  "resolution": [
+    96,
+    96
+  ],
+  "schema": "modly.ticket08.development-fixture.v2",
+  "scoring_targets": {
+    "development_novel_light": [
+      {
+        "direction": [
+          -0.19,
+          -0.41,
+          1.0
+        ],
+        "radiance": [
+          0.71,
+          0.57,
+          0.49
+        ]
+      }
+    ],
+    "fields": [
+      "base_color_linear",
+      "development_novel_light_reference",
+      "metallic",
+      "region_index",
+      "roughness",
+      "visible_mask"
+    ],
+    "file": "ticket08-development-targets-v2.npz",
+    "sha256": "50eb21d48e5b08daeba1b55bba583a63fbdae7771295b075c2ffc0c0af0dd73c"
+  },
+  "seed": 20261002
+}

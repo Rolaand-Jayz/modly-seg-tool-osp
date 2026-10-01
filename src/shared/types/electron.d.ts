@@ -315,7 +315,8 @@ declare global {
         uninstall:   (extensionId: string) => Promise<{ success: boolean; error?: string }>
         repair:      (extensionId: string) => Promise<{ success: boolean; error?: string }>
         reload:      () => Promise<{ success: boolean; error?: string; errors?: Record<string, string> }>
-        runProcess:  (extensionId: string, input: ProcessInput, params: Record<string, unknown>) => Promise<{ success: boolean; result?: ProcessResult; error?: string }>
+        runProcess:  (extensionId: string, input: ProcessInput, params: Record<string, unknown>) => Promise<{ success: boolean; result?: ProcessResult; error?: string; telemetry?: Record<string, unknown>; evidencePath?: string; cancelled?: boolean }>
+        cancelProcess: (extensionId: string) => Promise<{ success: boolean }>
         onInstallProgress: (cb: (data: {
           step:          'downloading' | 'extracting' | 'validating' | 'setting_up' | 'done' | 'error'
           percent?:      number

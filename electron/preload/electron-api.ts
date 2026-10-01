@@ -242,8 +242,10 @@ export function createElectronApi(ipcRenderer: IpcRendererLike, webFrame: WebFra
         extensionId: string,
         input:       { filePath?: string; text?: string; texts?: (string | undefined)[]; nodeId?: string },
         params:      Record<string, unknown>,
-      ): Promise<{ success: boolean; result?: { filePath?: string; text?: string }; error?: string }> =>
-        ipcRenderer.invoke('extensions:runProcess', extensionId, input, params) as Promise<{ success: boolean; result?: { filePath?: string; text?: string }; error?: string }>,
+      ): Promise<{ success: boolean; result?: { filePath?: string; text?: string }; error?: string; telemetry?: Record<string, unknown>; evidencePath?: string; cancelled?: boolean }> =>
+        ipcRenderer.invoke('extensions:runProcess', extensionId, input, params) as Promise<{ success: boolean; result?: { filePath?: string; text?: string }; error?: string; telemetry?: Record<string, unknown>; evidencePath?: string; cancelled?: boolean }>,
+      cancelProcess: (extensionId: string): Promise<{ success: boolean }> =>
+        ipcRenderer.invoke('extensions:cancelProcess', extensionId) as Promise<{ success: boolean }>,
 
       onInstallProgress: (cb: (data: {
         step: 'downloading' | 'extracting' | 'validating' | 'setting_up' | 'done' | 'error'

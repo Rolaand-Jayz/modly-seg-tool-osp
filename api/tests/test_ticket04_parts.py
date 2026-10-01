@@ -25,6 +25,7 @@ from runtime.adapters.parts.regions import CandidateMask, PartSegmentationError,
 from runtime.adapters.parts.process import _reconcile_part_annotations
 from schemas.structured_asset import Assertion, Confidence, ConfidenceState, EvidenceKind, PartSegment, Provenance, TopologyMapping, parse_manifest_capabilities
 from services.structured_assets import create_imported_asset
+from services.gpu_execution_guard import gpu_pause_marker
 
 
 class Ticket04PartMappingTests(unittest.TestCase):
@@ -219,9 +220,15 @@ class Ticket04PartMappingTests(unittest.TestCase):
             messages = [json.loads(line) for line in process.stdout.splitlines() if line]
             self.assertEqual(process.returncode, 0)
             self.assertEqual([message["type"] for message in messages], ["progress", "error"])
-            self.assertEqual(messages[-1]["code"], "P3SAM_ADAPTER_NOT_READY")
+            expected_code = (
+                "AMD_GPU_RUNS_PAUSED"
+                if gpu_pause_marker(root) is not None
+                else "P3SAM_ADAPTER_NOT_READY"
+            )
+            self.assertEqual(messages[-1]["code"], expected_code)
             self.assertEqual(messages[-1]["stage_id"], "reference-part-segmentation")
-            self.assertIn("not provisioned", messages[-1]["message"])
+            expected_message = "paused" if expected_code == "AMD_GPU_RUNS_PAUSED" else "not provisioned"
+            self.assertIn(expected_message, messages[-1]["message"])
             self.assertLessEqual(len(messages[-1]["message"]), 1200)
             self.assertEqual(asset.topology_counts["face_count"], 1536)
 
