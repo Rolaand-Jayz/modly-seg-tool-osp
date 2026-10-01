@@ -1,6 +1,7 @@
 """Headless Structured Asset import and validation endpoints."""
 
 import hashlib
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -63,6 +64,51 @@ def _http_error(error: StructuredAssetError) -> HTTPException:
     return HTTPException(status_code=status, detail={"code": error.code, "message": error.message})
 
 
+def _correction_metadata(asset: StructuredAsset) -> dict[str, object]:
+    """Persist known correction context without guessing the current user."""
+    return {
+        "actor_id": "unknown",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "asset_id": asset.asset_id,
+        "sequence": len(asset.corrections) + 1,
+    }
+
+
+def _mark_membership_bindings_for_review(asset: StructuredAsset, changed_part_ids: set[str], moved_faces: set[int]) -> list:
+    """Keep model evidence but mark claims whose region membership may have changed."""
+    parts = {part.region_id: part for part in asset.part_segments}
+    affected_material_ids = {
+        region.region_id for region in asset.material_regions
+        if region.mapping.element_type != "face"
+        or region.mapping.state != "valid"
+        or bool(set(region.mapping.element_ids) & moved_faces)
+    }
+    affected_subjects = changed_part_ids | affected_material_ids
+    assertion_ids: set[str] = set()
+    for part_id in changed_part_ids:
+        part = parts.get(part_id)
+        if part:
+            assertion_ids.update(part.semantic_assertion_ids)
+    for region in asset.material_regions:
+        if region.region_id in affected_material_ids:
+            assertion_ids.update(region.material_identity_assertion_ids)
+            assertion_ids.update(region.pbr_assertion_ids)
+    assertion_ids.update(
+        assertion.assertion_id for assertion in asset.assertions
+        if assertion.subject_id in affected_subjects
+        and (assertion.property.startswith("part.") or assertion.property.startswith("material.")
+             or assertion.property.startswith("pbr."))
+    )
+    updated_assertions = [
+        assertion.model_copy(update={"review_state": "needs-review"})
+        if assertion.assertion_id in assertion_ids else assertion
+        for assertion in asset.assertions
+    ]
+    # Return a new list as well as updating the assertion review flags at the
+    # call site; the IDs remain useful in correction history for inspection.
+    return updated_assertions
+
+
 @router.post("/validate", response_model=StructuredAsset)
 def validate_asset(request: ValidateRequest) -> StructuredAsset:
     """Fail closed if the sidecar schema, geometry digest, or topology has drifted."""
@@ -99,6 +145,14 @@ def correct_asset(request: CorrectionRequest) -> StructuredAsset:
             asset, correction_id=request.correction_id, subject_id=request.subject_id,
             property=request.property, value=request.value, target=request.target,
         )
+        if corrected.corrections:
+            corrected = corrected.model_copy(update={
+                "corrections": [
+                    item.model_copy(update=_correction_metadata(asset))
+                    if item.correction_id == request.correction_id else item
+                    for item in corrected.corrections
+                ]
+            })
         persist_asset_atomic(
             root, sidecar.relative_to(root).as_posix(), corrected,
             expected_digest=request.expected_sidecar_digest,
@@ -168,10 +222,14 @@ def edit_part_seam(request: SeamEditRequest) -> StructuredAsset:
             },
             target=source_after_mapping,
             status="active",
+            **_correction_metadata(asset),
         )
         corrected = asset.model_copy(update={
             "part_segments": updated_parts,
             "corrections": [*asset.corrections, correction],
+            "assertions": _mark_membership_bindings_for_review(
+                asset, {source.region_id, destination.region_id}, moved,
+            ),
             "validation_state": "needs-review",
         })
         persist_asset_atomic(root, sidecar.relative_to(root).as_posix(), corrected, expected_digest=request.expected_sidecar_digest)
@@ -237,9 +295,17 @@ def _change_seam_history(request: SeamHistoryRequest, *, action: str) -> Structu
                    "sequence": len(asset.corrections) + 1, "geometry_changed": False},
             target=next(part.mapping for part in updated_parts if part.region_id == source_id),
             status="active", evidence_kind="user-confirmed",
+            **_correction_metadata(asset),
         )
+        moved_face_ids = value.get("moved_face_ids", [])
+        moved_faces = set(moved_face_ids) if isinstance(moved_face_ids, list) and all(
+            isinstance(face, int) and face >= 0 for face in moved_face_ids
+        ) else set()
         updated = asset.model_copy(update={"part_segments": updated_parts,
                                            "corrections": [*asset.corrections, history],
+                                           "assertions": _mark_membership_bindings_for_review(
+                                               asset, {source_id, destination_id}, moved_faces,
+                                           ),
                                            "validation_state": "needs-review"})
         persist_asset_atomic(root, sidecar.relative_to(root).as_posix(), updated,
                              expected_digest=request.expected_sidecar_digest)

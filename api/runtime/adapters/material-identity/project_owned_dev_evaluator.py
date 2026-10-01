@@ -21,7 +21,8 @@ from evaluator import (FROZEN_FIXTURE, SUPPORTED_LABELS, build_crop_descriptors,
                        sha256_bytes, sha256_file)
 from dinov2_evaluator import development_truth_plan, _join_development_targets
 from project_owned_classifier import (FEATURE_PROFILES, _augmented, _features, fit,
-                                      score, with_calibration)
+                                      score, score_with_diagnostics, with_calibration)
+from procedural_training_observations import generate as generate_procedural_observations
 
 FIXTURE_SHA = "sha256:c7c5d9c2ab31d3d956411c019e2ac19a72f991da5829ed18ceacf36e47094466"
 INPUT_SHA = "sha256:453ac070aadd84eaf45eb381fb2910e906026b47cc929a5e6fdc4d6dd5f29694"
@@ -117,9 +118,11 @@ def _features_payload(identity: dict[str, Any], rows: list[dict[str, Any]]) -> d
             "case_ids": sorted({row["case_id"] for row in rows}), "rows": payload_rows}
 
 
-def _oof(rows: list[dict[str, Any]], config: dict[str, Any], *, seed: int) -> tuple[list[dict[str, Any]], dict[int, Any]]:
+def _oof(rows: list[dict[str, Any]], config: dict[str, Any], *, seed: int,
+         renderer_path: Path) -> tuple[list[dict[str, Any]], dict[int, Any], dict[int, Any]]:
     profile, variants, ridge = config["family"], config["variants"], config["ridge"]
-    output, fold_models = [], {}
+    classifier_family, rbf_gamma = config.get("classifier", "linear_ridge"), config.get("gamma", 1.0 / 30.0)
+    output, fold_models, fold_generation = [], {}, {}
     for fold in range(5):
         train = [row for row in rows if row["truth_label"] in SUPPORTED_LABELS and row["fold"] != fold]
         rejection_train = [row for row in rows if row["truth_label"] in {"__unknown__", "__ambiguous__"}
@@ -132,24 +135,100 @@ def _oof(rows: list[dict[str, Any]], config: dict[str, Any], *, seed: int) -> tu
         training_rows = [row | {"sample_id": f"{row['case_id']}:{row['view_id']}", "label": row["truth_label"]} for row in train]
         rejection_rows = [row | {"sample_id": f"{row['case_id']}:{row['view_id']}", "label": row["truth_label"]}
                           for row in rejection_train]
+        procedural_count = int(config.get("procedural_variants_per_view", 0))
+        training_rows, supported_generation = generate_procedural_observations(
+            training_rows, renderer_path, variants_per_view=procedural_count)
+        rejection_rows, rejection_generation = generate_procedural_observations(
+            rejection_rows, renderer_path, variants_per_view=procedural_count)
         model = fit(training_rows, seed=seed, variants_per_view=variants, ridge=ridge,
                     feature_profile=profile, abstention_samples=rejection_rows,
-                    truth_source="pinned Ticket 07 development truth plan")
+                    truth_source="pinned Ticket 07 development truth plan",
+                    classifier_family=classifier_family, rbf_gamma=rbf_gamma,
+                    unknown_score_target=config.get("unknown_target", 0.0),
+                    unknown_head=config.get("unknown_head", False),
+                    unknown_head_scale=config.get("unknown_head_scale", 1.0))
+        fold_generation[fold] = {
+            "supported": supported_generation, "rejection": rejection_generation,
+            "generated_rows": supported_generation["generated_rows"] + rejection_generation["generated_rows"],
+            "training_object_ids_disjoint_from_validation": not bool(
+                ({r["object_id"] for r in training_rows + rejection_rows} &
+                 {r["object_id"] for r in validation}))}
         fold_models[fold] = model
         for row in validation:
-            raw = score(model, row["image"], row["mask"])
+            diagnostics = score_with_diagnostics(model, row["image"], row["mask"])
             output.append({k: row[k] for k in ("case_id", "object_id", "region_id", "view_id", "crop_input_digest", "fold")}
-                | {"raw_similarity_logits": raw})
+                | {"raw_similarity_logits": diagnostics["scores"],
+                   "raw_supported_scores": diagnostics["raw_supported_scores"],
+                   "unknown_head_score": diagnostics["unknown_head_score"]})
     if len(output) != FROZEN_FIXTURE["development_region_view_count"]:
         raise DevelopmentError("OOF output does not cover all 140 development views")
-    return output, fold_models
+    return output, fold_models, fold_generation
 
 
 def _candidate_result(rows: list[dict[str, Any]], plan: dict[str, dict[str, Any]], config: dict[str, Any],
-                      *, seed: int, stress_variants: int) -> tuple[dict[str, Any], list[dict[str, Any]], dict[int, Any]]:
-    oof, fold_models = _oof(rows, config, seed=seed)
-    joined = _join_development_targets(oof, plan)
-    calibration = _fast_calibrate(joined, gates=DEV_GATES)
+                      *, seed: int, stress_variants: int, renderer_path: Path) -> tuple[dict[str, Any], list[dict[str, Any]], dict[int, Any]]:
+    oof, fold_models, fold_generation = _oof(rows, config, seed=seed, renderer_path=renderer_path)
+    if config.get("view_pooling") == "mean_region_logits":
+        by_region: dict[str, list[dict[str, Any]]] = {}
+        for row in oof:
+            by_region.setdefault(row["case_id"], []).append(row)
+        for region_rows in by_region.values():
+            if len(region_rows) != 4 or len({row["object_id"] for row in region_rows}) != 1:
+                raise DevelopmentError("mean region pooling requires four views from exactly one dev object")
+            pooled = {label: float(np.mean([row["raw_supported_scores"][label] for row in region_rows]))
+                      for label in SUPPORTED_LABELS}
+            pooled_unknown = ([float(row["unknown_head_score"]) for row in region_rows]
+                              if region_rows[0]["unknown_head_score"] is not None else None)
+            unknown_mean = float(np.mean(pooled_unknown)) if pooled_unknown is not None else None
+            for row in region_rows:
+                row["raw_supported_scores"] = pooled
+                row["unknown_head_score"] = unknown_mean
+    elif config.get("view_pooling") not in (None, "none"):
+        raise DevelopmentError("unknown project-owned classifier view pooling rule")
+
+    def scored_rows(unknown_scale: float) -> list[dict[str, Any]]:
+        result = []
+        for row in oof:
+            head_score = row["unknown_head_score"]
+            scores = row["raw_supported_scores"]
+            if head_score is not None:
+                scores = {label: scores[label] - unknown_scale * head_score for label in SUPPORTED_LABELS}
+            result.append(row | {"raw_similarity_logits": scores})
+        return result
+
+    scale_options = config.get("unknown_scale_candidates")
+    scale_evidence = []
+    if scale_options is not None:
+        if (not isinstance(scale_options, (list, tuple)) or not scale_options
+                or any(not isinstance(v, (int, float)) or isinstance(v, bool) or not math.isfinite(v) or v < 0
+                       for v in scale_options)
+                or any(row["unknown_head_score"] is None for row in oof)):
+            raise DevelopmentError("unknown scale candidates require a finite list and a trained unknown head")
+        best = None
+        for scale in scale_options:
+            candidate_rows = _join_development_targets(scored_rows(float(scale)), plan)
+            evaluated = _fast_calibrate(candidate_rows, gates=DEV_GATES)
+            metrics = evaluated["development_metrics"]
+            ratios = [metrics[key] / gate for key, gate in DEV_GATES.items()]
+            feasible = all(value >= 1.0 for value in ratios) and evaluated["development_gate_feasible"]
+            key = (float(feasible), min(ratios), metrics["macro_f1_supported_labels"],
+                   metrics["minimum_supported_class_recall"], metrics["coverage_supported_regions"],
+                   metrics["unknown_abstention_recall"], metrics["ambiguous_abstention_recall"],
+                   -evaluated["thresholds"]["unknown_max_primary_logit_below"],
+                   -evaluated["thresholds"]["ambiguous_top1_minus_top2_margin_below"])
+            record = {"unknown_head_scale": float(scale), "metrics": metrics,
+                      "thresholds": evaluated["thresholds"], "feasible_threshold_pair_count": evaluated["feasible_threshold_pair_count"],
+                      "joint_gate_pass": feasible, "minimum_normalized_gate_ratio": min(ratios)}
+            scale_evidence.append(record)
+            if best is None or key > best[0]:
+                best = (key, evaluated, scale)
+        assert best is not None
+        _, calibration, selected_scale = best
+        oof = scored_rows(float(selected_scale))
+    else:
+        joined = _join_development_targets(scored_rows(float(config.get("unknown_head_scale", 1.0))), plan)
+        calibration = _fast_calibrate(joined, gates=DEV_GATES)
+        selected_scale = float(config.get("unknown_head_scale", 1.0))
     gates = calibration["development_gates"]
     metrics = calibration["development_metrics"]
     gate_pass = all(metrics[key] >= gate for key, gate in gates.items()) and calibration["development_gate_feasible"]
@@ -176,15 +255,25 @@ def _candidate_result(rows: list[dict[str, Any]], plan: dict[str, dict[str, Any]
         "supported_prediction_stability": sum(r["original_prediction"] == r["augmented_prediction"] for r in supported_stress) / max(1, len(supported_stress)),
         "unknown_abstention_recall": sum(r["augmented_prediction"] in {"unknown", "ambiguous"} for r in unknown_stress) / max(1, len(unknown_stress)),
         "ambiguous_abstention_recall": sum(r["augmented_prediction"] == "ambiguous" for r in ambiguous_stress) / max(1, len(ambiguous_stress))}
-    result = {"candidate": config | {"seed": seed}, "development_metrics": metrics,
+    result = {"candidate": config | {"selected_unknown_head_scale": selected_scale, "seed": seed},
+        "unknown_scale_calibration": scale_evidence, "development_metrics": metrics,
         "development_gates": gates, "development_gate_pass": gate_pass,
         "feasible_threshold_pair_count": calibration["feasible_threshold_pair_count"],
         "candidate_threshold_pair_count": calibration["candidate_threshold_pair_count"],
         "thresholds": calibration["thresholds"], "augmentation_stress": stress,
+        "training_observation_generation": {"folds": fold_generation,
+            "generated_rows_total": sum(item["generated_rows"] for item in fold_generation.values()),
+            "source_object_disjoint": all(item["training_object_ids_disjoint_from_validation"] for item in fold_generation.values())},
         "classifier": {"fit_unit": "region view with fixed region mask and label", "fold_unit": "object_id",
             "fold_count": 5, "training_ids_disjoint_from_validation": True,
             "synthetic_variations_per_training_view": config["variants"],
             "feature_profile": config["family"],
+            "classifier_family": config.get("classifier", "linear_ridge"),
+            "rbf_gamma": config.get("gamma") if config.get("classifier") == "rbf_kernel_ridge" else None,
+            "unknown_head": config.get("unknown_head", False),
+            "unknown_head_scale": selected_scale if config.get("unknown_head", False) else None,
+            "unknown_score_target": config.get("unknown_target", 0.0),
+            "view_pooling": config.get("view_pooling", "none"),
             "uses_training_only_unknown_and_ambiguous_examples": True,
             "supported_score_targets": "one-hot supported class; unknown all-zero; ambiguous uniform across supported classes"},
         "heldout_truth_opened": False, "heldout_rows_scored": 0}
@@ -303,7 +392,8 @@ def evaluate_development(fixture_dir: Path, renderer_path: Path, output_dir: Pat
         row["truth_label"] = target["truth_label"]
     config_results, raw_candidate_data = [], []
     for index, config in enumerate(candidates):
-        result, oof, models = _candidate_result(rows, plan, config, seed=seed, stress_variants=stress_variants)
+        result, oof, models = _candidate_result(rows, plan, config, seed=seed,
+            stress_variants=stress_variants, renderer_path=renderer_path)
         oof_record = {"schema": "modly.ticket07.project-owned-development-oof.v1",
             "candidate": result["candidate"], "rows": _join_development_targets(oof, plan),
             "heldout_used": False, "heldout_truth_opened": False}
@@ -346,7 +436,13 @@ def evaluate_development(fixture_dir: Path, renderer_path: Path, output_dir: Pat
         model = fit(final_samples, seed=seed, variants_per_view=selected["candidate"]["variants"],
             ridge=selected["candidate"]["ridge"], feature_profile=selected["candidate"]["family"],
             abstention_samples=final_rejection_samples,
-            truth_source="pinned Ticket 07 development truth plan")
+            truth_source="pinned Ticket 07 development truth plan",
+            classifier_family=selected["candidate"].get("classifier", "linear_ridge"),
+            rbf_gamma=selected["candidate"].get("gamma", 1.0 / 30.0),
+            unknown_score_target=selected["candidate"].get("unknown_target", 0.0),
+            unknown_head=selected["candidate"].get("unknown_head", False),
+            unknown_head_scale=selected["candidate"].get("selected_unknown_head_scale",
+                selected["candidate"].get("unknown_head_scale", 1.0)))
         oof_path = output_dir / f"candidate-{selected_index:02d}-oof.json"
         calibration_digest = sha256_file(oof_path)
         final_candidate = with_calibration(model,

@@ -15,7 +15,7 @@ export XDG_RUNTIME_DIR="$PODMAN_RUNROOT"
 GPU_RUN_PAUSE_FILE="$ROOT_DIR/.modly-amd-runtime/GPU_RUNS_PAUSED"
 if [[ -e "$GPU_RUN_PAUSE_FILE" ]]; then
   case "${1:-}" in
-    build|build-geosam2|status)
+    build|build-geosam2|status|budget-check)
       ;;
     *)
       printf 'AMD GPU runs are paused for this project: %s\n' "$GPU_RUN_PAUSE_FILE" >&2
@@ -44,6 +44,33 @@ case "${1:-}" in
     ;;
   status)
     podman_local images --digests
+    ;;
+  budget-check)
+    # Read-only check that the pinned container can see host-wide VRAM counters.
+    # This does not open /dev/kfd or start an inference workload.
+    podman_local run --rm --network=none \
+      --volume "$ROOT_DIR/api:/modly/api:ro" \
+      --volume /sys:/sys:ro \
+      --env PYTHONPATH=/modly/api \
+      "$IMAGE" python -c '
+import json
+from pathlib import Path
+from runtime.amd.gpu_budget import read_shared_vram_usage
+records=[]
+drm_class=Path("/sys/class/drm")
+for card in sorted(drm_class.glob("card[0-9]*")):
+    device=card/"device"
+    total=device/"mem_info_vram_total"
+    used=device/"mem_info_vram_used"
+    if total.is_file() and used.is_file():
+        records.append((int(total.read_text().strip()), int(used.read_text().strip())))
+if not records:
+    raise SystemExit("no host-wide DRM VRAM counters are visible")
+target_total=max(total for total,_ in records)
+print(json.dumps({"device_total_bytes":target_total,
+                  "system_wide_used_bytes":read_shared_vram_usage(target_total),
+                  "counter":"host DRM mem_info_vram_used"},sort_keys=True))
+'
     ;;
   probe)
     podman_local run --rm --userns=host \
@@ -132,6 +159,15 @@ case "${1:-}" in
     if [[ "$CPU_OFFLOAD_FLAG" == "1" ]]; then
       CPU_OFFLOAD_ENV+=(--env MODLY_GEOSAM2_CPU_OFFLOAD=1)
     fi
+    BOX_REDUCTION_ENV=()
+    BOX_REDUCTION_FLAG="${MODLY_GEOSAM2_BOUNDED_BOX_REDUCTION:-0}"
+    if [[ "$BOX_REDUCTION_FLAG" != "0" && "$BOX_REDUCTION_FLAG" != "1" ]]; then
+      printf 'MODLY_GEOSAM2_BOUNDED_BOX_REDUCTION must be 0 or 1.\n' >&2
+      exit 2
+    fi
+    if [[ "$BOX_REDUCTION_FLAG" == "1" ]]; then
+      BOX_REDUCTION_ENV+=(--env MODLY_GEOSAM2_BOUNDED_BOX_REDUCTION=1)
+    fi
     set +e
     python -c 'import json,sys; print(json.dumps({"workspaceDir":"/workspace","input":{"filePath":sys.argv[1],"structuredAssetPath":sys.argv[2]},"params":{"run_id":sys.argv[3],"backend":"geosam2","seed":42}}))' \
       "$GEOMETRY_RELATIVE_PATH" "$SIDECAR_RELATIVE_PATH" "$RUN_ID" \
@@ -139,6 +175,7 @@ case "${1:-}" in
       | podman_local run --rm --interactive --userns=host --network=none \
           --device /dev/kfd --device /dev/dri --group-add video --ipc=host \
           --cap-add SYS_PTRACE --security-opt seccomp=unconfined \
+          --volume /sys:/sys:ro \
           --volume "$ROOT_DIR/api:/modly/api:ro" \
           --volume "$ROOT_DIR/src:/modly/src:ro" \
           --volume "$ROOT_DIR/scripts:/modly/scripts:ro" \
@@ -157,6 +194,7 @@ case "${1:-}" in
           "${FINITE_RETRY_CANDIDATE_ENV[@]}" \
           "${PROPOSAL_LIFT_TRACE_ENV[@]}" \
           "${CPU_OFFLOAD_ENV[@]}" \
+          "${BOX_REDUCTION_ENV[@]}" \
           "$GEOSAM2_IMAGE" python -c '
 import os, runpy, sys
 api = "/modly/api"
@@ -455,8 +493,8 @@ runpy.run_module("runtime.adapters.parts.geosam2_probe",run_name="__main__")
     FIRST_CONV_LOCK_ARGS=()
     if [[ "$LIFECYCLE_MODE" == encoder-first-conv ]]; then
       FIRST_CONV_LOCK="$ROOT_DIR/api/runtime/adapters/parts/GEOSAM2_FIRST_CONV_LOCK.v1.json"
-      EXPECTED_FIRST_CONV_LOCK_SHA256='080f0c09aacf402fd79d58243e754f63c21dc2a5407a6c75a7561f4a774b7dad'
-      EXPECTED_FIRST_CONV_PROBE_SHA256='30cf5267bebee21353bf54c62e98f5b047962430ba132c7e1353cb56fcf937a5'
+      EXPECTED_FIRST_CONV_LOCK_SHA256='a91fcbe6bdefc99a2f0268ef27fcfa9d8ee4779450c682c56ac2af3a526ada1c'
+      EXPECTED_FIRST_CONV_PROBE_SHA256='b81ed031345977f9628361ab7b8eecbf000644ad1ae78dd979199c5d6c98b9ac'
       ACTUAL_FIRST_CONV_PROBE_SHA256="$(sha256sum "$ROOT_DIR/api/runtime/adapters/parts/geosam2_first_conv_probe.py" | cut -d ' ' -f 1)"
       if [[ "$(sha256sum "$FIRST_CONV_LOCK" | cut -d ' ' -f 1)" != "$EXPECTED_FIRST_CONV_LOCK_SHA256" || "$ACTUAL_FIRST_CONV_PROBE_SHA256" != "$EXPECTED_FIRST_CONV_PROBE_SHA256" ]]; then
         printf 'First-convolution diagnostic lock/runner identity check failed.\n' >&2
@@ -639,7 +677,7 @@ runpy.run_module(os.environ["MODLY_GEOSAM2_PROBE_MODULE"],run_name="__main__")
     fi
     ;;
   *)
-    printf 'Usage: %s {build|build-geosam2|status|probe|memory|workflow-geosam2|diagnose-geosam2-qv|trace-geosam2-proposals|trace-geosam2-lifecycle|trace-geosam2-finite-retry}\n' "$0" >&2
+    printf 'Usage: %s {build|build-geosam2|status|budget-check|probe|memory|workflow-geosam2|diagnose-geosam2-qv|trace-geosam2-proposals|trace-geosam2-lifecycle|trace-geosam2-finite-retry}\n' "$0" >&2
     exit 2
     ;;
 esac

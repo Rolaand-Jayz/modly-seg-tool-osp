@@ -366,6 +366,11 @@ class Assertion(BaseModel):
     # Assertions authored before this field existed remain parseable. New
     # inference output should bind its assertion to the topology it describes.
     topology_revision: str | None = Field(default=None, min_length=1)
+    # User segmentation changes can leave the assertion's face set unchanged
+    # while changing what that assertion is about. Preserve the original model
+    # assertion, but make its review state explicit until a downstream stage
+    # replaces or a reviewer confirms it.
+    review_state: Literal["current", "needs-review"] = "current"
     evidence_kind: EvidenceKind
     confidence: Confidence
     provenance: Provenance
@@ -396,6 +401,12 @@ class UserCorrection(BaseModel):
     target: TopologyMapping
     status: Literal["active", "orphaned", "pending-remap"]
     evidence_kind: Literal["user-confirmed"] = "user-confirmed"
+    # Missing identity is represented honestly. Older sidecars keep a null
+    # timestamp/sequence rather than acquiring fabricated historical values.
+    actor_id: str = "unknown"
+    created_at: str | None = None
+    asset_id: str | None = None
+    sequence: int | None = Field(default=None, ge=1)
 
 
 class StageArtifact(BaseModel):

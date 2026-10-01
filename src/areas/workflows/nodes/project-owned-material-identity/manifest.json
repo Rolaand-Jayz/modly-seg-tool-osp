@@ -5,7 +5,7 @@
   "entry": "processor.py",
   "version": "1.0.0",
   "author": "Modly",
-  "description": "Opt-in local Modly classifier candidate. Requires an explicitly supplied calibrated candidate JSON; this provisional path does not train from corrections or claim Ticket 07 acceptance.",
+  "description": "Opt-in local Modly classifier candidate. Requires explicitly supplied pinned candidate JSON. Uncalibrated candidates run as unknown abstentions with unqualified provenance; this path does not train from corrections or claim Ticket 07 acceptance.",
   "capabilities": [
     {
       "capability_id": "classify-material-identity",
@@ -26,10 +26,10 @@
       "params_schema": [
         {
           "id": "candidate_weights_path",
-          "label": "Calibrated candidate JSON path",
+          "label": "Explicit candidate JSON path",
           "type": "string",
           "default": "",
-          "tooltip": "Workspace-relative path to an explicitly trained and development-calibrated candidate JSON. Empty or uncalibrated candidates fail closed."
+          "tooltip": "Workspace-relative path to an explicitly trained candidate JSON. Uncalibrated weights produce unknown abstentions only; no Ticket 07 quality or acceptance claim is made."
         }
       ]
     }

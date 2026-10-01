@@ -120,8 +120,9 @@ def classify_prepared_asset(asset, model: dict[str, Any], prepared_views: list[d
         _validate_model(model)
     except CandidateError as exc:
         raise NodeError("CANDIDATE_WEIGHTS_INVALID", "candidate weights fail their pinned model contract") from exc
-    if model.get("abstention", {}).get("state") != "calibrated":
-        raise NodeError("CALIBRATED_WEIGHTS_REQUIRED", "candidate has no explicit development calibration; classification is disabled")
+    calibration_state = model.get("abstention", {}).get("state")
+    if calibration_state not in {"calibrated", "uncalibrated"}:
+        raise NodeError("CANDIDATE_QUALIFICATION_INVALID", "candidate qualification must be explicitly calibrated or uncalibrated")
     if not isinstance(asset, StructuredAsset):
         raise NodeError("INVALID_ASSET", "a validated Structured Asset is required")
     if not asset.material_regions:
@@ -190,7 +191,8 @@ def classify_prepared_asset(asset, model: dict[str, Any], prepared_views: list[d
         ranked = [{"label": label, "views": candidates[label], "share": candidates[label] / total}
                   for label in ordered]
         if status == "unknown":
-            confidence = Confidence(state=ConfidenceState.UNKNOWN)
+            confidence = Confidence(state=(ConfidenceState.UNCALIBRATED if calibration_state != "calibrated"
+                                           else ConfidenceState.UNKNOWN))
         elif total and ordered:
             confidence = Confidence(state=ConfidenceState.UNCALIBRATED,
                 score=candidates[ordered[0]] / total, score_kind="derived")
@@ -205,6 +207,9 @@ def classify_prepared_asset(asset, model: dict[str, Any], prepared_views: list[d
             parameters={"topology_revision": asset.topology_revision, "visible_views": len(items),
                 "candidate_calibration_id": model["abstention"].get("calibration_id"),
                 "candidate_calibration_data_sha256": model["abstention"].get("calibration_data_sha256"),
+                "candidate_calibration_state": calibration_state,
+                "qualification_state": "unqualified",
+                "ticket07_acceptance": "not-accepted",
                 "face_mapping": "Ticket 06 calibrated projection and Modly glTF triangle decoder",
                 "pbr_recomputed": False, "corrections_used_for_training": False},
             stage_id=STAGE_ID, run_id=run_id, evidence_source="model")
@@ -212,6 +217,8 @@ def classify_prepared_asset(asset, model: dict[str, Any], prepared_views: list[d
             property="material-identity", value={"status": status, "original_label": chosen,
                 "normalized_label": None, "candidates": ranked, "topology_revision": asset.topology_revision,
                 "candidate_id": model.get("candidate_id"), "weights_digest": model_digest,
+                "qualification_state": "unqualified",
+                "prediction_status": "abstained-uncalibrated" if calibration_state != "calibrated" else status,
                 "observations": items}, evidence_kind=EvidenceKind.MODEL_INFERRED,
             confidence=confidence, provenance=provenance))
         existing = [identifier for identifier in region.material_identity_assertion_ids
@@ -321,6 +328,7 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
         raise NodeError("API_DIR_UNAVAILABLE", "Modly API directory was not provided to this process")
     _load_api(api_dir)
     from schemas.structured_asset import ArtifactReference, StageArtifact, StructuredAsset
+    from services.structured_asset_fusion import replace_capability_evidence
     mesh = _contained(workspace, inputs.get("filePath"), "mesh input")
     sidecar = _contained(workspace, inputs.get("structuredAssetPath"), "Structured Asset sidecar")
     asset = StructuredAsset.model_validate_json(sidecar.read_text(encoding="utf-8"))
@@ -329,7 +337,7 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
     run_id = params.get("run_id")
     if not isinstance(run_id, str) or not run_id or any(c not in "0123456789abcdef-" for c in run_id.lower()):
         raise NodeError("INVALID_RUN_ID", "Modly must provide a bounded process run id")
-    weights_path = _contained(workspace, params.get("candidate_weights_path"), "calibrated candidate weights")
+    weights_path = _contained(workspace, params.get("candidate_weights_path"), "explicit candidate weights")
     if weights_path.stat().st_size > 64 * 1024 * 1024:
         raise NodeError("CANDIDATE_WEIGHTS_TOO_LARGE", "candidate JSON exceeds the 64 MiB limit")
     model_bytes = weights_path.read_bytes()
@@ -342,10 +350,17 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
         _validate_model(model)
     except (json.JSONDecodeError, CandidateError) as exc:
         raise NodeError("CANDIDATE_WEIGHTS_INVALID", "candidate JSON is invalid, mismatched, or has a bad digest") from exc
-    if model["abstention"].get("state") != "calibrated":
-        raise NodeError("CALIBRATED_WEIGHTS_REQUIRED", "candidate has no explicit development calibration; classification is disabled")
     prepared, input_digests = _load_material_views(workspace, asset, mesh)
-    updated, report = classify_prepared_asset(asset, model, prepared, run_id=run_id, model_digest=model_digest)
+    classified, report = classify_prepared_asset(asset, model, prepared, run_id=run_id, model_digest=model_digest)
+    # This is the real workflow caller for Ticket 09's capability-scoped
+    # replacement contract: replace this adapter's identity evidence only,
+    # preserving other adapters, capability families, and user corrections.
+    stage_assertions = [assertion for assertion in classified.assertions
+        if assertion.provenance.adapter_id == ADAPTER_ID
+        and assertion.provenance.stage_id == STAGE_ID
+        and assertion.provenance.run_id == run_id]
+    updated = replace_capability_evidence(asset, capability="material-identity",
+        adapter_id=ADAPTER_ID, assertions=stage_assertions)
     provenance_digests = list(dict.fromkeys(input_digests + report["input_digests"]))
     # Bind the stage result to all source artifacts, and preserve every unrelated assertion/artifact.
     material_by_id = {item.region_id: item for item in updated.material_regions}
@@ -364,6 +379,8 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
         "run_id": run_id, "asset_id": asset.asset_id, "geometry_digest": asset.geometry.digest,
         "topology_revision": asset.topology_revision, "candidate_id": model["candidate_id"],
         "weights_digest": model_digest, "input_digests": provenance_digests,
+        "candidate_calibration_state": model["abstention"]["state"],
+        "qualification_state": "unqualified", "ticket07_acceptance": "not-accepted",
         "backend": "cpu", "runtime": "Modly process extension", "latency_ms": max(.001, (time.perf_counter() - started) * 1000.), **report}
     stage_bytes = _canonical(payload) + b"\n"
     stage_digest = _sha(stage_bytes)
@@ -388,6 +405,8 @@ def run(request: dict[str, Any]) -> dict[str, Any]:
         "structuredAsset": updated.model_dump(mode="json"), "evidenceArtifact": stage_ref.model_dump(mode="json"),
         "candidateId": model["candidate_id"], "weightsDigest": model_digest,
         "qualitySummary": {"backend": "cpu", "accelerator_vram_bytes": 0,
+            "candidate_calibration_state": model["abstention"]["state"],
+            "qualification_state": "unqualified", "ticket07_acceptance": "not-accepted",
             "region_count": report["region_count"], "classified_count": report["classified_count"],
             "latency_ms": payload["latency_ms"]}}}
 

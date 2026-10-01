@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import json
 import unittest
 import uuid
 from pathlib import Path
@@ -25,7 +26,8 @@ sys.path[:] = saved_path
 from api.tests.test_ticket08_modly_projection_adapter import _asset
 from api.tests.test_ticket06_material_regions import MaterialRegionProcessTests
 from services.headless_process import run_python_process_extension
-from schemas.structured_asset import StructuredAsset
+from schemas.structured_asset import (Assertion, Confidence, EvidenceKind, Provenance, StructuredAsset,
+    UserCorrection)
 
 
 def training_views():
@@ -89,12 +91,20 @@ class Ticket07ProjectOwnedNodeTests(unittest.TestCase):
         self.assertEqual(len(updated.material_regions), len(asset.material_regions))
         self.assertEqual(updated.material_regions[0].mapping.element_ids, asset.material_regions[0].mapping.element_ids)
 
-    def test_uncalibrated_candidate_fails_closed(self):
+    def test_uncalibrated_candidate_emits_explicit_unknown_with_unqualified_provenance(self):
         uncalibrated = fit(training_views(), seed=31, variants_per_view=0)
-        with self.assertRaises(NodeError) as caught:
-            classify_prepared_asset(_asset(), uncalibrated, self._prepared(),
-                run_id="uncalibrated", model_digest="sha256:" + "e" * 64)
-        self.assertEqual(caught.exception.code, "CALIBRATED_WEIGHTS_REQUIRED")
+        updated, report = classify_prepared_asset(_asset(), uncalibrated, self._prepared(),
+            run_id="uncalibrated", model_digest="sha256:" + "e" * 64)
+        found = [a for a in updated.assertions if a.provenance.stage_id == "classify-material-identity-project-candidate"]
+        self.assertEqual(report["classified_count"], 0)
+        self.assertEqual(len(found), 2)
+        for assertion in found:
+            self.assertEqual(assertion.value["status"], "unknown")
+            self.assertEqual(assertion.value["prediction_status"], "abstained-uncalibrated")
+            self.assertEqual(assertion.value["qualification_state"], "unqualified")
+            self.assertEqual(assertion.confidence.state.value, "uncalibrated")
+            self.assertEqual(assertion.provenance.parameters["ticket07_acceptance"], "not-accepted")
+            self.assertEqual(assertion.provenance.parameters["corrections_used_for_training"], False)
 
     def test_high_calibrated_score_threshold_preserves_unknown_result(self):
         model = self._model(minimum_top_score=1e9)
@@ -104,12 +114,33 @@ class Ticket07ProjectOwnedNodeTests(unittest.TestCase):
         self.assertEqual(len(found), 2)
         self.assertTrue(all(a.value["status"] == "unknown" and a.confidence.state.value == "unknown" for a in found))
 
+    def test_low_calibrated_margin_preserves_ambiguous_abstention(self):
+        model = self._model(minimum_margin=1e9)
+        updated, _ = classify_prepared_asset(_asset(), model, self._prepared(),
+            run_id="ambiguous-result", model_digest="sha256:" + "1" * 64)
+        found = [a for a in updated.assertions if a.provenance.stage_id == "classify-material-identity-project-candidate"]
+        self.assertEqual(len(found), 2)
+        self.assertTrue(all(a.value["status"] == "ambiguous" and a.value["original_label"] is None
+            and a.value["prediction_status"] == "ambiguous" for a in found))
+
     def test_full_process_consumes_ticket06_fixture_and_maps_source_pixels_to_faces(self):
+        manifest = json.loads((NODE / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["type"], "process")
+        self.assertEqual(manifest["entry"], "processor.py")
+        self.assertIn("classify-material-identity", [item["capability_id"] for item in manifest["capabilities"]])
         fixture = MaterialRegionProcessTests()
         fixture.setUp()
         try:
             region_result = fixture._run(run_id=str(uuid.uuid4()))
-            candidate = self._model()
+            source_path = fixture.workspace / region_result["structuredAssetPath"]
+            source_asset = StructuredAsset.model_validate_json(source_path.read_text(encoding="utf-8"))
+            semantic = Assertion(assertion_id="independent-part-semantic", subject_id=source_asset.part_segments[0].region_id,
+                property="part.semantic-label", value="vehicle body", topology_revision=source_asset.topology_revision,
+                evidence_kind=EvidenceKind.MODEL_INFERRED, confidence=Confidence(state="uncalibrated", score=.5,
+                    score_kind="native"), provenance=Provenance(adapter_id="separate-semantic-adapter", adapter_revision="fixture:1"))
+            source_asset.assertions.append(semantic)
+            source_path.write_text(source_asset.model_dump_json(indent=2) + "\n", encoding="utf-8")
+            candidate = fit(training_views(), seed=31, variants_per_view=1)
             weights_path = fixture.workspace / "candidate.json"
             save_model(candidate, weights_path)
             node_result = run_python_process_extension(
@@ -128,6 +159,38 @@ class Ticket07ProjectOwnedNodeTests(unittest.TestCase):
             self.assertEqual(output.topology_revision, StructuredAsset.model_validate(
                 region_result["structuredAsset"]).topology_revision)
             self.assertTrue(all(len(region.material_identity_assertion_ids) == 1 for region in output.material_regions))
+            stage_assertions = [a for a in output.assertions if
+                a.provenance.stage_id == "classify-material-identity-project-candidate"]
+            self.assertTrue(stage_assertions)
+            self.assertTrue(all(a.value["status"] == "unknown" and
+                a.value["qualification_state"] == "unqualified" and
+                a.provenance.parameters["candidate_calibration_state"] == "uncalibrated"
+                for a in stage_assertions))
+            self.assertEqual(node_result["qualitySummary"]["ticket07_acceptance"], "not-accepted")
+            self.assertEqual(node_result["qualitySummary"]["qualification_state"], "unqualified")
+            # Add an independent user correction to the first run's sidecar,
+            # then exercise the same registered processor as a real capability rerun.
+            first_path = fixture.workspace / node_result["structuredAssetPath"]
+            first_asset = StructuredAsset.model_validate_json(first_path.read_text(encoding="utf-8"))
+            material = first_asset.material_regions[0]
+            first_asset.corrections.append(UserCorrection(correction_id="user-material-fix",
+                property="material.identity", value="glass", target=material.mapping, status="active"))
+            first_path.write_text(first_asset.model_dump_json(indent=2) + "\n", encoding="utf-8")
+            rerun = run_python_process_extension(
+                python_executable=Path(sys.executable), extension_dir=NODE, entry="processor.py",
+                api_dir=ROOT / "api", workspace_dir=fixture.workspace,
+                stage_id="classify-material-identity-project-candidate",
+                input_payload={"filePath": "asset.glb", "structuredAssetPath": node_result["structuredAssetPath"]},
+                params={"run_id": str(uuid.uuid4()), "candidate_weights_path": "candidate.json"},
+                timeout_seconds=30,
+            )
+            rerun_asset = StructuredAsset.model_validate(rerun["structuredAsset"])
+            self.assertEqual([item.correction_id for item in rerun_asset.corrections], ["user-material-fix"])
+            self.assertIn("independent-part-semantic", {item.assertion_id for item in rerun_asset.assertions})
+            candidate_assertions = [item for item in rerun_asset.assertions if
+                item.provenance.adapter_id == "modly.project-owned-material-identity" and
+                item.provenance.stage_id == "classify-material-identity-project-candidate"]
+            self.assertEqual(len(candidate_assertions), 2)
         finally:
             fixture.tearDown()
 

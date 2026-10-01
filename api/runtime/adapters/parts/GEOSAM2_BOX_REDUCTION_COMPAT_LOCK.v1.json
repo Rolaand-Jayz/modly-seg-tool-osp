@@ -1,0 +1,11 @@
+{
+  "schema": "modly.ticket04.geosam2-box-reduction-compat-lock.v1",
+  "policy_id": "geosam2-bounded-mask-box-reduction-v1",
+  "module": "geosam2_box_reduction_compat.py",
+  "module_sha256": "aff1e89c0a8b529162472c2aafd4a096875bb47db7eec5eb9f426e6c2cbb4519",
+  "upstream_revision": "b5de23c60ab487d407b623d394a1614f9714761c",
+  "upstream_file": "sam2/utils/amg.py",
+  "upstream_file_sha256": "b7b33090e2af72e04dbb815c8f32aff41a4ed1abf9668f62b59f1bdd640ca5d8",
+  "max_chunk_rows": 4,
+  "activation": "opt-in-requalification-only"
+}

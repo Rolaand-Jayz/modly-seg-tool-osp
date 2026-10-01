@@ -193,7 +193,10 @@ def _validate_samples(samples: Iterable[dict[str, Any]]) -> list[dict[str, Any]]
 def fit(samples: Iterable[dict[str, Any]], *, seed: int = 0, variants_per_view: int = 8,
         ridge: float = 4.0, feature_profile: str = "all_physics_cues",
         abstention_samples: Iterable[dict[str, Any]] = (),
-        truth_source: str = "user-confirmed material-region labels") -> dict[str, Any]:
+        truth_source: str = "user-confirmed material-region labels",
+        classifier_family: str = "linear_ridge", rbf_gamma: float = 1.0 / 30.0,
+        unknown_score_target: float = 0.0, unknown_head: bool = False,
+        unknown_head_scale: float = 1.0) -> dict[str, Any]:
     """Fit a tiny linear multiclass model; input labels must be user-confirmed.
 
     Repeated views and augmentation remain grouped by region during training;
@@ -229,6 +232,21 @@ def fit(samples: Iterable[dict[str, Any]], *, seed: int = 0, variants_per_view: 
         raise CandidateError(f"unsupported feature profile: {feature_profile!r}")
     if not isinstance(truth_source, str) or not truth_source.strip():
         raise CandidateError("training truth source must be identified")
+    if classifier_family not in {"linear_ridge", "rbf_kernel_ridge"}:
+        raise CandidateError(f"unsupported classifier family: {classifier_family!r}")
+    if (isinstance(rbf_gamma, bool) or not isinstance(rbf_gamma, (int, float))
+            or not math.isfinite(rbf_gamma) or rbf_gamma <= 0):
+        raise CandidateError("RBF gamma must be finite and positive")
+    if (isinstance(unknown_score_target, bool) or not isinstance(unknown_score_target, (int, float))
+            or not math.isfinite(unknown_score_target) or unknown_score_target > 0):
+        raise CandidateError("unknown score target must be finite and non-positive")
+    if type(unknown_head) is not bool:
+        raise CandidateError("unknown head selection must be boolean")
+    if (isinstance(unknown_head_scale, bool) or not isinstance(unknown_head_scale, (int, float))
+            or not math.isfinite(unknown_head_scale) or unknown_head_scale < 0):
+        raise CandidateError("unknown head scale must be finite and non-negative")
+    if unknown_head and classifier_family != "rbf_kernel_ridge":
+        raise CandidateError("the explicit unknown head is available only for the RBF kernel candidate")
     feature_indices = list(FEATURE_PROFILES[feature_profile])
 
     raw_inputs = []
@@ -252,27 +270,50 @@ def fit(samples: Iterable[dict[str, Any]], *, seed: int = 0, variants_per_view: 
             vectors.append([_features(rgb, support)[i] for i in feature_indices])
             labels.append(row["label"])
     x = np.asarray(vectors, dtype=np.float64)
-    y = np.zeros((len(labels), len(SUPPORTED_LABELS)), dtype=np.float64)
+    output_count = len(SUPPORTED_LABELS) + int(unknown_head)
+    y = np.zeros((len(labels), output_count), dtype=np.float64)
     for i, label in enumerate(labels):
         if label in SUPPORTED_LABELS:
             y[i, SUPPORTED_LABELS.index(label)] = 1.0
+        elif label == "__unknown__":
+            if unknown_head:
+                y[i, len(SUPPORTED_LABELS)] = 1.0
+            else:
+                y[i, :] = float(unknown_score_target)
         elif label == "__ambiguous__":
-            y[i, :] = 1.0 / len(SUPPORTED_LABELS)
+            y[i, :len(SUPPORTED_LABELS)] = 1.0 / len(SUPPORTED_LABELS)
     mean, scale = x.mean(axis=0), x.std(axis=0)
     scale[scale < 1e-8] = 1.0
     z = (x - mean) / scale
-    # Stable primal ridge with unregularized intercept, solved by numpy only.
-    z_mean, y_mean = z.mean(axis=0), y.mean(axis=0)
-    zc, yc = z - z_mean, y - y_mean
-    gram = zc.T @ zc
-    gram.flat[::len(gram) + 1] += ridge
-    weights = np.linalg.solve(gram, zc.T @ yc)
-    bias = y_mean - z_mean @ weights
+    support_vectors: np.ndarray | None = None
+    if classifier_family == "rbf_kernel_ridge":
+        distances = np.maximum(0.0, np.sum(z * z, axis=1)[:, None]
+                               + np.sum(z * z, axis=1)[None, :] - 2.0 * (z @ z.T))
+        kernel = np.exp(-float(rbf_gamma) * distances)
+        kernel.flat[::len(kernel) + 1] += ridge
+        weights = np.linalg.solve(kernel, y)
+        bias = np.zeros(output_count, dtype=np.float64)
+        support_vectors = z
+    else:
+        # Stable primal ridge with unregularized intercept, solved by numpy only.
+        z_mean, y_mean = z.mean(axis=0), y.mean(axis=0)
+        zc, yc = z - z_mean, y - y_mean
+        gram = zc.T @ zc
+        gram.flat[::len(gram) + 1] += ridge
+        weights = np.linalg.solve(gram, zc.T @ yc)
+        bias = y_mean - z_mean @ weights
     training_digest = _digest(canonical_bytes(source_items))
     model = {
         "schema": SCHEMA,
-        "candidate_id": ("modly.material-region.linear-ridge-supervised-abstention.v1" if reject_rows
-                         else "modly.material-region.linear-ridge.v1"),
+        "candidate_id": ("modly.material-region.rbf-kernel-ridge-unknown-head.v1" if unknown_head else
+                         "modly.material-region.rbf-kernel-ridge-supervised-abstention.v1"
+                         if classifier_family == "rbf_kernel_ridge" and reject_rows else
+                         "modly.material-region.rbf-kernel-ridge.v1" if classifier_family == "rbf_kernel_ridge" else
+                         "modly.material-region.linear-ridge-supervised-abstention.v1" if reject_rows else
+                         "modly.material-region.linear-ridge.v1"),
+        "classifier": {"family": classifier_family,
+            **({"gamma": float(rbf_gamma), "unknown_head": unknown_head,
+                "unknown_head_scale": float(unknown_head_scale)} if classifier_family == "rbf_kernel_ridge" else {})},
         "label_order": list(SUPPORTED_LABELS),
         "feature_contract": {"id": "topology-masked-physics-region-cues.v2", "profile": feature_profile,
             "dimensions": int(x.shape[1]), "feature_indices": feature_indices},
@@ -283,10 +324,13 @@ def fit(samples: Iterable[dict[str, Any]], *, seed: int = 0, variants_per_view: 
                      "input_manifest_sha256": training_digest, "seed": seed,
                      "augmentation": AUGMENTATION | {"variants_per_view": variants_per_view},
                      "ridge_penalty": ridge, "truth_source": truth_source,
-                     "unknown_target": "all supported scores zero",
+                     "unknown_score_target": float(unknown_score_target),
+                     "explicit_unknown_output": unknown_head,
+                     "unknown_output_score_scale": float(unknown_head_scale),
                      "ambiguous_target": "all supported scores equal to 1 / supported class count"},
         "normalizer": {"mean": mean.tolist(), "scale": scale.tolist()},
         "weights": weights.tolist(), "bias": bias.tolist(),
+        **({"support_vectors": support_vectors.tolist()} if support_vectors is not None else {}),
         "abstention": {"state": "uncalibrated", "minimum_top_score": None, "minimum_margin": None,
                        "calibration_id": None, "calibration_data_sha256": None},
     }
@@ -330,12 +374,34 @@ def _validate_model(model: dict[str, Any]) -> None:
             or len(model.get("normalizer", {}).get("mean", [])) != n
             or len(model.get("normalizer", {}).get("scale", [])) != n):
         raise CandidateError("model feature dimensions are invalid")
-    if len(model.get("weights", [])) != n or any(len(row) != len(SUPPORTED_LABELS) for row in model["weights"]):
-        raise CandidateError("model weights have invalid shape")
-    if len(model.get("bias", [])) != len(SUPPORTED_LABELS):
+    family = model.get("classifier", {}).get("family", "linear_ridge")
+    if family == "linear_ridge":
+        if len(model.get("weights", [])) != n or any(len(row) != len(SUPPORTED_LABELS) for row in model["weights"]):
+            raise CandidateError("model weights have invalid shape")
+    elif family == "rbf_kernel_ridge":
+        support = model.get("support_vectors")
+        classifier = model.get("classifier", {})
+        gamma = classifier.get("gamma")
+        has_unknown_head = classifier.get("unknown_head", False)
+        expected_outputs = len(SUPPORTED_LABELS) + int(has_unknown_head)
+        if (not isinstance(support, list) or not support or any(len(row) != n for row in support)
+                or len(model.get("weights", [])) != len(support)
+                or any(len(row) != expected_outputs for row in model["weights"])
+                or isinstance(gamma, bool) or not isinstance(gamma, (int, float)) or not math.isfinite(gamma) or gamma <= 0):
+            raise CandidateError("RBF support vectors, gamma, or weights have invalid shape")
+        if (type(has_unknown_head) is not bool or isinstance(classifier.get("unknown_head_scale", 1.0), bool)
+                or not isinstance(classifier.get("unknown_head_scale", 1.0), (int, float))
+                or not math.isfinite(classifier.get("unknown_head_scale", 1.0))
+                or classifier.get("unknown_head_scale", 1.0) < 0):
+            raise CandidateError("RBF unknown head configuration is invalid")
+    else:
+        raise CandidateError("model classifier family is invalid")
+    expected_bias = len(SUPPORTED_LABELS) + int(family == "rbf_kernel_ridge" and model.get("classifier", {}).get("unknown_head", False))
+    if len(model.get("bias", [])) != expected_bias:
         raise CandidateError("model bias has invalid shape")
     numeric = (model["normalizer"]["mean"] + model["normalizer"]["scale"] +
-               [v for row in model["weights"] for v in row] + model["bias"])
+               [v for row in model["weights"] for v in row] + model["bias"] +
+               ([v for row in model["support_vectors"] for v in row] if family == "rbf_kernel_ridge" else []))
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in numeric):
         raise CandidateError("model contains non-finite numeric parameters")
 
@@ -363,14 +429,49 @@ def predict(model: dict[str, Any], image: np.ndarray, mask: np.ndarray) -> dict[
                      "top_margin": margin, "confidence_state": "calibrated"}
 
 
-def score(model: dict[str, Any], image: np.ndarray, mask: np.ndarray) -> dict[str, float]:
-    """Return raw class scores before thresholding for dev-only calibration."""
+def score_with_diagnostics(model: dict[str, Any], image: np.ndarray, mask: np.ndarray) -> dict[str, Any]:
+    """Return supported scores plus the separate unknown head score when available."""
     _validate_model(model)
     full_feature = _features(image, mask)
     feature = np.asarray([full_feature[i] for i in model["feature_contract"]["feature_indices"]], dtype=np.float64)
     mean = np.asarray(model["normalizer"]["mean"]); scale = np.asarray(model["normalizer"]["scale"])
-    logits = ((feature - mean) / scale) @ np.asarray(model["weights"]) + np.asarray(model["bias"])
-    return {label: float(logits[i]) for i, label in enumerate(model["label_order"])}
+    normalized = (feature - mean) / scale
+    if model.get("classifier", {}).get("family", "linear_ridge") == "rbf_kernel_ridge":
+        support = np.asarray(model["support_vectors"], dtype=np.float64)
+        distance = np.sum((support - normalized[None, :]) ** 2, axis=1)
+        kernel = np.exp(-float(model["classifier"]["gamma"]) * distance)
+        raw = kernel @ np.asarray(model["weights"]) + np.asarray(model["bias"])
+        supported = raw[:len(SUPPORTED_LABELS)]
+        unknown_head_score = float(raw[-1]) if model["classifier"].get("unknown_head", False) else None
+        if unknown_head_score is not None:
+            logits = supported - float(model["classifier"].get("unknown_head_scale", 1.0)) * unknown_head_score
+        else:
+            logits = raw
+    else:
+        logits = normalized @ np.asarray(model["weights"]) + np.asarray(model["bias"])
+        supported = logits
+        unknown_head_score = None
+    return {"scores": {label: float(logits[i]) for i, label in enumerate(model["label_order"])},
+            "raw_supported_scores": {label: float(supported[i]) for i, label in enumerate(model["label_order"])},
+            "unknown_head_score": unknown_head_score}
+
+
+def score(model: dict[str, Any], image: np.ndarray, mask: np.ndarray) -> dict[str, float]:
+    """Return raw class scores before thresholding for dev-only calibration."""
+    return score_with_diagnostics(model, image, mask)["scores"]
+
+
+def score_views(model: dict[str, Any], views: Iterable[dict[str, Any]]) -> dict[str, float]:
+    """Pool same-region masked observations before making one identity assertion."""
+    observations = list(views)
+    if not observations:
+        raise CandidateError("at least one topology-bound region view is required")
+    logits = [score(model, row["image"], row["mask"]) for row in observations
+              if isinstance(row, dict) and isinstance(row.get("image"), np.ndarray)
+              and isinstance(row.get("mask"), np.ndarray)]
+    if len(logits) != len(observations):
+        raise CandidateError("each region view must include an RGB image and topology mask")
+    return {label: float(np.mean([row[label] for row in logits])) for label in model["label_order"]}
 
 
 def save_model(model: dict[str, Any], path: Path) -> str:

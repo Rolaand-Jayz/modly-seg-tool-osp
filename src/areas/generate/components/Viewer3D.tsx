@@ -1116,6 +1116,7 @@ export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmo
   const setStoreMeshStats = useAppStore((s) => s.setMeshStats)
   const meshStats = useAppStore((s) => s.meshStats)
   const setCurrentJob = useAppStore((s) => s.setCurrentJob)
+  const updateCurrentJob = useAppStore((s) => s.updateCurrentJob)
 
   const [viewMode, setViewMode] = useState<ViewMode>('solid')
   const [autoRotate, setAutoRotate] = useState(false)
@@ -1133,6 +1134,16 @@ export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmo
   const [seamDraftFaceIds, setSeamDraftFaceIds] = useState<number[]>([])
   const [seamSourceFaceIdsForViewer, setSeamSourceFaceIdsForViewer] = useState<number[]>([])
   const [seamDestinationFaceIdsForViewer, setSeamDestinationFaceIdsForViewer] = useState<number[]>([])
+  const reopenStructuredExport = useCallback((geometryPath: string, structuredSidecarPath: string) => {
+    const safeWorkspaceUrl = (path: string): string | null => {
+      const parts = path.split('/')
+      if (!path || path.startsWith('/') || parts.some((part) => !part || part === '.' || part === '..')) return null
+      return `/workspace/${parts.map(encodeURIComponent).join('/')}`
+    }
+    const geometryUrl = safeWorkspaceUrl(geometryPath)
+    if (!geometryUrl || !safeWorkspaceUrl(structuredSidecarPath)) return
+    updateCurrentJob({ outputUrl: geometryUrl, structuredAssetPath: structuredSidecarPath })
+  }, [updateCurrentJob])
   const handlePickFace = useCallback((faceId: number) => {
     setPickedFaceIds((current) => current.includes(faceId) ? current : [...current, faceId].sort((a, b) => a - b))
   }, [])
@@ -1388,6 +1399,7 @@ export default function Viewer3D({ lightSettings = DEFAULT_LIGHT_SETTINGS, gizmo
             onHighlightSeamSource={setSeamSourceFaceIdsForViewer}
             onHighlightSeamDestination={setSeamDestinationFaceIdsForViewer}
             seamBoundaryAvailable={seamBoundaryAvailable}
+            onOpenExport={reopenStructuredExport}
           />
         )}
         {modelUrl && currentJob?.structuredAssetPath && <StageTelemetryPanel stages={stageTelemetry} />}

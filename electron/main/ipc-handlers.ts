@@ -1,8 +1,8 @@
 import { ipcMain, BrowserWindow, Notification, dialog, app, shell } from 'electron'
 import { buildSync } from 'esbuild'
 import { autoUpdater } from 'electron-updater'
-import { join } from 'path'
-import { rm as rmAsync, readFile, writeFile, mkdir, readdir, rename, cp, symlink, lstat } from 'fs/promises'
+import { join, relative, sep } from 'path'
+import { rm as rmAsync, readFile, writeFile, mkdir, readdir, rename, cp, symlink, lstat, realpath } from 'fs/promises'
 import { existsSync, mkdirSync, readdirSync, statSync } from 'fs'
 import axios from 'axios'
 import * as tar from 'tar'
@@ -59,6 +59,7 @@ import { registerWorkspaceAssetLibraryIpcHandlers } from './artifact-registry-se
 import { updatesSupported } from './updater'
 import { validateStructuredAssetCapabilities } from '../../src/shared/types/structuredAssetCapability'
 import { stageWorkspaceMeshFile } from './workspace-mesh-staging.mjs'
+import { structuredStageCacheKey, readStructuredStageCache, writeStructuredStageCache, resolveWorkspaceStructuredAsset } from './structured-stage-cache'
 
 type WindowGetter = () => BrowserWindow | null
 const pExecFile = promisify(execFile)
@@ -1784,6 +1785,7 @@ export function setupIpcHandlers(pythonBridge: PythonBridge, getWindow: WindowGe
       const manifestRaw = await readFile(join(extDir, 'manifest.json'), 'utf-8')
       const manifest    = JSON.parse(manifestRaw) as ParsedManifest
       if (manifest.type !== 'process') return { success: false, error: `Extension "${extensionId}" is not a process extension` }
+      const descriptors = validateStructuredAssetCapabilities(manifest.capabilities)
 
       const authorizedParams = await authorizeProcessRunParams(
         extensionId,
@@ -1812,6 +1814,40 @@ export function setupIpcHandlers(pythonBridge: PythonBridge, getWindow: WindowGe
 
       const entry           = manifest.entry ?? 'processor.js'
       const isPythonEntry   = entry.endsWith('.py')
+
+      // Cache only unambiguous, registered Structured Asset capability nodes.
+      // Legacy nodes and extensions declaring multiple capabilities continue
+      // through the ordinary runner without cache behavior.
+      const declaredNode = manifest.nodes?.filter(node => node.id === input?.nodeId) ?? []
+      const cacheDescriptor = isBuiltinExtension && descriptors && descriptors.length === 1 && declaredNode.length === 1
+        && manifest.nodes?.length === 1
+        && descriptors[0].inputs.includes('structured-asset')
+        && descriptors[0].outputs.length === 1 && descriptors[0].outputs[0] === 'structured-asset'
+        && descriptors[0].capability_id === 'validate-structured-asset' ? descriptors[0] : undefined
+      const cacheRequest = cacheDescriptor ? {
+        workspaceDir, extensionDir: extDir, extensionId,
+        nodeId: input?.nodeId ?? '', descriptor: cacheDescriptor,
+        inputSidecarPath: await resolveWorkspaceStructuredAsset(workspaceDir, input?.structuredAssetPath) ?? undefined,
+        params: authorizedParams,
+        builtin: isBuiltinExtension,
+        pythonEntry: isPythonEntry,
+        hostVersion: app.getVersion(),
+        validateAsset: async (sidecarPath: string) => {
+          const safePath = await resolveWorkspaceStructuredAsset(workspaceDir, sidecarPath)
+          if (!safePath) return null
+          const relativePath = relative(await realpath(workspaceDir), safePath).split(sep).join('/')
+          try {
+            const response = await axios.post(`${API_BASE_URL}/structured-assets/validate`, { sidecar_path: relativePath }, { timeout: 30_000 })
+            return response.data as Record<string, unknown>
+          } catch { return null }
+        },
+      } : undefined
+      const cacheKey = cacheRequest ? await structuredStageCacheKey(cacheRequest).catch(() => null) : null
+      if (cacheRequest && cacheKey) {
+        const cached = await readStructuredStageCache(cacheRequest, cacheKey)
+        if (cached) return { success: true, result: { ...cached.result, cacheReuse: cached.cache } }
+      }
+
       const userData        = app.getPath('userData')
 
       let runner
@@ -1826,7 +1862,14 @@ export function setupIpcHandlers(pythonBridge: PythonBridge, getWindow: WindowGe
       }
 
       const result = await runner.run(input, authorizedParams)
-      return { success: true, result }
+      let cacheReuse: Record<string, unknown> | undefined
+      if (cacheRequest && cacheKey && result?.structuredAssetPath) {
+        const outputPath = await resolveWorkspaceStructuredAsset(workspaceDir, result.structuredAssetPath)
+        if (outputPath && await writeStructuredStageCache(cacheRequest, cacheKey, result as Record<string, unknown>, outputPath)) {
+          cacheReuse = { state: 'miss-stored', key: cacheKey }
+        }
+      }
+      return { success: true, result: cacheReuse ? { ...result, cacheReuse } : result }
     } catch (err) {
       const telemetry = err && typeof err === 'object' && 'telemetry' in err
         ? (err as { telemetry: Record<string, unknown> }).telemetry : undefined

@@ -299,3 +299,9 @@ Structured Asset region IDs remain the existing digest of topology revision
 and exact face membership. This representation correction preserves the
 same disjoint face partition and identity evidence; it changes no quality,
 coverage, repeatability, latency, memory, or unsupported-geometry threshold.
+
+The first-convolution path applies the project's live-free VRAM budget before
+loading the diagnostic model and records that budget in the lifecycle report.
+The cap is limited to the PyTorch caching allocator; it is not a hardware GPU
+partition and cannot guarantee isolation from desktop GPU demand. The workspace
+pause marker still blocks execution until the controlled-run policy is cleared.
