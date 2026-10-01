@@ -460,14 +460,7 @@ SHA-256 is
 `16785f905e0e3f24074c6e451311d3f38d25b8a5e032ca110278e30e18541d1e`. Evidence:
 `api/runtime/adapters/parts/evidence/TICKET04_FINITE_FEATURE_RETRY_CANDIDATE_2026-09-28.md`.
 
-For the requested car development work, a deterministic 656-triangle
-procedural car-like mesh now has topology-bound face labels for body, cabin,
-window, tire, rim, and headlight regions. It uses no external asset or source
-image and is expressly not inference or acceptance evidence. It can support
-fixture, mapping, and later viewer seam-edit development; it is not a realistic
-automotive benchmark. Its recipe, file hashes, geometry digest, and topology
-revision are in `api/runtime/adapters/parts/fixtures/car-development/`.
-Ticket 04's frozen acceptance fixture set is unchanged.
+Historical note: the procedural 656-face car described in the original run record below was a poor vehicle example. Its fixture, labels, generated model, and saved preview were deleted on 2026-10-01 at the user's direction. It is not part of the current workspace and must not be recreated or used. The user-provided realistic SUV is the intended car sample.
 
 The first registered target run with the opt-in retry candidate completed its
 segmentation stage on the RX 7900 GRE and wrote 48 digest-valid artifacts, but
@@ -603,10 +596,9 @@ faces to label 29, producing one canonical region. Truth stayed sealed and no
 quality score was made. Exact hashes, resources, and status:
 `api/runtime/adapters/parts/evidence/TICKET04_FROZEN_FIXTURE_RUN3_2026-09-28.md`.
 No gate changed.
-### Compacted proposal trace live recheck on the synthetic car (2026-09-28)
+### Historical compacted proposal trace on the retired synthetic car (2026-09-28)
 
-The current compacted trace helper was exercised on a second run of the same
-656-face procedural car and same topology revision on the RX 7900 GRE. The
+Historical run record only: the compacted trace helper was exercised on a second run of the same 656-face procedural car and topology revision on the RX 7900 GRE. That vehicle fixture and its saved model/preview were deleted on 2026-10-01. The
 workflow completed in 507,446 ms using PyTorch ROCm; reported peak allocated /
 reserved VRAM was 13,628,366,336 / 13,864,271,872 bytes. The 36,959-byte report
 fits below the 49,152-byte cap and verifies the current helper lock, but is
@@ -654,3 +646,13 @@ CPU-only Podman container test passed, but no monitored inference stop has yet
 validated the new cgroup cleanup path. Evidence and partial-run limits are in
 `api/runtime/adapters/parts/evidence/TICKET04_SUV_VRAM_RESERVE_STOP_AND_CONTAINER_CLEANUP_2026-10-01.md`.
 The GPU candidate remains unqualified; no acceptance gate changed.
+
+
+### Rejected procedural car fixture retired (2026-10-01)
+
+The 656-face procedural car fixture and its saved preview/evidence bundle were
+deleted at the user's direction because the model was not a realistic vehicle.
+Do not use or recreate it as a car example. Historical measurements above are
+retained only as an account of earlier exploratory runs, not as current assets
+or acceptance evidence. The user-provided realistic SUV remains the intended
+vehicle sample; its segmentation quality gate is still open.

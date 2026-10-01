@@ -1,13 +1,12 @@
 # Ticket 12 authored golden fixture package
 
 Versioned CPU-side reference index for acceptance fixture construction. The
-package reuses the procedural car development mesh by digest and carries a
-small self-contained NPZ with the synthetic three-region PBR fixture's authored
-truth maps, region IDs, and plane geometry. The local PBR archive excludes
-rendered observations and runtime/model outputs. It adds explicit
-unknown/ambiguous contract oracles and a deterministic topology invalidation
-case. It contains no neural predictions, SUV content, weights, or acceptance
-run results.
+package carries a small self-contained NPZ with the synthetic three-region
+PBR fixture's authored truth maps, region IDs, and plane geometry. The local PBR archive excludes
+rendered observations and runtime/model outputs. It adds explicit unknown/ambiguous contract oracles and a deterministic
+topology invalidation contract with no vehicle-mesh dependency. It contains no neural predictions, vehicle content, weights, or acceptance
+run results. The rejected procedural car fixture and its preview were deleted;
+the realistic user-provided SUV still needs authored topology-bound truth.
 
 `manifest.json` records each source, its provenance, the defensible oracle, and
 cases that remain omitted because no checked truth asset currently exists.

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { buildSeamCorrectionPreview, type SeamRegionMapping } from './seamCorrectionPreview'
 
-const revision = 'sha256:synthetic-car-topology-r1'
+const revision = 'sha256:synthetic-mesh-topology-r1'
 const source: SeamRegionMapping = { region_id: 'car-door', mapping: {
   topology_revision: revision, state: 'valid', element_type: 'face', element_ids: [3, 4, 5, 6],
 } }
@@ -10,7 +10,7 @@ const destination: SeamRegionMapping = { region_id: 'car-fender', mapping: {
   topology_revision: revision, state: 'valid', element_type: 'face', element_ids: [7, 8],
 } }
 
-test('previews exact synthetic car seam membership without changing the input mappings', () => {
+test('previews exact seam membership without changing the input mappings', () => {
   const before = structuredClone({ source, destination })
   const preview = buildSeamCorrectionPreview({ topologyRevision: revision, topologyFaceCount: 10,
     viewerFaceCount: 10, source, destination, movedFaceIds: [5, 4, 5] })

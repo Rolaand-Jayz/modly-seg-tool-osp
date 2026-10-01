@@ -39,10 +39,8 @@ model learned. The current ticket dependency on Ticket 12 remains unchanged.
 The source-backed schema/UI gap review is in
 `docs/orchestration/ticket13-seam-edit-design-gap-audit-2026-09-28.md`.
 
-The currently available car test asset is the explicitly synthetic development
-fixture at `api/runtime/adapters/parts/fixtures/car-development/`. It has
-topology-bound per-face labels but is a simple overlapping-primitives mesh,
-not a realistic automotive benchmark or generated model result. It has not yet
-been rendered or loaded into the Modly viewer. The viewer interaction remains
-blocked until Ticket 12 passes; this fixture is preparation only and does not
-change that dependency.
+The prior procedural test car and its saved preview were deleted on 2026-10-01
+at the user's direction because they did not represent a realistic vehicle. Do
+not recreate or use that fixture. Use the user's realistic SUV for the car
+workflow; its current segmentation and editable seam correction remain
+unaccepted. This ticket stays blocked until Ticket 12 passes.

@@ -23,29 +23,14 @@ class Ticket12GoldenFixtureTests(unittest.TestCase):
     def test_manifest_schema_and_truth_coverage_are_explicit(self) -> None:
         self.assertEqual(self.doc["schema"], "modly.ticket12-golden-fixtures.v1")
         self.assertEqual(self.doc["status"], "fixture-package-only-not-ticket-acceptance")
-        self.assertGreaterEqual(len(self.cases), 6)
+        self.assertEqual(len(self.cases), 5)
+        self.assertNotIn("imported-known-multipart-car", self.cases)
         for case in self.doc["cases"]:
             self.assertTrue(case.get("oracle"), case["id"])
             self.assertTrue(case.get("covers"), case["id"])
         self.assertFalse(any(case.get("model_output") for case in self.doc["cases"]))
 
-    def test_reused_fixture_sources_match_pinned_digests(self) -> None:
-        car = self.cases["imported-known-multipart-car"]
-        car_root = (FIXTURE_DIR / car["source"]).resolve()
-        self.assertTrue(car_root.is_relative_to(ROOT.resolve()))
-        self.assertEqual(hashlib.sha256((car_root / car["source_manifest"]).read_bytes()).hexdigest(),
-                         car["source_manifest_sha256"])
-        car_manifest = json.loads((car_root / car["source_manifest"]).read_text(encoding="utf-8"))
-        for key in ("mesh", "face_labels"):
-            entry = car_manifest["files"][key]
-            self.assertEqual(hashlib.sha256((car_root / entry["path"]).read_bytes()).hexdigest(),
-                             entry["sha256"].removeprefix("sha256:"), entry["path"])
-        labels_doc = json.loads((car_root / car_manifest["files"]["face_labels"]["path"]).read_text(encoding="utf-8"))
-        self.assertEqual(labels_doc["face_count"], car_manifest["face_count"])
-        self.assertEqual(labels_doc["geometry_digest"], car_manifest["geometry_digest"])
-        self.assertEqual(labels_doc["topology_revision"], car_manifest["topology_revision"])
-        self.assertEqual(len(labels_doc["labels"]), car_manifest["face_count"])
-
+    def test_pbr_fixture_source_matches_pinned_digest(self) -> None:
         pbr = self.cases["known-pbr-three-region-plane"]
         pbr_path = FIXTURE_DIR / pbr["source"]
         self.assertEqual(hashlib.sha256(pbr_path.read_bytes()).hexdigest(), pbr["source_sha256"])
@@ -66,10 +51,7 @@ class Ticket12GoldenFixtureTests(unittest.TestCase):
             self.assertEqual(len(self.cases[key]["expected"]["candidate_labels"]), 2)
 
     def test_topology_revision_change_invalidates_old_mapping(self) -> None:
-        car_root = (FIXTURE_DIR / self.cases["imported-known-multipart-car"]["source"]).resolve()
-        car_manifest = json.loads((car_root / "manifest.json").read_text(encoding="utf-8"))
-        labels_doc = json.loads((car_root / car_manifest["files"]["face_labels"]["path"]).read_text(encoding="utf-8"))
-        original_face_table = list(range(labels_doc["face_count"]))
+        original_face_table = list(range(8))
         changed_face_table = original_face_table + [labels_doc["face_count"]]
         revision = lambda table: "sha256:" + hashlib.sha256(
             b"".join(int(face).to_bytes(4, "little", signed=True) for face in table)
@@ -77,7 +59,6 @@ class Ticket12GoldenFixtureTests(unittest.TestCase):
         original_revision = revision(original_face_table)
         changed_revision = revision(changed_face_table)
         self.assertNotEqual(original_revision, changed_revision)
-        self.assertNotEqual(labels_doc["topology_revision"], changed_revision)
         self.assertFalse(self.cases["topology-revision-invalidates-old-mapping"]["expected"][
             "old_mapping_valid_for_mutated_topology"])
 
